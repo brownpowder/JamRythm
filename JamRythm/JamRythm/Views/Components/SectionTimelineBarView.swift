@@ -305,7 +305,7 @@ struct SectionTimelineBarView: View {
     private var addSectionButton: some View {
         Menu {
             ForEach(ProgressionTemplate.allTemplates) { template in
-                Button("\(template.name) で追加") {
+                Button(template.name) {
                     viewModel.addSection(template: template)
                 }
             }
