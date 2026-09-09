@@ -10,9 +10,9 @@ import SwiftUI
 // MARK: - 表示モード列挙型
 
 enum ScoreDisplayMode: String, CaseIterable, Identifiable {
-    case tab = "🎸 コードTAB"
-    case scale = "🗺️ スケール指板"
-    case staff = "🎼 五線譜"
+    case tab = "TAB"
+    case scale = "スケール"
+    case staff = "五線譜"
 
     var id: String { rawValue }
 }
