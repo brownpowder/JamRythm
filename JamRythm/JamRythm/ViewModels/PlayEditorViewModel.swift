@@ -359,6 +359,23 @@ final class PlayEditorViewModel: ObservableObject {
     }
 
     /*
+    現在編集対象となっている小節の次の小節のコードを返す。
+    末尾小節の場合はループ先である先頭小節のコードを返す。
+
+    Arguments:
+    なし
+
+    Usage:
+    ChordCustomizerSheetViewでセカンダリードミナント等の解決先判定に使用される。
+    */
+
+    var editingNextChord: Chord? {
+        guard let measures = activeSection?.measures, !measures.isEmpty else { return nil }
+        let nextIndex = (currentMeasureIndex + 1) % measures.count
+        return measures[nextIndex].activeChord
+    }
+
+    /*
     指定されたコードの構成音をピアノ音源（piano1: 007）でプレビュー再生する。
 
     Arguments:

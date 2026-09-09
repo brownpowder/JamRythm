@@ -122,7 +122,8 @@ struct ChordCustomizerSheetView: View {
             chord: builtChord,
             key: viewModel.project.key,
             baseDegree: viewModel.editingBaseDegree,
-            originalChord: viewModel.editingOriginalChord
+            originalChord: viewModel.editingOriginalChord,
+            nextChord: viewModel.editingNextChord
         )
 
         return VStack(spacing: 10) {
@@ -289,7 +290,8 @@ struct ChordCustomizerSheetView: View {
                     chord: testChord,
                     key: viewModel.project.key,
                     baseDegree: viewModel.editingBaseDegree,
-                    originalChord: viewModel.editingOriginalChord
+                    originalChord: viewModel.editingOriginalChord,
+                    nextChord: viewModel.editingNextChord
                 )
 
                 Button(action: {
@@ -422,10 +424,10 @@ struct ChordCustomizerSheetView: View {
 
     private func compatibilityColor(_ comp: HarmonicCompatibility) -> Color {
         switch comp {
-        case .verySmooth: return .green
-        case .smooth: return .purple
+        case .verySmooth: return .accentColor
+        case .dramatic: return .purple
         case .flavorful: return .orange
-        case .dissonant: return .secondary
+        case .abstract: return .secondary
         }
     }
 
@@ -448,9 +450,9 @@ struct ChordCustomizerSheetView: View {
         }
         switch comp {
         case .verySmooth: return Color.accentColor.opacity(0.35)
-        case .smooth: return Color.accentColor.opacity(0.18)
+        case .dramatic: return Color.accentColor.opacity(0.18)
         case .flavorful: return Color.accentColor.opacity(0.08)
-        case .dissonant: return Color(uiColor: .secondarySystemGroupedBackground)
+        case .abstract: return Color(uiColor: .secondarySystemGroupedBackground)
         }
     }
 
@@ -473,9 +475,9 @@ struct ChordCustomizerSheetView: View {
         }
         switch comp {
         case .verySmooth: return Color.accentColor.opacity(0.70)
-        case .smooth: return Color.accentColor.opacity(0.40)
+        case .dramatic: return Color.accentColor.opacity(0.40)
         case .flavorful: return Color.accentColor.opacity(0.20)
-        case .dissonant: return Color.secondary.opacity(0.12)
+        case .abstract: return Color.secondary.opacity(0.12)
         }
     }
 
@@ -499,9 +501,9 @@ struct ChordCustomizerSheetView: View {
         }
         switch comp {
         case .verySmooth: return Color.accentColor.opacity(0.35)
-        case .smooth: return Color.accentColor.opacity(0.18)
+        case .dramatic: return Color.accentColor.opacity(0.18)
         case .flavorful: return Color.accentColor.opacity(0.08)
-        case .dissonant: return Color(uiColor: .secondarySystemGroupedBackground)
+        case .abstract: return Color(uiColor: .secondarySystemGroupedBackground)
         }
     }
 
@@ -525,9 +527,9 @@ struct ChordCustomizerSheetView: View {
         }
         switch comp {
         case .verySmooth: return Color.accentColor.opacity(0.70)
-        case .smooth: return Color.accentColor.opacity(0.40)
+        case .dramatic: return Color.accentColor.opacity(0.40)
         case .flavorful: return Color.accentColor.opacity(0.20)
-        case .dissonant: return Color.secondary.opacity(0.12)
+        case .abstract: return Color.secondary.opacity(0.12)
         }
     }
 }

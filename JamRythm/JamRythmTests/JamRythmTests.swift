@@ -971,7 +971,7 @@ struct JamRythmTests {
     @Test func testChordCompatibilityCalculation() throws {
         let service = MusicTheoryService()
 
-        // ダイアトニック王道コード (Key C)
+        // ダイアトニック王道コード (Key C) -> .verySmooth
         let cMaj7 = Chord(rootNote: "C", type: "maj7", bassNote: nil)
         #expect(service.chordCompatibility(chord: cMaj7, key: .C, baseDegree: 1, originalChord: nil) == .verySmooth)
 
@@ -981,39 +981,86 @@ struct JamRythmTests {
         let g7 = Chord(rootNote: "G", type: "7", bassNote: nil)
         #expect(service.chordCompatibility(chord: g7, key: .C, baseDegree: 5, originalChord: nil) == .verySmooth)
 
-        // セカンダリードミナント (A7 -> Dm, D7 -> G, E7 -> Am, C7 -> F)
-        let a7 = Chord(rootNote: "A", type: "7", bassNote: nil)
-        #expect(service.chordCompatibility(chord: a7, key: .C, baseDegree: 6, originalChord: nil) == .smooth)
-
-        let c7 = Chord(rootNote: "C", type: "7", bassNote: nil)
-        #expect(service.chordCompatibility(chord: c7, key: .C, baseDegree: 1, originalChord: nil) == .smooth)
-
-        // サブドミナントマイナー (Fm, Fm7)
+        // サブドミナントマイナー (Fm, Fm7) -> .dramatic (エモい)
         let fm = Chord(rootNote: "F", type: "m", bassNote: nil)
-        #expect(service.chordCompatibility(chord: fm, key: .C, baseDegree: 4, originalChord: nil) == .smooth)
+        #expect(service.chordCompatibility(chord: fm, key: .C, baseDegree: 4, originalChord: nil) == .dramatic)
 
-        // 裏コード (Db7)
+        // モーダルインターチェンジ借用和音 (Ab, Bb) -> .dramatic
+        let abMaj7 = Chord(rootNote: "A♭", type: "maj7", bassNote: nil)
+        #expect(service.chordCompatibility(chord: abMaj7, key: .C, baseDegree: 1, originalChord: nil) == .dramatic)
+
+        // 裏コード (Db7) -> .flavorful (スパイス)
         let db7 = Chord(rootNote: "D♭", type: "7", bassNote: nil)
         #expect(service.chordCompatibility(chord: db7, key: .C, baseDegree: 2, originalChord: nil) == .flavorful)
     }
 
     /*
-    ViewModelの編集対象小節情報（editingOriginalChord, editingBaseDegree）の取得を検証する。
+    次の小節のコードに応じたドミナントモーション解決（文脈判定）の精度を検証する。
+    E7 -> Am や D7 -> G は .verySmooth に昇格し、解決しない場合は .flavorful に留まることを担保する。
+    */
+    @Test func testDominantMotionContextResolution() throws {
+        let service = MusicTheoryService()
+
+        let e7 = Chord(rootNote: "E", type: "7", bassNote: nil)
+        let am = Chord(rootNote: "A", type: "m", bassNote: nil)
+        let g = Chord(rootNote: "G", type: "", bassNote: nil)
+
+        // 次が Am (E7 -> Am は完全4度上解決) -> .verySmooth に昇格！
+        let resolvedScore = service.chordCompatibility(
+            chord: e7,
+            key: .C,
+            baseDegree: 3,
+            originalChord: nil,
+            nextChord: am
+        )
+        #expect(resolvedScore == .verySmooth)
+
+        // 次が G (E7 -> G は解決しない唐突なセブンス) -> .flavorful (スパイス)
+        let unresolvedScore = service.chordCompatibility(
+            chord: e7,
+            key: .C,
+            baseDegree: 3,
+            originalChord: nil,
+            nextChord: g
+        )
+        #expect(unresolvedScore == .flavorful)
+
+        // D7 -> G (次がGならツーファイブ解決) -> .verySmooth
+        let d7 = Chord(rootNote: "D", type: "7", bassNote: nil)
+        let d7Score = service.chordCompatibility(
+            chord: d7,
+            key: .C,
+            baseDegree: 2,
+            originalChord: nil,
+            nextChord: g
+        )
+        #expect(d7Score == .verySmooth)
+    }
+
+    /*
+    ViewModelの編集対象小節情報（editingOriginalChord, editingBaseDegree, editingNextChord）の取得を検証する。
     */
     @Test @MainActor func testViewModelEditingMeasureProperties() async throws {
         let audioService = AudioService()
         let theoryService = MusicTheoryService()
         let viewModel = PlayEditorViewModel(audioService: audioService, theoryService: theoryService)
 
-        // 初期状態（1小節目: 王道進行IV-V-iii-viなら4度F）
+        // 初期状態（1小節目: 王道進行IV-V-iii-viなら4度F、次小節は5度G）
         #expect(viewModel.editingBaseDegree == 4)
-        #expect(viewModel.editingOriginalChord != nil)
         #expect(viewModel.editingOriginalChord?.rootNote == "F")
+        #expect(viewModel.editingNextChord?.rootNote == "G")
 
-        // 2小節目（5度G）
-        viewModel.selectMeasure(inSection: 0, measureIndex: 1)
-        #expect(viewModel.editingBaseDegree == 5)
-        #expect(viewModel.editingOriginalChord?.rootNote == "G")
+        // 3小節目（3度Em、次小節は6度Am）
+        viewModel.selectMeasure(inSection: 0, measureIndex: 2)
+        #expect(viewModel.editingBaseDegree == 3)
+        #expect(viewModel.editingOriginalChord?.rootNote == "E")
+        #expect(viewModel.editingNextChord?.rootNote == "A")
+
+        // 4小節目（最終小節: 6度Am、次小節はループ先の1小節目 4度F）
+        viewModel.selectMeasure(inSection: 0, measureIndex: 3)
+        #expect(viewModel.editingBaseDegree == 6)
+        #expect(viewModel.editingOriginalChord?.rootNote == "A")
+        #expect(viewModel.editingNextChord?.rootNote == "F")
     }
 }
 

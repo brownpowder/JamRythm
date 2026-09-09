@@ -84,12 +84,16 @@ struct ScaleFretPosition: Identifiable, Equatable {
 濃淡による視覚的ガイド表示に利用される。
 */
 enum HarmonicCompatibility: Int, Comparable, CaseIterable, Identifiable {
-    case verySmooth = 3   // 最も濃い: ダイアトニック、基本和音、王道進行
-    case smooth = 2       // 中濃: セカンダリードミナント、サブドミナントマイナー、定番借用
-    case flavorful = 1    // 淡い: オルタード、テンションスパイス、裏コード
-    case dissonant = 0    // 無色: 衝突注意、不協和音
+    case verySmooth = 3   // 最も濃い: ダイアトニック、完全解決ドミナント（超自然・破綻ゼロ）
+    case dramatic = 2     // 中濃: ドラマチック (エモい借用・サブドミナントマイナー・進行のフック)
+    case flavorful = 1    // 淡い: スパイス (未解決ドミナント、裏コード、オルタード)
+    case abstract = 0     // 通常無色: 挑戦的 (アブストラクト・不協和音)
 
     var id: Int { rawValue }
+
+    // 既存コード互換エイリアス
+    static var smooth: HarmonicCompatibility { .dramatic }
+    static var dissonant: HarmonicCompatibility { .abstract }
 
     static func < (lhs: HarmonicCompatibility, rhs: HarmonicCompatibility) -> Bool {
         lhs.rawValue < rhs.rawValue
@@ -97,37 +101,37 @@ enum HarmonicCompatibility: Int, Comparable, CaseIterable, Identifiable {
 
     var badgeText: String {
         switch self {
-        case .verySmooth: return "とてもスムーズ"
-        case .smooth: return "スムーズ (エモい)"
-        case .flavorful: return "個性的 (スパイス)"
-        case .dissonant: return "挑戦的 (アブストラクト)"
+        case .verySmooth: return "✨ スムーズ (超自然)"
+        case .dramatic: return "💜 ドラマチック (エモい)"
+        case .flavorful: return "🔥 スパイス (個性派)"
+        case .abstract: return "挑戦的 (アブストラクト)"
         }
     }
 
     var badgeIcon: String {
         switch self {
         case .verySmooth: return "sparkles"
-        case .smooth: return "heart.fill"
+        case .dramatic: return "heart.fill"
         case .flavorful: return "flame.fill"
-        case .dissonant: return "questionmark"
+        case .abstract: return "questionmark"
         }
     }
 
     var colorOpacity: Double {
         switch self {
         case .verySmooth: return 0.38
-        case .smooth: return 0.20
+        case .dramatic: return 0.20
         case .flavorful: return 0.08
-        case .dissonant: return 0.0
+        case .abstract: return 0.0
         }
     }
 
     var strokeOpacity: Double {
         switch self {
         case .verySmooth: return 0.70
-        case .smooth: return 0.40
+        case .dramatic: return 0.40
         case .flavorful: return 0.20
-        case .dissonant: return 0.0
+        case .abstract: return 0.0
         }
     }
 }
@@ -168,7 +172,7 @@ protocol MusicTheoryServiceProtocol {
     func rootCompatibility(root: String, key: Key, baseDegree: Int) -> HarmonicCompatibility
 
     /*
-    指定されたKey、ベース度数、元のコードに対して、指定コードが和声的にどれだけスムーズに調和するかを判定する。
+    指定されたKey、ベース度数、元のコード、次の小節コードに対して、指定コードが和声的にどれだけスムーズに調和するかを判定する。
     
     Arguments:
     chord
@@ -179,11 +183,19 @@ protocol MusicTheoryServiceProtocol {
       現在の小節の度数（1〜7）。
     originalChord
       編集前の元の小節コード。
+    nextChord
+      次の小節のコード（セカンダリードミナント等の解決先判定用）。
     
     Usage:
     ChordCustomizerSheetViewのコードタイプボタンの濃淡表示やプレビューバッジ表示に利用される。
     */
-    func chordCompatibility(chord: Chord, key: Key, baseDegree: Int, originalChord: Chord?) -> HarmonicCompatibility
+    func chordCompatibility(
+        chord: Chord,
+        key: Key,
+        baseDegree: Int,
+        originalChord: Chord?,
+        nextChord: Chord?
+    ) -> HarmonicCompatibility
 
     /*
     指定されたKeyとベース度数に対して、4つの感情ラベル（安定、少し切ない、おしゃれ、緊張感）に応じたコード候補を算出する。
@@ -294,6 +306,38 @@ extension MusicTheoryServiceProtocol {
     
     func calculateSubstituteCandidates(key: Key, baseDegree: Int) -> [SubstituteCandidate] {
         return calculateSubstituteCandidates(key: key, baseDegree: baseDegree, excludingChords: [])
+    }
+
+    /*
+    nextChordを省略した場合にnilを渡す互換デフォルト実装。
+
+    Arguments:
+    chord
+      Chordオブジェクト。
+    key
+      基準調。
+    baseDegree
+      現在の小節の度数。
+    originalChord
+      編集前の元の小節コード。
+
+    Usage:
+    次の小節を参照しない簡易呼び出しで使用される。
+    */
+
+    func chordCompatibility(
+        chord: Chord,
+        key: Key,
+        baseDegree: Int,
+        originalChord: Chord?
+    ) -> HarmonicCompatibility {
+        return chordCompatibility(
+            chord: chord,
+            key: key,
+            baseDegree: baseDegree,
+            originalChord: originalChord,
+            nextChord: nil
+        )
     }
 }
 
@@ -1190,11 +1234,32 @@ final class MusicTheoryService: MusicTheoryServiceProtocol {
     ChordCustomizerSheetViewのコードタイプ選択ボタンの濃淡表示やプレビューバッジ表示に利用される。
     */
 
+    /*
+    Key、度数、元のコード、次のコードに対して、指定コードが和声的にどれだけスムーズに調和するかを判定する。
+    次の小節のコードへのドミナントモーション解決（完全4度上への進行）を考慮する。
+
+    Arguments:
+    chord
+      判定対象のChordオブジェクト。
+    key
+      楽曲の基準調。
+    baseDegree
+      現在の小節の度数（1〜7）。
+    originalChord
+      編集前の元の小節コード。
+    nextChord
+      次の小節のコード（セカンダリードミナント等の解決先判定用）。
+
+    Usage:
+    ChordCustomizerSheetViewのコードタイプ選択ボタンの濃淡表示やプレビューバッジ表示に利用される。
+    */
+
     func chordCompatibility(
         chord: Chord,
         key: Key,
         baseDegree: Int,
-        originalChord: Chord?
+        originalChord: Chord?,
+        nextChord: Chord?
     ) -> HarmonicCompatibility {
         if let original = originalChord, chord.rootNote == original.rootNote && chord.type == original.type {
             return .verySmooth
@@ -1211,15 +1276,65 @@ final class MusicTheoryService: MusicTheoryServiceProtocol {
             baseScore = borrowedChordCompatibility(relSemi: relSemi, type: chord.type)
         }
 
+        // 次の小節へのドミナントモーション解決判定（完全4度上 = 半音+5）
+        baseScore = evaluateDominantResolution(
+            chord: chord,
+            rootSemi: rSemi,
+            currentScore: baseScore,
+            nextChord: nextChord
+        )
+
+        // オンコード（分数コード）指定時のベース音親和性評価
         if let bass = chord.bassNote, !bass.isEmpty {
             let bSemi = Key.semitone(forNoteName: bass)
             let bRelSemi = ((bSemi - key.semitoneOffset) % 12 + 12) % 12
             if !diatonicRelSemitones.contains(bRelSemi) && baseScore == .verySmooth {
-                baseScore = .smooth
+                baseScore = .dramatic
             }
         }
 
         return baseScore
+    }
+
+    /*
+    次の小節に対するドミナントモーション解決の成否を評価し、親和性スコアを調整する。
+
+    Arguments:
+    chord
+      判定対象コード。
+    rootSemi
+      コード根音の半音番号。
+    currentScore
+      現在の暫定スコア。
+    nextChord
+      次の小節のコード。
+
+    Usage:
+    chordCompatibility内部でセカンダリードミナントの解決評価に使用される。
+    */
+
+    private func evaluateDominantResolution(
+        chord: Chord,
+        rootSemi: Int,
+        currentScore: HarmonicCompatibility,
+        nextChord: Chord?
+    ) -> HarmonicCompatibility {
+        guard let next = nextChord else { return currentScore }
+        let isDominantType = ["7", "9", "13", "7(b9)", "7(#9)", "7sus4"].contains(chord.type)
+        guard isDominantType else { return currentScore }
+
+        let nextRootSemi = Key.semitone(forNoteName: next.rootNote)
+        let isDominantResolution = ((rootSemi + 5) % 12 == nextRootSemi)
+
+        if isDominantResolution {
+            // 次のコードに綺麗にドミナント解決する場合: 文句なしに最上位の「スムーズ」へ昇格！
+            return .verySmooth
+        } else if currentScore == .dramatic {
+            // ドミナントセブンスなのに解決先がない場合: 唐突さがあるためスパイスに分類
+            return .flavorful
+        }
+
+        return currentScore
     }
 
     /*
@@ -1239,37 +1354,37 @@ final class MusicTheoryService: MusicTheoryServiceProtocol {
         switch relSemi {
         case 0: // I (C)
             if ["", "maj7", "6", "add9", "maj9", "sus4", "sus2"].contains(type) { return .verySmooth }
-            if ["7", "9", "13", "m", "m7"].contains(type) { return .smooth }
+            if ["7", "9", "13", "m", "m7"].contains(type) { return .dramatic }
             return .flavorful
 
         case 2: // ii (Dm)
             if ["m", "m7", "m9", "m11", "7sus4", "sus4"].contains(type) { return .verySmooth }
-            if ["7", "9", "7(#9)", "add9"].contains(type) { return .smooth }
+            if ["7", "9", "7(#9)", "add9"].contains(type) { return .dramatic }
             return .flavorful
 
         case 4: // iii (Em)
             if ["m", "m7", "m9", "7sus4"].contains(type) { return .verySmooth }
-            if ["7", "7(b9)", "7(#9)"].contains(type) { return .smooth }
+            if ["7", "7(b9)", "7(#9)"].contains(type) { return .dramatic }
             return .flavorful
 
         case 5: // IV (F)
             if ["", "maj7", "6", "add9", "maj9", "7(#11)", "sus2"].contains(type) { return .verySmooth }
-            if ["m", "m7", "m6", "7"].contains(type) { return .smooth }
+            if ["m", "m7", "m6"].contains(type) { return .dramatic }
             return .flavorful
 
         case 7: // V (G)
             if ["", "7", "9", "13", "7sus4", "sus4", "7(b9)", "add9"].contains(type) { return .verySmooth }
-            if ["m", "m7"].contains(type) { return .smooth }
+            if ["m", "m7"].contains(type) { return .dramatic }
             return .flavorful
 
         case 9: // vi (Am)
             if ["m", "m7", "m9", "11", "m11", "7sus4", "m6"].contains(type) { return .verySmooth }
-            if ["7", "7(b9)", "7(#9)"].contains(type) { return .smooth }
+            if ["7", "7(b9)", "7(#9)"].contains(type) { return .dramatic }
             return .flavorful
 
         case 11: // vii° (Bm7b5)
             if ["m7b5", "dim", "dim7"].contains(type) { return .verySmooth }
-            if ["7", "7(b9)"].contains(type) { return .smooth }
+            if ["7", "7(b9)"].contains(type) { return .dramatic }
             return .flavorful
 
         default:
@@ -1293,27 +1408,27 @@ final class MusicTheoryService: MusicTheoryServiceProtocol {
     private func borrowedChordCompatibility(relSemi: Int, type: String) -> HarmonicCompatibility {
         switch relSemi {
         case 8: // bVI (Ab)
-            if ["", "maj7", "7", "add9", "9"].contains(type) { return .smooth }
+            if ["", "maj7", "7", "add9", "9"].contains(type) { return .dramatic }
             return .flavorful
 
         case 10: // bVII (Bb)
-            if ["", "7", "9", "add9", "maj7"].contains(type) { return .smooth }
+            if ["", "7", "9", "add9", "maj7"].contains(type) { return .dramatic }
             return .flavorful
 
         case 3: // bIII (Eb)
-            if ["", "maj7", "add9"].contains(type) { return .smooth }
+            if ["", "maj7", "add9"].contains(type) { return .dramatic }
             return .flavorful
 
         case 1: // bII (Db: 裏コード)
             if ["7", "9", "7(#11)"].contains(type) { return .flavorful }
-            return .dissonant
+            return .abstract
 
         case 6: // #IV (F#: パッシング)
             if ["dim", "dim7", "m7b5"].contains(type) { return .flavorful }
-            return .dissonant
+            return .abstract
 
         default:
-            return .dissonant
+            return .abstract
         }
     }
 }
