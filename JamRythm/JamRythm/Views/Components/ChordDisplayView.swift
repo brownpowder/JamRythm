@@ -25,6 +25,7 @@ struct ChordDisplayView: View {
     var onPrevious: (() -> Void)? = nil
     var onNext: (() -> Void)? = nil
     var onPlayChord: ((Chord) -> Void)? = nil
+    var onOpenCustomizer: (() -> Void)? = nil
 
     private let columns = [
         GridItem(.flexible(), spacing: 10),
@@ -41,7 +42,7 @@ struct ChordDisplayView: View {
             // 折りたたみ／展開トグルバー
             toggleCollapseButton
 
-            // 下段: コード候補（フレーバー候補 ＆ 代理コード）
+            // 下段: コード候補（フレーバー候補 ＆ 代理コード ＆ カスタム指定）
             if isExpanded {
                 choicesSection
 
@@ -50,6 +51,13 @@ struct ChordDisplayView: View {
                         .padding(.horizontal, 4)
 
                     substitutesSection
+                }
+
+                if onOpenCustomizer != nil {
+                    Divider()
+                        .padding(.horizontal, 4)
+
+                    customChordButton
                 }
             }
         }
@@ -168,6 +176,15 @@ struct ChordDisplayView: View {
                         Image(systemName: "speaker.wave.2.fill")
                             .font(.system(size: 9))
                             .foregroundColor(.accentColor.opacity(0.7))
+
+                        if let onOpen = onOpenCustomizer {
+                            Button(action: onOpen) {
+                                Image(systemName: "pencil.circle.fill")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundColor(.orange)
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
 
                     Text(currentChord.displayString)
@@ -403,5 +420,40 @@ struct ChordDisplayView: View {
         case .tension:
             return Color.red
         }
+    }
+
+    // MARK: - カスタムコード編集ボタン
+
+    /*
+    カスタムコード編集シートを立ち上げるボタンスタイルのサブビューを描画する。
+
+    Arguments:
+    なし
+
+    Usage:
+    コード候補エリアの最下部に配置される。
+    */
+
+    private var customChordButton: some View {
+        Button(action: {
+            onOpenCustomizer?()
+        }) {
+            HStack(spacing: 6) {
+                Image(systemName: "slider.horizontal.3")
+                    .font(.system(size: 11, weight: .bold))
+                Text("✏️ 自由にコードを指定 (sus / dim / 13th / オンコード)")
+                    .font(.system(size: 11, weight: .bold))
+            }
+            .foregroundColor(.orange)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
+            .background(Color.orange.opacity(0.1))
+            .cornerRadius(8)
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color.orange.opacity(0.25), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
     }
 }

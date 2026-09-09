@@ -733,20 +733,34 @@ final class MusicTheoryService: MusicTheoryServiceProtocol {
             return [(0, 0), (2, 3), (4, 6)]
         } else if type.contains("m7b5") {
             return [(0, 0), (2, 3), (4, 6), (6, 10)]
+        } else if type.contains("7(#9)") || type.contains("7#9") {
+            return [(0, 0), (2, 4), (4, 7), (6, 10), (8, 15)]
         } else if type.contains("7(b9)") || type.contains("7b9") {
             return [(0, 0), (2, 4), (4, 7), (6, 10), (8, 13)]
+        } else if type.contains("7(#11)") || type.contains("7#11") {
+            return [(0, 0), (2, 4), (4, 7), (6, 10), (10, 18)]
+        } else if type.contains("7(b13)") || type.contains("7b13") {
+            return [(0, 0), (2, 4), (4, 7), (6, 10), (12, 20)]
+        } else if type.contains("maj13") {
+            return [(0, 0), (2, 4), (4, 7), (6, 11), (8, 14), (12, 21)]
+        } else if type.contains("13") {
+            return [(0, 0), (2, 4), (4, 7), (6, 10), (8, 14), (12, 21)]
         } else if type.contains("7sus4") {
             return [(0, 0), (3, 5), (4, 7), (6, 10)]
         } else if type.contains("sus4") {
             return [(0, 0), (3, 5), (4, 7)]
         } else if type.contains("maj9") {
             return [(0, 0), (2, 4), (4, 7), (6, 11), (8, 14)]
-        } else if type.contains("m9") {
-            return [(0, 0), (2, 3), (4, 7), (6, 10), (8, 14)]
         } else if type.contains("m11") {
             return [(0, 0), (2, 3), (4, 7), (6, 10), (10, 17)]
+        } else if type.contains("11") {
+            return [(0, 0), (2, 4), (4, 7), (6, 10), (8, 14), (10, 17)]
+        } else if type.contains("m9") {
+            return [(0, 0), (2, 3), (4, 7), (6, 10), (8, 14)]
         } else if type.contains("add9") {
             return [(0, 0), (2, 4), (4, 7), (8, 14)]
+        } else if type.contains("mm7") || type.contains("m(maj7)") {
+            return [(0, 0), (2, 3), (4, 7), (6, 11)]
         } else if type.contains("maj7") {
             return [(0, 0), (2, 4), (4, 7), (6, 11)]
         } else if type.contains("m7") {

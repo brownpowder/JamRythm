@@ -57,6 +57,9 @@ struct PlayEditorView: View {
                         },
                         onPlayChord: { chord in
                             viewModel.playChordPreview(chord)
+                        },
+                        onOpenCustomizer: {
+                            viewModel.isShowingChordCustomizer = true
                         }
                     )
 
@@ -126,6 +129,11 @@ struct PlayEditorView: View {
             .sheet(isPresented: $viewModel.isShowingSongStructureSheet) {
                 SongStructureSheetView(viewModel: viewModel)
                     .presentationDetents([.medium, .large])
+                    .presentationDragIndicator(.visible)
+            }
+            .sheet(isPresented: $viewModel.isShowingChordCustomizer) {
+                ChordCustomizerSheetView(viewModel: viewModel)
+                    .presentationDetents([.large])
                     .presentationDragIndicator(.visible)
             }
             .alert("エラー", isPresented: Binding(

@@ -861,6 +861,61 @@ struct JamRythmTests {
         #expect(dOn4th?.noteName == "D")
         #expect(dOn4th?.role == .scaleTone)
     }
+
+    /*
+    新設されたテンション（13th, 7(#9), 11th, mM7等）およびオンコードのMIDIノート計算を検証する。
+    */
+    @Test func testExpandedChordToneFormulas() async throws {
+        let theoryService = MusicTheoryService()
+
+        // C13 (C, E, G, Bb, D, A)
+        let c13 = Chord(rootNote: "C", type: "13", bassNote: nil)
+        let c13Notes = theoryService.chordMidiNotes(for: c13)
+        #expect(c13Notes.count == 6)
+        #expect(c13Notes.contains(60)) // C
+        #expect(c13Notes.contains(64)) // E
+        #expect(c13Notes.contains(67)) // G
+        #expect(c13Notes.contains(70)) // Bb
+        #expect(c13Notes.contains(74)) // D (9th)
+        #expect(c13Notes.contains(81)) // A (13th)
+
+        // C7(#9) (C, E, G, Bb, D#) - ジミヘンコード
+        let c7sharp9 = Chord(rootNote: "C", type: "7(#9)", bassNote: nil)
+        let c7sharp9Notes = theoryService.chordMidiNotes(for: c7sharp9)
+        #expect(c7sharp9Notes.count == 5)
+        #expect(c7sharp9Notes.contains(75)) // D# (#9)
+
+        // オンコード F/G (ルートFのコードにベース音Gが付加される)
+        let fOnG = Chord(rootNote: "F", type: "", bassNote: "G")
+        let fOnGNotes = theoryService.chordMidiNotes(for: fOnG)
+        // 最低音にベース音G (MIDI 43) が入っていること
+        #expect(fOnGNotes.first == 43)
+    }
+
+    /*
+    ViewModelにおける自由カスタムコード設定とAudioService・小節状態の同期を検証する。
+    */
+    @Test @MainActor func testSetCustomChordInViewModel() async throws {
+        let audioService = AudioService()
+        let theoryService = MusicTheoryService()
+        let viewModel = PlayEditorViewModel(audioService: audioService, theoryService: theoryService)
+
+        // シート開閉フラグ
+        #expect(!viewModel.isShowingChordCustomizer)
+        viewModel.isShowingChordCustomizer = true
+        #expect(viewModel.isShowingChordCustomizer)
+
+        // カスタムコード G7sus4 / F を適用
+        let customChord = Chord(rootNote: "G", type: "7sus4", bassNote: "F")
+        viewModel.setCustomChord(customChord)
+
+        // 現在小節に正しく反映されていること
+        let currentMeasure = viewModel.project.sections[0].measures[viewModel.currentMeasureIndex]
+        #expect(currentMeasure.selectedChord == customChord)
+        #expect(currentMeasure.activeChord == customChord)
+        #expect(viewModel.currentChord == customChord)
+        #expect(viewModel.currentChord.displayString == "G7sus4/F")
+    }
 }
 
 

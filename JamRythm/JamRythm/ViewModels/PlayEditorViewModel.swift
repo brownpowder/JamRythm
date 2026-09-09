@@ -54,6 +54,7 @@ final class PlayEditorViewModel: ObservableObject {
     @Published var isShowingAddSectionSheet: Bool = false
     @Published var sectionIndexForProgressionChange: Int? = nil
     @Published var isShowingSongStructureSheet: Bool = false
+    @Published var isShowingChordCustomizer: Bool = false
     @Published var errorMessage: String?
 
     // MARK: - イニシャライザ
@@ -274,6 +275,21 @@ final class PlayEditorViewModel: ObservableObject {
         project.sections[sectionIdx].measures[index].selectedChord = chord
         audioService.updateProject(project)
         playChordPreview(chord)
+    }
+
+    /*
+    ユーザーがカスタム作成したコードを現在選択中の小節に適用する。
+
+    Arguments:
+    chord
+      カスタム編集されたChordオブジェクト。ChordCustomizerSheetViewから渡される。
+
+    Usage:
+    コードカスタム編集シートで「適用」ボタンを押した際に呼び出される。
+    */
+
+    func setCustomChord(_ chord: Chord) {
+        selectChord(chord, forMeasureIndex: currentMeasureIndex)
     }
 
     /*
