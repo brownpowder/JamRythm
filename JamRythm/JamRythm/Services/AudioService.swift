@@ -182,6 +182,23 @@ protocol AudioServiceProtocol: AnyObject {
     func setPianoSolo(_ isSolo: Bool)
 
     /*
+    現在の伴奏ジャンル（ドラム＆ベースパターンを決定）を取得する。
+    */
+    var genre: MusicGenre { get }
+
+    /*
+    伴奏ジャンルを変更し、再生中のドラム・ベースパターンを即時切り替える。
+
+    Arguments:
+    genre
+      新しい音楽ジャンル（Pop, Rock, Dance, Lo-Fi, R&B）。
+
+    Usage:
+    ヘッダーのジャンル選択メニュー操作時に呼び出される。
+    */
+    func setGenre(_ genre: MusicGenre)
+
+    /*
     指定されたMIDIノート配列をコード（和音）としてピアノ音源（piano1: 007）でプレビュー再生する。
 
     Arguments:
@@ -242,6 +259,8 @@ final class AudioService: AudioServiceProtocol {
     private(set) var drumIsSolo: Bool = false
     private(set) var bassIsSolo: Bool = false
     private(set) var pianoIsSolo: Bool = false
+
+    private(set) var genre: MusicGenre = .pop
 
     private var activeBassNote: UInt8?
     private var activePianoNotes: [UInt8] = []
@@ -689,23 +708,41 @@ final class AudioService: AudioServiceProtocol {
     func prepare(project: Project) throws {
         self.project = project
         self.bpm = project.bpm
+        self.genre = project.genre
         resetPosition()
     }
 
     /*
-    再生位置（currentMeasure等）をリセットすることなく、最新のプロジェクトデータ（選択コード等）を反映する。
+    再生位置（currentMeasure等）をリセットすることなく、最新のプロジェクトデータ（選択コードやジャンル等）を反映する。
 
     Arguments:
     project
       最新のProjectデータ。
 
     Usage:
-    ユーザーがコードを変更した際や進行を編集した際に呼び出される。
+    ユーザーがコードを変更した際や進行・ジャンルを編集した際に呼び出される。
     */
 
     func updateProject(_ project: Project) {
         self.project = project
         self.bpm = project.bpm
+        self.genre = project.genre
+    }
+
+    /*
+    伴奏ジャンルを変更し、再生中のドラム・ベースパターンを即時切り替える。
+
+    Arguments:
+    genre
+      新しい音楽ジャンル（Pop, Rock, Dance, Lo-Fi, R&B）。
+
+    Usage:
+    UIのジャンル選択メニュー操作時に呼び出される。
+    */
+
+    func setGenre(_ genre: MusicGenre) {
+        self.genre = genre
+        logger.info("Genre changed to: \(genre.rawValue)")
     }
 
     /*
@@ -900,7 +937,7 @@ final class AudioService: AudioServiceProtocol {
     }
 
     /*
-    指定ステップ（8分音符単位: 0〜7）に対応する王道8ビートのドラムサウンドを発音する。
+    指定ステップ（8分音符単位: 0〜7）に対応するドラムサウンドをジャンル別パターンで発音する。
     
     Arguments:
     step
@@ -908,65 +945,209 @@ final class AudioService: AudioServiceProtocol {
       タイマー進行時にadvanceStepまたはplay()から渡される。
     
     Usage:
-    playSoundsForCurrentStepから呼び出され、全8分音符ハイハット＋2/4拍スネア＋1/3拍キック（3拍裏推進キック付）を発音する。
+    playSoundsForCurrentStepから呼び出され、選択中ジャンル固有のリズムを発音する。
     */
     
     private func playDrumStep(step: Int) {
-        logger.debug("Playing drum step: \(step), program: \(self.drumProgram)")
+        logger.debug("Playing drum step: \(step), genre: \(self.genre.rawValue)")
+        switch genre {
+        case .pop:
+            playPopDrum(step: step)
+        case .rock:
+            playRockDrum(step: step)
+        case .dance:
+            playDanceDrum(step: step)
+        case .lofi:
+            playLoFiDrum(step: step)
+        case .rAndB:
+            playRAndBDrum(step: step)
+        }
+    }
 
-        // 8分音符ハイハット（表拍は強め、裏拍は軽めでグルーヴを形成）
+    private func playPopDrum(step: Int) {
         let hiHatVelocity: UInt8 = (step % 2 == 0) ? 90 : 65
         drumSampler.startNote(42, withVelocity: hiHatVelocity, onChannel: 0)
 
-        // キックとスネアの王道8ビートパターン
         switch step {
-        case 0: // 1拍目: キック
+        case 0:
             drumSampler.startNote(36, withVelocity: 110, onChannel: 0)
-        case 2: // 2拍目: スネア
+        case 2:
             drumSampler.startNote(38, withVelocity: 105, onChannel: 0)
-        case 4: // 3拍目: キック
+        case 4:
             drumSampler.startNote(36, withVelocity: 100, onChannel: 0)
-        case 5: // 3拍裏: 推進力を生む軽めのキック（8ビートの定番フィール）
+        case 5:
             drumSampler.startNote(36, withVelocity: 85, onChannel: 0)
-        case 6: // 4拍目: スネア
+        case 6:
             drumSampler.startNote(38, withVelocity: 105, onChannel: 0)
         default:
             break
         }
     }
 
+    private func playRockDrum(step: Int) {
+        let hiHatVelocity: UInt8 = (step % 2 == 0) ? 105 : 85
+        drumSampler.startNote(42, withVelocity: hiHatVelocity, onChannel: 0)
+
+        switch step {
+        case 0:
+            drumSampler.startNote(36, withVelocity: 115, onChannel: 0)
+        case 2:
+            drumSampler.startNote(38, withVelocity: 115, onChannel: 0)
+        case 3:
+            drumSampler.startNote(36, withVelocity: 95, onChannel: 0)
+        case 4:
+            drumSampler.startNote(36, withVelocity: 105, onChannel: 0)
+        case 6:
+            drumSampler.startNote(38, withVelocity: 115, onChannel: 0)
+        default:
+            break
+        }
+    }
+
+    private func playDanceDrum(step: Int) {
+        switch step {
+        case 0, 4:
+            drumSampler.startNote(36, withVelocity: 115, onChannel: 0)
+            drumSampler.startNote(42, withVelocity: 60, onChannel: 0)
+        case 2, 6:
+            drumSampler.startNote(36, withVelocity: 115, onChannel: 0)
+            drumSampler.startNote(38, withVelocity: 100, onChannel: 0)
+            drumSampler.startNote(42, withVelocity: 60, onChannel: 0)
+        case 1, 3, 5, 7:
+            drumSampler.startNote(46, withVelocity: 105, onChannel: 0)
+        default:
+            break
+        }
+    }
+
+    private func playLoFiDrum(step: Int) {
+        let hiHatVelocity: UInt8 = (step % 2 == 0) ? 60 : 45
+        drumSampler.startNote(42, withVelocity: hiHatVelocity, onChannel: 0)
+
+        switch step {
+        case 0:
+            drumSampler.startNote(36, withVelocity: 95, onChannel: 0)
+        case 4:
+            drumSampler.startNote(38, withVelocity: 95, onChannel: 0)
+        case 5:
+            drumSampler.startNote(36, withVelocity: 75, onChannel: 0)
+        default:
+            break
+        }
+    }
+
+    private func playRAndBDrum(step: Int) {
+        let hiHatVelocities: [UInt8] = [95, 50, 80, 50, 90, 50, 80, 60]
+        drumSampler.startNote(42, withVelocity: hiHatVelocities[step % 8], onChannel: 0)
+
+        switch step {
+        case 0:
+            drumSampler.startNote(36, withVelocity: 110, onChannel: 0)
+        case 2:
+            drumSampler.startNote(38, withVelocity: 105, onChannel: 0)
+        case 3:
+            drumSampler.startNote(36, withVelocity: 90, onChannel: 0)
+        case 4:
+            drumSampler.startNote(36, withVelocity: 95, onChannel: 0)
+        case 6:
+            drumSampler.startNote(38, withVelocity: 105, onChannel: 0)
+        case 7:
+            drumSampler.startNote(36, withVelocity: 80, onChannel: 0)
+        default:
+            break
+        }
+    }
+
     /*
-    指定ステップのベース音を発音する（1拍目と3拍目の頭: step 0, 4でトリガー）。
+    指定小節のベース音MIDIノート番号を取得する。
     
     Arguments:
     measureIndex
       対象小節のインデックス。
-      projectの小節リストから渡される。
-    step
-      現在の8分音符ステップ（0〜7）。
-      advanceStepから渡される。
     
     Usage:
-    playSoundsForCurrentStepから呼び出され、2分音符のベース音を発音する。
+    playBassStep内の各ジャンル演奏ロジックで使用される。
+    */
+
+    private func bassRootNote(for measureIndex: Int) -> UInt8? {
+        guard let sections = project?.sections,
+              currentSectionIndex < sections.count else { return nil }
+        let measures = sections[currentSectionIndex].measures
+        guard measureIndex < measures.count else { return nil }
+
+        let chord = measures[measureIndex].activeChord
+        let bassNoteName = (chord.bassNote?.isEmpty == false) ? chord.bassNote! : measures[measureIndex].bassNote
+        return midiNoteForBass(bassNoteName)
+    }
+
+    /*
+    アクティブなベース音を停止し、新しいMIDIノートを指定音量で発音する。
+    
+    Arguments:
+    note
+      発音するMIDIノート番号。
+    velocity
+      打鍵の強さ（0〜127）。
+    
+    Usage:
+    playBassStepの各ジャンル演奏処理から呼び出される。
+    */
+
+    private func triggerBassNote(_ note: UInt8, velocity: UInt8 = 105) {
+        if let active = activeBassNote {
+            bassSampler.stopNote(active, onChannel: 0)
+        }
+        bassSampler.startNote(note, withVelocity: velocity, onChannel: 0)
+        activeBassNote = note
+    }
+
+    /*
+    指定ステップのベース音をジャンル別パターンで発音する。
+    
+    Arguments:
+    measureIndex
+      対象小節のインデックス。
+    step
+      現在の8分音符ステップ（0〜7）。
+    
+    Usage:
+    playSoundsForCurrentStepから呼び出され、ジャンルに応じたベースフレーズを演奏する。
     */
     
     private func playBassStep(measureIndex: Int, step: Int) {
-        guard let sections = project?.sections,
-              currentSectionIndex < sections.count else { return }
-        let measures = sections[currentSectionIndex].measures
-        guard measureIndex < measures.count else { return }
+        guard let root = bassRootNote(for: measureIndex) else { return }
 
-        // 1拍目（step 0）と3拍目（step 4）の頭でベース音を鳴らす（2分音符のグルーヴ）
-        if step == 0 || step == 4 {
-            let chord = measures[measureIndex].activeChord
-            let bassNoteName = (chord.bassNote?.isEmpty == false) ? chord.bassNote! : measures[measureIndex].bassNote
-            let midiNote = midiNoteForBass(bassNoteName)
-
-            if let active = activeBassNote {
-                bassSampler.stopNote(active, onChannel: 0)
+        switch genre {
+        case .pop:
+            if step == 0 || step == 4 {
+                triggerBassNote(root, velocity: 105)
             }
-            bassSampler.startNote(midiNote, withVelocity: 105, onChannel: 0)
-            activeBassNote = midiNote
+        case .rock:
+            let vel: UInt8 = (step % 2 == 0) ? 105 : 90
+            triggerBassNote(root, velocity: vel)
+        case .dance:
+            if step % 2 == 0 {
+                triggerBassNote(root, velocity: 105)
+            } else {
+                triggerBassNote(root + 12, velocity: 95)
+            }
+        case .lofi:
+            if step == 0 {
+                triggerBassNote(root, velocity: 95)
+            }
+        case .rAndB:
+            switch step {
+            case 0:
+                triggerBassNote(root, velocity: 105)
+            case 3:
+                triggerBassNote(root, velocity: 95)
+            case 4:
+                triggerBassNote(root + 7, velocity: 90)
+            case 6:
+                triggerBassNote(root + 12, velocity: 95)
+            default:
+                break
+            }
         }
     }
 

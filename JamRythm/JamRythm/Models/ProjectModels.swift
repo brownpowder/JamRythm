@@ -119,6 +119,7 @@ struct Project: Codable, Identifiable, Equatable {
     var title: String
     var bpm: Double
     var key: Key
+    var genre: MusicGenre
     var sections: [Section]
 
     init(
@@ -126,12 +127,14 @@ struct Project: Codable, Identifiable, Equatable {
         title: String = "Untitled Jam",
         bpm: Double = 120.0,
         key: Key = .C,
+        genre: MusicGenre = .pop,
         sections: [Section] = []
     ) {
         self.id = id
         self.title = title
         self.bpm = bpm
         self.key = key
+        self.genre = genre
         self.sections = sections
     }
 }

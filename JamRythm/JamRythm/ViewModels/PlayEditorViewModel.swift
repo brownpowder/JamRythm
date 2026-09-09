@@ -49,6 +49,7 @@ final class PlayEditorViewModel: ObservableObject {
     @Published var isPianoSolo: Bool = false
     @Published var selectedDrumInstrument: DrumInstrument = .acoustic
     @Published var selectedBassInstrument: BassInstrument = .acoustic
+    @Published var selectedGenre: MusicGenre = .pop
     @Published var isShowingMixer: Bool = false
     @Published var errorMessage: String?
 
@@ -78,6 +79,7 @@ final class PlayEditorViewModel: ObservableObject {
 
         let initialProject = Self.createDefaultProject(template: .royalRoad, key: .C, theoryService: theory)
         self.project = initialProject
+        self.selectedGenre = initialProject.genre
         self.volume = audio.volume
         self.drumVolume = audio.drumVolume
         self.bassVolume = audio.bassVolume
@@ -572,6 +574,26 @@ final class PlayEditorViewModel: ObservableObject {
         self.currentBeat = 1
         try? audioService.prepare(project: self.project)
         updateCandidatesForCurrentMeasure()
+    }
+
+    /*
+    伴奏ジャンルを変更し、再生エンジンおよびプロジェクトに反映する。
+
+    Arguments:
+    genre
+      新しい音楽ジャンル（Pop, Rock, Dance, Lo-Fi, R&B）。
+      ヘッダーのジャンル選択メニューから渡される。
+
+    Usage:
+    ユーザーがジャンルメニューから別のスタイルを選んだ際に呼び出され、ドラム・ベースパターンを即時切り替える。
+    */
+
+    func changeGenre(_ genre: MusicGenre) {
+        self.selectedGenre = genre
+        self.project.genre = genre
+        self.audioService.setGenre(genre)
+        self.audioService.updateProject(self.project)
+        logger.info("Genre changed to: \(genre.rawValue)")
     }
 
     /*

@@ -133,19 +133,54 @@ struct PlayEditorView: View {
 
             Spacer()
 
-            if viewModel.activeSection != nil {
-                Text("Section \(viewModel.selectedSectionIndex + 1)")
-                    .font(.caption.bold())
-                    .foregroundColor(.secondary)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Color(uiColor: .tertiarySystemBackground))
-                    .cornerRadius(6)
-            }
+            // ジャンル選択ボタン（Genre名 + アイコン + 下矢印）
+            genreMenuButton
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
         .background(Color(uiColor: .systemBackground))
+    }
+
+    /*
+    音楽ジャンル（Pop, Rock, Dance, Lo-Fi, R&B）を1タップで切り替えられるドロップダウンメニューを描画する。
+    
+    Arguments:
+    なし
+    
+    Usage:
+    topHeaderViewの右端に配置され、ドラム＆ベースパターンの自動切り替えをトリガーする。
+    */
+    
+    private var genreMenuButton: some View {
+        Menu {
+            ForEach(MusicGenre.allCases) { genre in
+                Button(action: { viewModel.changeGenre(genre) }) {
+                    if genre == viewModel.selectedGenre {
+                        Label(genre.displayName, systemImage: "checkmark")
+                    } else {
+                        Label(genre.displayName, systemImage: genre.iconName)
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: viewModel.selectedGenre.iconName)
+                    .font(.caption.bold())
+                    .foregroundColor(.accentColor)
+
+                Text("Genre: \(viewModel.selectedGenre.shortName)")
+                    .font(.headline.bold())
+                    .foregroundColor(.primary)
+
+                Image(systemName: "chevron.down")
+                    .font(.caption2.bold())
+                    .foregroundColor(.secondary)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
+            .background(Color(uiColor: .secondarySystemBackground))
+            .cornerRadius(10)
+        }
     }
 
     /*

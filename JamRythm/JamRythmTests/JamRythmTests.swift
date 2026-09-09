@@ -560,6 +560,58 @@ struct JamRythmTests {
         let chordNotes = theoryService.chordMidiNotes(for: viewModel.project.sections[0].measures[2].activeChord)
         #expect(chordNotes == [64, 67, 70, 73]) // Edim7 (E, G, Bb, Db)
     }
+
+    /*
+    音楽ジャンルの全ケースで表示名、短縮名、アイコン名、スタイル解説が正しく定義されていることを検証する。
+    */
+    @Test func testGenreModelAttributes() async throws {
+        for genre in MusicGenre.allCases {
+            #expect(!genre.displayName.isEmpty)
+            #expect(!genre.shortName.isEmpty)
+            #expect(!genre.iconName.isEmpty)
+            #expect(!genre.styleDescription.isEmpty)
+        }
+        #expect(MusicGenre.allCases.count == 5)
+    }
+
+    /*
+    ViewModelでジャンルを変更した際に、ViewModel内部状態、Project、およびAudioServiceへ即時反映されることを検証する。
+    */
+    @Test @MainActor func testGenreSelectionAndAudioServiceSync() async throws {
+        let audioService = AudioService()
+        let theoryService = MusicTheoryService()
+        let viewModel = PlayEditorViewModel(audioService: audioService, theoryService: theoryService)
+
+        // 初期値はPop
+        #expect(viewModel.selectedGenre == .pop)
+        #expect(viewModel.project.genre == .pop)
+        #expect(audioService.genre == .pop)
+
+        // Danceへ変更
+        viewModel.changeGenre(.dance)
+        #expect(viewModel.selectedGenre == .dance)
+        #expect(viewModel.project.genre == .dance)
+        #expect(audioService.genre == .dance)
+
+        // Rockへ変更
+        viewModel.changeGenre(.rock)
+        #expect(viewModel.selectedGenre == .rock)
+        #expect(viewModel.project.genre == .rock)
+        #expect(audioService.genre == .rock)
+
+        // Lo-Fiへ変更
+        viewModel.changeGenre(.lofi)
+        #expect(viewModel.selectedGenre == .lofi)
+        #expect(viewModel.project.genre == .lofi)
+        #expect(audioService.genre == .lofi)
+
+        // R&Bへ変更
+        viewModel.changeGenre(.rAndB)
+        #expect(viewModel.selectedGenre == .rAndB)
+        #expect(viewModel.project.genre == .rAndB)
+        #expect(audioService.genre == .rAndB)
+    }
 }
+
 
 
