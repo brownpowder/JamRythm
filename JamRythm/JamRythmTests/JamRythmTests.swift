@@ -631,7 +631,71 @@ struct JamRythmTests {
         #expect(viewModel.selectedDrumInstrument == .acoustic)
         #expect(viewModel.selectedBassInstrument == .acoustic)
     }
+
+    /*
+    拡張されたコード進行テンプレート（ポップパンク、2-5-1、4-5-6等を含む7種類）の属性とローマ数字変換を検証する。
+    */
+    @Test func testProgressionTemplatesAttributes() async throws {
+        let templates = ProgressionTemplate.allTemplates
+        #expect(templates.count == 7)
+
+        for template in templates {
+            #expect(!template.id.isEmpty)
+            #expect(!template.name.isEmpty)
+            #expect(!template.description.isEmpty)
+            #expect(!template.degrees.isEmpty)
+            #expect(!template.iconName.isEmpty)
+            #expect(!template.genreTag.isEmpty)
+            #expect(template.romanDegrees.count == template.degrees.count)
+        }
+
+        // ポップパンク (1-5-6-4)
+        #expect(ProgressionTemplate.popPunk.degrees == [1, 5, 6, 4])
+        #expect(ProgressionTemplate.popPunk.romanDegrees == ["I", "V", "VI", "IV"])
+
+        // 2-5-1 (2-5-1-6)
+        #expect(ProgressionTemplate.twoFiveOne.degrees == [2, 5, 1, 6])
+        #expect(ProgressionTemplate.twoFiveOne.romanDegrees == ["II", "V", "I", "VI"])
+
+        // 4-5-6 (4-5-6-6)
+        #expect(ProgressionTemplate.fourFiveSix.degrees == [4, 5, 6, 6])
+        #expect(ProgressionTemplate.fourFiveSix.romanDegrees == ["IV", "V", "VI", "VI"])
+    }
+
+    /*
+    新テンプレートによるセクション追加およびシート開閉フラグの動作を検証する。
+    */
+    @Test @MainActor func testAddSectionWithNewTemplatesAndSheet() async throws {
+        let audioService = AudioService()
+        let theoryService = MusicTheoryService()
+        let viewModel = PlayEditorViewModel(audioService: audioService, theoryService: theoryService)
+
+        #expect(viewModel.project.sections.count == 1)
+        #expect(!viewModel.isShowingAddSectionSheet)
+
+        // シートを開くフラグ
+        viewModel.isShowingAddSectionSheet = true
+        #expect(viewModel.isShowingAddSectionSheet)
+
+        // ポップパンク進行でセクション追加
+        viewModel.addSection(template: .popPunk)
+        #expect(viewModel.project.sections.count == 2)
+        #expect(viewModel.project.sections[1].measures.count == 4)
+        #expect(viewModel.project.sections[1].measures.map { $0.baseDegree } == [1, 5, 6, 4])
+
+        // 2-5-1進行でセクション追加
+        viewModel.addSection(template: .twoFiveOne)
+        #expect(viewModel.project.sections.count == 3)
+        #expect(viewModel.project.sections[2].measures.count == 4)
+        #expect(viewModel.project.sections[2].measures.map { $0.baseDegree } == [2, 5, 1, 6])
+
+        // カノン進行でセクション追加（8小節）
+        viewModel.addSection(template: .canon)
+        #expect(viewModel.project.sections.count == 4)
+        #expect(viewModel.project.sections[3].measures.count == 8)
+    }
 }
+
 
 
 

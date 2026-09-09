@@ -51,6 +51,7 @@ final class PlayEditorViewModel: ObservableObject {
     @Published var selectedBassInstrument: BassInstrument = .acoustic
     @Published var selectedGenre: MusicGenre = .pop
     @Published var isShowingMixer: Bool = false
+    @Published var isShowingAddSectionSheet: Bool = false
     @Published var errorMessage: String?
 
     // MARK: - イニシャライザ

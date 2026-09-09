@@ -101,6 +101,11 @@ struct PlayEditorView: View {
                     .presentationDetents([.fraction(0.55), .medium])
                     .presentationDragIndicator(.visible)
             }
+            .sheet(isPresented: $viewModel.isShowingAddSectionSheet) {
+                AddSectionSheetView(viewModel: viewModel)
+                    .presentationDetents([.medium, .large])
+                    .presentationDragIndicator(.visible)
+            }
             .alert("エラー", isPresented: Binding(
                 get: { viewModel.errorMessage != nil },
                 set: { if !$0 { viewModel.errorMessage = nil } }

@@ -303,17 +303,13 @@ struct SectionTimelineBarView: View {
     */
 
     private var addSectionButton: some View {
-        Menu {
-            ForEach(ProgressionTemplate.allTemplates) { template in
-                Button(template.name) {
-                    viewModel.addSection(template: template)
-                }
-            }
-        } label: {
+        Button(action: {
+            viewModel.isShowingAddSectionSheet = true
+        }) {
             HStack(spacing: 6) {
                 Image(systemName: "plus.circle.fill")
                     .font(.system(size: 14, weight: .bold))
-                Text("セクションを追加（進行を選択）")
+                Text("進行を選んでセクションを追加")
                     .font(.system(size: 13, weight: .semibold))
             }
             .foregroundColor(.accentColor)
@@ -326,5 +322,6 @@ struct SectionTimelineBarView: View {
                     .stroke(Color.accentColor.opacity(0.25), lineWidth: 1)
             )
         }
+        .buttonStyle(.plain)
     }
 }
