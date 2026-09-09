@@ -102,9 +102,23 @@ struct PlayEditorView: View {
                     .presentationDragIndicator(.visible)
             }
             .sheet(isPresented: $viewModel.isShowingAddSectionSheet) {
-                AddSectionSheetView(viewModel: viewModel)
+                ProgressionSelectionSheetView(title: "進行を選んでセクション追加") { template in
+                    viewModel.addSection(template: template)
+                }
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+            }
+            .sheet(isPresented: Binding(
+                get: { viewModel.sectionIndexForProgressionChange != nil },
+                set: { if !$0 { viewModel.sectionIndexForProgressionChange = nil } }
+            )) {
+                if let targetIndex = viewModel.sectionIndexForProgressionChange {
+                    ProgressionSelectionSheetView(title: "Section \(targetIndex + 1) の進行を変更") { template in
+                        viewModel.applyTemplate(template, toSectionIndex: targetIndex)
+                    }
                     .presentationDetents([.medium, .large])
                     .presentationDragIndicator(.visible)
+                }
             }
             .alert("エラー", isPresented: Binding(
                 get: { viewModel.errorMessage != nil },

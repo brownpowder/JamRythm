@@ -1,5 +1,5 @@
 //
-//  AddSectionSheetView.swift
+//  ProgressionSelectionSheetView.swift
 //  JamRythm
 //
 //  Created by KanayTakum on 2026/09/09.
@@ -7,14 +7,15 @@
 
 import SwiftUI
 
-// MARK: - セクション追加シート
+// MARK: - コード進行選択シート（汎用コンポーネント）
 
 /*
-コード進行テンプレートを選択して新規セクションを追加する専用のモーダルシート。
-各進行の度数・小節数・音楽的特徴をカード形式でリッチに一覧表示する。
+コード進行テンプレート一覧をカード形式でリッチに表示し、選択時にコールバックを実行する汎用モーダルシート。
+「セクション追加」および「既存セクションの進行変更」の両方で共有・再利用される。
 */
-struct AddSectionSheetView: View {
-    @ObservedObject var viewModel: PlayEditorViewModel
+struct ProgressionSelectionSheetView: View {
+    let title: String
+    let onSelect: (ProgressionTemplate) -> Void
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -29,7 +30,7 @@ struct AddSectionSheetView: View {
                 .padding(.vertical, 14)
             }
             .background(Color(uiColor: .systemGroupedBackground))
-            .navigationTitle("進行を選んでセクション追加")
+            .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -58,7 +59,7 @@ struct AddSectionSheetView: View {
 
     private func templateCard(_ template: ProgressionTemplate) -> some View {
         Button(action: {
-            viewModel.addSection(template: template)
+            onSelect(template)
             dismiss()
         }) {
             VStack(alignment: .leading, spacing: 10) {

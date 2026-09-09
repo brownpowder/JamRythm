@@ -197,12 +197,10 @@ struct SectionTimelineBarView: View {
 
     private func sectionActionMenu(section: Section, sectionIndex: Int) -> some View {
         Menu {
-            Menu("コード進行を変更") {
-                ForEach(ProgressionTemplate.allTemplates) { template in
-                    Button(template.name) {
-                        viewModel.applyTemplate(template, toSectionIndex: sectionIndex)
-                    }
-                }
+            Button(action: {
+                viewModel.sectionIndexForProgressionChange = sectionIndex
+            }) {
+                Label("コード進行を変更", systemImage: "music.note.list")
             }
 
             Divider()

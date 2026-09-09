@@ -694,6 +694,31 @@ struct JamRythmTests {
         #expect(viewModel.project.sections.count == 4)
         #expect(viewModel.project.sections[3].measures.count == 8)
     }
+
+    /*
+    既存セクションのコード進行変更シートの開閉状態管理およびテンプレート適用の動作を検証する。
+    */
+    @Test @MainActor func testSectionProgressionChangeWithSheet() async throws {
+        let audioService = AudioService()
+        let theoryService = MusicTheoryService()
+        let viewModel = PlayEditorViewModel(audioService: audioService, theoryService: theoryService)
+
+        // 初期状態: セクション0は王道進行 (4-5-3-6)
+        #expect(viewModel.sectionIndexForProgressionChange == nil)
+        #expect(viewModel.project.sections[0].measures.map { $0.baseDegree } == [4, 5, 3, 6])
+
+        // ユーザーがセクション0の「コード進行を変更」をタップ
+        viewModel.sectionIndexForProgressionChange = 0
+        #expect(viewModel.sectionIndexForProgressionChange == 0)
+
+        // シートから丸サ進行 (4-3-6-1) を選択
+        viewModel.applyTemplate(.justTheTwoOfUs, toSectionIndex: 0)
+        viewModel.sectionIndexForProgressionChange = nil
+
+        // セクション0の進行が丸サ進行に更新されていること
+        #expect(viewModel.project.sections[0].measures.map { $0.baseDegree } == [4, 3, 6, 1])
+        #expect(viewModel.sectionIndexForProgressionChange == nil)
+    }
 }
 
 
