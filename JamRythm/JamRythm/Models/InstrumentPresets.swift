@@ -33,11 +33,11 @@ enum DrumInstrument: UInt8, CaseIterable, Identifiable {
     var displayName: String {
         switch self {
         case .acoustic:
-            return "Drum-Aco (Acoustic)"
+            return "Acoustic"
         case .electronic:
-            return "Drum-Electro (Electronic)"
+            return "Electronic"
         case .dub:
-            return "Drum-Dub (Lo-Fi Dub)"
+            return "Lo-Fi Dub"
         }
     }
 
@@ -93,19 +93,19 @@ enum BassInstrument: UInt8, CaseIterable, Identifiable {
     var displayName: String {
         switch self {
         case .acoustic:
-            return "Bass-Aco (Acoustic)"
+            return "Acoustic"
         case .dub:
-            return "Bass-Dub (Dub Sub)"
+            return "Dub Sub"
         case .synthSaw:
-            return "Bass-Saw (Synth Saw)"
+            return "Synth Saw"
         case .synthSine:
-            return "Bass-Sine (Synth Sine)"
+            return "Synth Sine"
         case .synthSquare:
-            return "Bass-Square (Synth Square)"
+            return "Synth Square"
         case .synthTriangle:
-            return "Bass-Tri (Synth Triangle)"
+            return "Synth Triangle"
         case .pizzicato:
-            return "Bass-Pizz (Pizzicato)"
+            return "Pizzicato"
         }
     }
 
