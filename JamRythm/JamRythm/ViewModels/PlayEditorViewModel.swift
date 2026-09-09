@@ -592,8 +592,13 @@ final class PlayEditorViewModel: ObservableObject {
         self.selectedGenre = genre
         self.project.genre = genre
         self.audioService.setGenre(genre)
+
+        // ジャンルに応じた推奨音色（Drum & Bass）に自動連動
+        selectDrumInstrument(genre.defaultDrumInstrument)
+        selectBassInstrument(genre.defaultBassInstrument)
+
         self.audioService.updateProject(self.project)
-        logger.info("Genre changed to: \(genre.rawValue)")
+        logger.info("Genre changed to: \(genre.rawValue), drum: \(genre.defaultDrumInstrument.displayName), bass: \(genre.defaultBassInstrument.displayName)")
     }
 
     /*

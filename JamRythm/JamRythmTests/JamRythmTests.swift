@@ -587,29 +587,49 @@ struct JamRythmTests {
         #expect(viewModel.project.genre == .pop)
         #expect(audioService.genre == .pop)
 
-        // Danceへ変更
+        // Danceへ変更（ドラム: Electronic, ベース: Synth Saw）
         viewModel.changeGenre(.dance)
         #expect(viewModel.selectedGenre == .dance)
         #expect(viewModel.project.genre == .dance)
         #expect(audioService.genre == .dance)
+        #expect(viewModel.selectedDrumInstrument == .electronic)
+        #expect(viewModel.selectedBassInstrument == .synthSaw)
+        #expect(audioService.drumProgram == DrumInstrument.electronic.rawValue)
+        #expect(audioService.bassProgram == BassInstrument.synthSaw.rawValue)
 
-        // Rockへ変更
-        viewModel.changeGenre(.rock)
-        #expect(viewModel.selectedGenre == .rock)
-        #expect(viewModel.project.genre == .rock)
-        #expect(audioService.genre == .rock)
-
-        // Lo-Fiへ変更
+        // Lo-Fiへ変更（ドラム: Lo-Fi Dub, ベース: Dub Sub）
         viewModel.changeGenre(.lofi)
         #expect(viewModel.selectedGenre == .lofi)
         #expect(viewModel.project.genre == .lofi)
         #expect(audioService.genre == .lofi)
+        #expect(viewModel.selectedDrumInstrument == .dub)
+        #expect(viewModel.selectedBassInstrument == .dub)
+        #expect(audioService.drumProgram == DrumInstrument.dub.rawValue)
+        #expect(audioService.bassProgram == BassInstrument.dub.rawValue)
 
-        // R&Bへ変更
+        // R&Bへ変更（ドラム: Electronic, ベース: Synth Sine）
         viewModel.changeGenre(.rAndB)
         #expect(viewModel.selectedGenre == .rAndB)
         #expect(viewModel.project.genre == .rAndB)
         #expect(audioService.genre == .rAndB)
+        #expect(viewModel.selectedDrumInstrument == .electronic)
+        #expect(viewModel.selectedBassInstrument == .synthSine)
+
+        // Rockへ変更（ドラム: Acoustic, ベース: Acoustic）
+        viewModel.changeGenre(.rock)
+        #expect(viewModel.selectedGenre == .rock)
+        #expect(viewModel.project.genre == .rock)
+        #expect(audioService.genre == .rock)
+        #expect(viewModel.selectedDrumInstrument == .acoustic)
+        #expect(viewModel.selectedBassInstrument == .acoustic)
+
+        // Popへ変更（ドラム: Acoustic, ベース: Acoustic）
+        viewModel.changeGenre(.pop)
+        #expect(viewModel.selectedGenre == .pop)
+        #expect(viewModel.project.genre == .pop)
+        #expect(audioService.genre == .pop)
+        #expect(viewModel.selectedDrumInstrument == .acoustic)
+        #expect(viewModel.selectedBassInstrument == .acoustic)
     }
 }
 

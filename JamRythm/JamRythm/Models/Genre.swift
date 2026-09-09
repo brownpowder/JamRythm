@@ -110,4 +110,48 @@ enum MusicGenre: String, CaseIterable, Identifiable, Codable {
             return "シンコペーションを効かせた都会的でファンキーなグルーヴ"
         }
     }
+
+    /*
+    ジャンルに最適化されたデフォルトのドラム音色プリセットを返す。
+
+    Arguments:
+    なし
+
+    Usage:
+    ジャンル切り替え時にドラム音色を自動設定するために使用される。
+    */
+
+    var defaultDrumInstrument: DrumInstrument {
+        switch self {
+        case .pop, .rock:
+            return .acoustic
+        case .dance, .rAndB:
+            return .electronic
+        case .lofi:
+            return .dub
+        }
+    }
+
+    /*
+    ジャンルに最適化されたデフォルトのベース音色プリセットを返す。
+
+    Arguments:
+    なし
+
+    Usage:
+    ジャンル切り替え時にベース音色を自動設定するために使用される。
+    */
+
+    var defaultBassInstrument: BassInstrument {
+        switch self {
+        case .pop, .rock:
+            return .acoustic
+        case .dance:
+            return .synthSaw
+        case .lofi:
+            return .dub
+        case .rAndB:
+            return .synthSine
+        }
+    }
 }
