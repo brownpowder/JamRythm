@@ -52,6 +52,7 @@ struct Measure: Codable, Identifiable, Equatable {
     let baseDegree: Int
     let bassNote: String
     var chordCandidates: [ChordCandidate]
+    var substituteCandidates: [SubstituteCandidate]
     var selectedChord: Chord?
 
     init(
@@ -59,12 +60,14 @@ struct Measure: Codable, Identifiable, Equatable {
         baseDegree: Int,
         bassNote: String,
         chordCandidates: [ChordCandidate] = [],
+        substituteCandidates: [SubstituteCandidate] = [],
         selectedChord: Chord? = nil
     ) {
         self.id = id
         self.baseDegree = baseDegree
         self.bassNote = bassNote
         self.chordCandidates = chordCandidates
+        self.substituteCandidates = substituteCandidates
         self.selectedChord = selectedChord
     }
 

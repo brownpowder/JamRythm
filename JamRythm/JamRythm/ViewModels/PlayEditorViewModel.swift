@@ -31,7 +31,16 @@ final class PlayEditorViewModel: ObservableObject {
     @Published var currentMeasureIndex: Int = 0
     @Published var currentBeat: Int = 1
     @Published var currentCandidates: [ChordCandidate] = []
+    @Published var currentSubstituteCandidates: [SubstituteCandidate] = []
     @Published var selectedTemplate: ProgressionTemplate = .royalRoad
+    @Published var bassProgram: UInt8 = 0
+    @Published var drumProgram: UInt8 = 0
+    @Published var volume: Float = 0.8
+    @Published var drumVolume: Float = 0.8
+    @Published var bassVolume: Float = 0.8
+    @Published var selectedDrumInstrument: DrumInstrument = .acoustic
+    @Published var selectedBassInstrument: BassInstrument = .acoustic
+    @Published var isShowingMixer: Bool = false
     @Published var errorMessage: String?
 
     // MARK: - イニシャライザ
@@ -60,6 +69,11 @@ final class PlayEditorViewModel: ObservableObject {
 
         let initialProject = Self.createDefaultProject(template: .royalRoad, key: .C, theoryService: theory)
         self.project = initialProject
+        self.volume = audio.volume
+        self.drumVolume = audio.drumVolume
+        self.bassVolume = audio.bassVolume
+        self.selectedDrumInstrument = DrumInstrument(rawValue: audio.drumProgram) ?? .acoustic
+        self.selectedBassInstrument = BassInstrument(rawValue: audio.bassProgram) ?? .acoustic
 
         setupAudioEngine()
         bindAudioPosition()
@@ -102,6 +116,34 @@ final class PlayEditorViewModel: ObservableObject {
         }
         let nextIndex = (currentMeasureIndex + 1) % measures.count
         return measures[nextIndex].activeChord
+    }
+
+    /*
+    現在のコードに対するギター運指（ボイシング）を返す。
+    
+    Arguments:
+    なし
+    
+    Usage:
+    GuitarTabViewへの運指データ提供に使用される。
+    */
+    
+    var currentVoicing: GuitarVoicing {
+        return theoryService.guitarVoicing(for: currentChord)
+    }
+
+    /*
+    現在のコードに対する五線譜上の構成音配置を返す。
+    
+    Arguments:
+    なし
+    
+    Usage:
+    StaffScoreViewへの音符データ提供に使用される。
+    */
+    
+    var currentStaffNotes: [StaffNote] {
+        return theoryService.staffNotes(for: currentChord)
     }
 
     /*
@@ -178,6 +220,24 @@ final class PlayEditorViewModel: ObservableObject {
     }
 
     /*
+    マスター出力音量を変更し、AudioServiceへ反映する。
+    
+    Arguments:
+    newVolume
+      変更後の音量値（0.0〜1.0）。
+      Footerの音量スライダーから渡される。
+    
+    Usage:
+    ボリューム操作時に呼び出され、全体の出力音量を調整する。
+    */
+    
+    func changeVolume(_ newVolume: Float) {
+        let clamped = max(0.0, min(1.0, newVolume))
+        self.volume = clamped
+        audioService.setVolume(clamped)
+    }
+
+    /*
     調（Key）を変更し、小節のベース音およびコード候補を再計算する。
     
     Arguments:
@@ -212,6 +272,108 @@ final class PlayEditorViewModel: ObservableObject {
         self.currentBeat = 1
         try? audioService.prepare(project: self.project)
         updateCandidatesForCurrentMeasure()
+    }
+
+    /*
+    Bass音色プログラム（0〜6）を変更する。
+    
+    Arguments:
+    program
+      Bank 000内のプログラム番号（0〜6）。
+    
+    Usage:
+    音色選択メニューから呼び出される。
+    */
+    
+    func changeBassProgram(_ program: UInt8) {
+        self.bassProgram = program
+        self.selectedBassInstrument = BassInstrument(rawValue: program) ?? .acoustic
+        audioService.setBassProgram(program)
+    }
+
+    /*
+    Drum音色プログラム（0〜2）を変更する。
+    
+    Arguments:
+    program
+      Bank 128内のプログラム番号（0〜2）。
+    
+    Usage:
+    音色選択メニューから呼び出される。
+    */
+    
+    func changeDrumProgram(_ program: UInt8) {
+        self.drumProgram = program
+        self.selectedDrumInstrument = DrumInstrument(rawValue: program) ?? .acoustic
+        audioService.setDrumProgram(program)
+    }
+
+    /*
+    ドラムトラックの音量を変更し、AudioServiceへ反映する。
+
+    Arguments:
+    newVolume
+      変更後の音量値（0.0〜1.0）。ミキサー画面のスライダーから渡される。
+
+    Usage:
+    ミキサーのドラム音量操作時に呼び出される。
+    */
+
+    func changeDrumVolume(_ newVolume: Float) {
+        let clamped = max(0.0, min(1.0, newVolume))
+        self.drumVolume = clamped
+        audioService.setDrumVolume(clamped)
+    }
+
+    /*
+    ベーストラックの音量を変更し、AudioServiceへ反映する。
+
+    Arguments:
+    newVolume
+      変更後の音量値（0.0〜1.0）。ミキサー画面のスライダーから渡される。
+
+    Usage:
+    ミキサーのベース音量操作時に呼び出される。
+    */
+
+    func changeBassVolume(_ newVolume: Float) {
+        let clamped = max(0.0, min(1.0, newVolume))
+        self.bassVolume = clamped
+        audioService.setBassVolume(clamped)
+    }
+
+    /*
+    ドラム音色プリセットを選択し、AudioServiceへ反映する。
+
+    Arguments:
+    instrument
+      選択されたドラムプリセット（DrumInstrument）。Pickerから渡される。
+
+    Usage:
+    ミキサーのドラム音色Picker操作時に呼び出される。
+    */
+
+    func selectDrumInstrument(_ instrument: DrumInstrument) {
+        self.selectedDrumInstrument = instrument
+        self.drumProgram = instrument.rawValue
+        audioService.setDrumProgram(instrument.rawValue)
+    }
+
+    /*
+    ベース音色プリセットを選択し、AudioServiceへ反映する。
+
+    Arguments:
+    instrument
+      選択されたベースプリセット（BassInstrument）。Pickerから渡される。
+
+    Usage:
+    ミキサーのベース音色Picker操作時に呼び出される。
+    */
+
+    func selectBassInstrument(_ instrument: BassInstrument) {
+        self.selectedBassInstrument = instrument
+        self.bassProgram = instrument.rawValue
+        audioService.setBassProgram(instrument.rawValue)
     }
 
     // MARK: - 内部処理 & バインディング
@@ -275,6 +437,7 @@ final class PlayEditorViewModel: ObservableObject {
         }
         let currentMeasure = measures[currentMeasureIndex]
         self.currentCandidates = currentMeasure.chordCandidates
+        self.currentSubstituteCandidates = currentMeasure.substituteCandidates
     }
 
     /*
@@ -296,12 +459,19 @@ final class PlayEditorViewModel: ObservableObject {
             let semitone = key.semitoneOffset + Key.semitonesForMajorDegree(degree)
             let bassNote = Key.noteName(forSemitone: semitone)
             let candidates = theoryService.calculateCandidates(key: key, baseDegree: degree)
+            let candidateChords = candidates.map { $0.chord }
+            let substitutes = theoryService.calculateSubstituteCandidates(
+                key: key,
+                baseDegree: degree,
+                excludingChords: candidateChords
+            )
 
             section.measures[index] = Measure(
                 id: section.measures[index].id,
                 baseDegree: degree,
                 bassNote: bassNote,
                 chordCandidates: candidates,
+                substituteCandidates: substitutes,
                 selectedChord: nil
             )
         }
@@ -335,10 +505,17 @@ final class PlayEditorViewModel: ObservableObject {
             let semitone = key.semitoneOffset + Key.semitonesForMajorDegree(degree)
             let bassNote = Key.noteName(forSemitone: semitone)
             let candidates = theoryService.calculateCandidates(key: key, baseDegree: degree)
+            let candidateChords = candidates.map { $0.chord }
+            let substitutes = theoryService.calculateSubstituteCandidates(
+                key: key,
+                baseDegree: degree,
+                excludingChords: candidateChords
+            )
             return Measure(
                 baseDegree: degree,
                 bassNote: bassNote,
                 chordCandidates: candidates,
+                substituteCandidates: substitutes,
                 selectedChord: nil
             )
         }

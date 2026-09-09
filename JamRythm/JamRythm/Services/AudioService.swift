@@ -34,6 +34,77 @@ protocol AudioServiceProtocol: AnyObject {
     func setBPM(_ bpm: Double)
     var currentPositionPublisher: AnyPublisher<PlaybackPosition, Never> { get }
     var syncOffsetMs: Double { get set }
+
+    /*
+    Bass音源のプログラム番号（0〜6）を変更する。
+    
+    Arguments:
+    program
+      Bank 000内のプログラム番号（0〜6）。
+    
+    Usage:
+    音色選択時や初期設定時に呼び出される。
+    */
+    
+    func setBassProgram(_ program: UInt8)
+
+    /*
+    Drum音源のプログラム番号（0〜2）を変更する。
+    
+    Arguments:
+    program
+      Bank 128内のプログラム番号（0〜2）。
+    
+    Usage:
+    ドラム音色選択時や初期設定時に呼び出される。
+    */
+    
+    func setDrumProgram(_ program: UInt8)
+
+    var bassProgram: UInt8 { get }
+    var drumProgram: UInt8 { get }
+
+    /*
+    マスター出力音量（0.0〜1.0）を設定する。
+    
+    Arguments:
+    volume
+      音量値（0.0: 無音 〜 1.0: 最大）。
+    
+    Usage:
+    UIのボリュームスライダー操作時に呼び出される。
+    */
+    
+    func setVolume(_ volume: Float)
+    var volume: Float { get }
+
+    /*
+    ドラムトラックの個別音量（0.0〜1.0）を設定する。
+
+    Arguments:
+    volume
+      音量値（0.0: ミュート 〜 1.0: 最大）。
+
+    Usage:
+    ミキサーのドラム音量操作時に呼び出される。
+    */
+
+    func setDrumVolume(_ volume: Float)
+    var drumVolume: Float { get }
+
+    /*
+    ベーストラックの個別音量（0.0〜1.0）を設定する。
+
+    Arguments:
+    volume
+      音量値（0.0: ミュート 〜 1.0: 最大）。
+
+    Usage:
+    ミキサーのベース音量操作時に呼び出される。
+    */
+
+    func setBassVolume(_ volume: Float)
+    var bassVolume: Float { get }
 }
 
 // MARK: - オーディオサービス・実装クラス
@@ -50,15 +121,27 @@ final class AudioService: AudioServiceProtocol {
     private let audioEngine = AVAudioEngine()
     private let drumSampler = AVAudioUnitSampler()
     private let bassSampler = AVAudioUnitSampler()
+    private let drumMixer = AVAudioMixerNode()
+    private let bassMixer = AVAudioMixerNode()
+    private let rhythmMixer = AVAudioMixerNode()
     private let equalizer = AVAudioUnitEQ(numberOfBands: 2)
 
-    // MARK: - 再生ステート
+    // MARK: - 再生ステート & 音色プログラム
     private var project: Project?
     private var bpm: Double = 120.0
     private var timer: Timer?
     private var currentMeasure: Int = 0
+    private var currentStepIndex: Int = 0
     private var currentBeatIndex: Int = 1
+    private let stepsPerMeasure: Int = 8
     private let beatsPerMeasure: Int = 4
+
+    private(set) var bassProgram: UInt8 = 0
+    private(set) var drumProgram: UInt8 = 0
+    private(set) var volume: Float = 0.8
+    private(set) var drumVolume: Float = 0.8
+    private(set) var bassVolume: Float = 0.8
+    private var activeBassNote: UInt8?
 
     // MARK: - Combine Publisher
     private let positionSubject = CurrentValueSubject<PlaybackPosition, Never>(PlaybackPosition(measureIndex: 0, beat: 1))
@@ -80,17 +163,22 @@ final class AudioService: AudioServiceProtocol {
 
     /*
     AVAudioEngineのノード接続およびEQ（スマホスピーカー向け倍音・中域強調）の初期設定を行う。
+    ドラムとベースをそれぞれ独立したミキサー（drumMixer, bassMixer）経由でrhythmMixerにまとめ、
+    EQおよびメインミキサーへ送出する。
     
     Arguments:
     なし
     
     Usage:
-    初期化時に呼び出され、ベースの輪郭と全体の視認性を確保する。
+    初期化時に呼び出され、ドラム・ベースの個別音量制御と輪郭強調を行う。
     */
     
     private func configureAudioNodes() {
         audioEngine.attach(drumSampler)
         audioEngine.attach(bassSampler)
+        audioEngine.attach(drumMixer)
+        audioEngine.attach(bassMixer)
+        audioEngine.attach(rhythmMixer)
         audioEngine.attach(equalizer)
 
         // スマホスピーカー向けにベース倍音（800Hz付近）をブースト
@@ -109,8 +197,15 @@ final class AudioService: AudioServiceProtocol {
         highBand.bypass = false
 
         let mainMixer = audioEngine.mainMixerNode
-        audioEngine.connect(drumSampler, to: equalizer, format: nil)
-        audioEngine.connect(bassSampler, to: equalizer, format: nil)
+        mainMixer.outputVolume = volume
+        drumMixer.outputVolume = drumVolume
+        bassMixer.outputVolume = bassVolume
+
+        audioEngine.connect(drumSampler, to: drumMixer, format: nil)
+        audioEngine.connect(bassSampler, to: bassMixer, format: nil)
+        audioEngine.connect(drumMixer, to: rhythmMixer, format: nil)
+        audioEngine.connect(bassMixer, to: rhythmMixer, format: nil)
+        audioEngine.connect(rhythmMixer, to: equalizer, format: nil)
         audioEngine.connect(equalizer, to: mainMixer, format: nil)
     }
 
@@ -138,28 +233,175 @@ final class AudioService: AudioServiceProtocol {
         }
     }
 
+    // MARK: - 音色・SF2ロード処理
+
+    private var soundFontURL: URL? {
+        Bundle.main.url(forResource: "JamRythm", withExtension: "sf2")
+            ?? Bundle.main.url(forResource: "JamRythmInstruments", withExtension: "sf2")
+    }
+
     /*
-    アプリバンドル内にSF2ファイルが存在する場合はサンプラーへロードする。
+    アプリバンドル内のJamRythm.sf2からベースとドラムの音色をロードする。
     
     Arguments:
     なし
     
     Usage:
-    実音源が存在すれば読み込み、無ければフェイルセーフ（クロック再生のみ）を維持する。
+    エンジンセットアップ時および音色切り替え時に呼び出される。
     */
     
     private func loadSoundFontIfAvailable() {
-        if let sf2Url = Bundle.main.url(forResource: "JamRythmInstruments", withExtension: "sf2") {
-            do {
-                try drumSampler.loadSoundBankInstrument(at: sf2Url, program: 0, bankMSB: UInt8(kAUSampler_DefaultMelodicBankMSB), bankLSB: 0)
-                try bassSampler.loadSoundBankInstrument(at: sf2Url, program: 32, bankMSB: UInt8(kAUSampler_DefaultMelodicBankMSB), bankLSB: 0)
-                logger.info("SF2 soundfont loaded successfully.")
-            } catch {
-                logger.warning("SF2 file found but failed to load: \(error.localizedDescription)")
-            }
-        } else {
-            logger.notice("SF2 soundfont not bundled. Running in clock-only fallback mode.")
+        guard let sf2Url = soundFontURL else {
+            logger.notice("JamRythm.sf2 not found in bundle. Running in fallback mode.")
+            return
         }
+        loadBassInstrument(sf2Url: sf2Url)
+        loadDrumInstrument(sf2Url: sf2Url)
+    }
+
+    /*
+    Bass音源（Bank 000, Program 000〜006）をサンプラーへロードする。
+    
+    Arguments:
+    sf2Url
+      SoundFontファイルのURL。
+    
+    Usage:
+    loadSoundFontIfAvailableおよびsetBassProgramから呼び出される。
+    */
+    
+    private func loadBassInstrument(sf2Url: URL) {
+        do {
+            try bassSampler.loadSoundBankInstrument(
+                at: sf2Url,
+                program: bassProgram,
+                bankMSB: UInt8(kAUSampler_DefaultMelodicBankMSB),
+                bankLSB: 0
+            )
+            logger.info("Successfully loaded Bass: Program \(self.bassProgram)")
+        } catch {
+            logger.error("Failed to load Bass instrument: \(error.localizedDescription)")
+        }
+    }
+
+    /*
+    Drum音源（Bank 128, Program 000〜002）をサンプラーへロードする。
+    CoreAudioのAUSampler仕様に基づき、Bank 128パーカッションバンクは
+    kAUSampler_DefaultPercussionBankMSB (0x78 = 120) を指定する。
+    
+    Arguments:
+    sf2Url
+      SoundFontファイルのURL。
+    
+    Usage:
+    loadSoundFontIfAvailableおよびsetDrumProgramから呼び出される。
+    */
+    
+    private func loadDrumInstrument(sf2Url: URL) {
+        do {
+            try drumSampler.loadSoundBankInstrument(
+                at: sf2Url,
+                program: drumProgram,
+                bankMSB: UInt8(kAUSampler_DefaultPercussionBankMSB),
+                bankLSB: 0
+            )
+            logger.info("Successfully loaded Drum: Program \(self.drumProgram)")
+        } catch {
+            logger.error("Failed to load Drum instrument: \(error.localizedDescription)")
+        }
+    }
+
+    /*
+    Bassプログラム番号（0〜6）を設定して再ロードする。
+    
+    Arguments:
+    program
+      設定するプログラム番号。
+    
+    Usage:
+    音色変更時に呼び出される。
+    */
+    
+    func setBassProgram(_ program: UInt8) {
+        self.bassProgram = min(6, program)
+        if let sf2Url = soundFontURL {
+            loadBassInstrument(sf2Url: sf2Url)
+        }
+    }
+
+    /*
+    Drumプログラム番号（0〜2）を設定して再ロードする。
+    
+    Arguments:
+    program
+      設定するプログラム番号。
+    
+    Usage:
+    音色変更時に呼び出される。
+    */
+    
+    func setDrumProgram(_ program: UInt8) {
+        self.drumProgram = min(2, program)
+        if let sf2Url = soundFontURL {
+            loadDrumInstrument(sf2Url: sf2Url)
+        }
+    }
+
+    /*
+    マスター出力音量（0.0〜1.0）を設定する。
+    
+    Arguments:
+    volume
+      音量値（0.0: 無音 〜 1.0: 最大）。
+      UIのボリュームスライダーから渡される。
+    
+    Usage:
+    audioEngineのmainMixerNodeの音量を動的に更新する。
+    */
+    
+    func setVolume(_ volume: Float) {
+        let clamped = max(0.0, min(1.0, volume))
+        self.volume = clamped
+        audioEngine.mainMixerNode.outputVolume = clamped
+        logger.debug("Master volume set to: \(clamped)")
+    }
+
+    /*
+    ドラムトラックの個別音量（0.0〜1.0）を設定する。
+
+    Arguments:
+    volume
+      音量値（0.0: ミュート 〜 1.0: 最大）。
+      UIのミキサーフェーダーから渡される。
+
+    Usage:
+    drumMixerのoutputVolumeを動的に更新する。
+    */
+
+    func setDrumVolume(_ volume: Float) {
+        let clamped = max(0.0, min(1.0, volume))
+        self.drumVolume = clamped
+        drumMixer.outputVolume = clamped
+        logger.debug("Drum volume set to: \(clamped)")
+    }
+
+    /*
+    ベーストラックの個別音量（0.0〜1.0）を設定する。
+
+    Arguments:
+    volume
+      音量値（0.0: ミュート 〜 1.0: 最大）。
+      UIのミキサーフェーダーから渡される。
+
+    Usage:
+    bassMixerのoutputVolumeを動的に更新する。
+    */
+
+    func setBassVolume(_ volume: Float) {
+        let clamped = max(0.0, min(1.0, volume))
+        self.bassVolume = clamped
+        bassMixer.outputVolume = clamped
+        logger.debug("Bass volume set to: \(clamped)")
     }
 
     // MARK: - 再生制御
@@ -214,12 +456,13 @@ final class AudioService: AudioServiceProtocol {
         if !audioEngine.isRunning {
             try? audioEngine.start()
         }
+        playSoundsForCurrentStep()
         startTimer()
         logger.info("Playback started at BPM: \(self.bpm)")
     }
 
     /*
-    再生を一時停止する。
+    再生を一時停止し、持続中の発音を止める。
     
     Arguments:
     なし
@@ -230,6 +473,7 @@ final class AudioService: AudioServiceProtocol {
     
     func pause() {
         stopTimer()
+        stopAllNotes()
         logger.info("Playback paused at measure: \(self.currentMeasure), beat: \(self.currentBeatIndex)")
     }
 
@@ -245,6 +489,7 @@ final class AudioService: AudioServiceProtocol {
     
     func stop() {
         stopTimer()
+        stopAllNotes()
         resetPosition()
         logger.info("Playback stopped and reset to start.")
     }
@@ -252,7 +497,7 @@ final class AudioService: AudioServiceProtocol {
     // MARK: - タイマー & 再生位置制御
 
     /*
-    BPMに基づき1拍ごとのタイマーを開始する。
+    BPMに基づき8分音符ごとのタイマーを開始する（1拍の半分の間隔）。
     
     Arguments:
     なし
@@ -263,10 +508,12 @@ final class AudioService: AudioServiceProtocol {
     
     private func startTimer() {
         stopTimer()
-        let interval = 60.0 / bpm
-        timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
-            self?.advanceBeat()
+        let interval = (60.0 / bpm) / 2.0
+        let t = Timer(timeInterval: interval, repeats: true) { [weak self] _ in
+            self?.advanceStep()
         }
+        RunLoop.main.add(t, forMode: .common)
+        self.timer = t
     }
 
     /*
@@ -285,31 +532,38 @@ final class AudioService: AudioServiceProtocol {
     }
 
     /*
-    1拍進め、小節の終端に達した場合は小節インデックスを進める。
+    8分音符を1ステップ進め、小節の終端に達した場合は小節インデックスを進め、音声を再生する。
     
     Arguments:
     なし
     
     Usage:
-    タイマーの各tickで呼び出され、PlaybackPositionを発行する。
+    タイマーの各tickで呼び出され、拍頭（表拍）でPlaybackPositionを発行する。
     */
     
-    private func advanceBeat() {
+    private func advanceStep() {
         let totalMeasures = project?.sections.first?.measures.count ?? 4
 
-        if currentBeatIndex < beatsPerMeasure {
-            currentBeatIndex += 1
+        if currentStepIndex < stepsPerMeasure - 1 {
+            currentStepIndex += 1
         } else {
-            currentBeatIndex = 1
+            currentStepIndex = 0
             currentMeasure = (currentMeasure + 1) % max(1, totalMeasures)
         }
 
-        let newPosition = PlaybackPosition(measureIndex: currentMeasure, beat: currentBeatIndex)
-        positionSubject.send(newPosition)
+        currentBeatIndex = (currentStepIndex / 2) + 1
+
+        playSoundsForCurrentStep()
+
+        // 拍頭（表拍: step 0, 2, 4, 6）のときのみUIへ位置通知を送信
+        if currentStepIndex % 2 == 0 {
+            let newPosition = PlaybackPosition(measureIndex: currentMeasure, beat: currentBeatIndex)
+            positionSubject.send(newPosition)
+        }
     }
 
     /*
-    再生位置を1小節目1拍目に初期化する。
+    再生位置を1小節目1拍目（step 0）に初期化する。
     
     Arguments:
     なし
@@ -320,7 +574,135 @@ final class AudioService: AudioServiceProtocol {
     
     private func resetPosition() {
         currentMeasure = 0
+        currentStepIndex = 0
         currentBeatIndex = 1
         positionSubject.send(PlaybackPosition(measureIndex: 0, beat: 1))
+    }
+
+    // MARK: - MIDIノート発音処理
+
+    /*
+    現在ステップに応じたドラムとベースのノートを発音する。
+    
+    Arguments:
+    なし
+    
+    Usage:
+    advanceStepおよびplay()頭出し時に呼び出される。
+    */
+    
+    private func playSoundsForCurrentStep() {
+        playDrumStep(step: currentStepIndex)
+        playBassStep(measureIndex: currentMeasure, step: currentStepIndex)
+    }
+
+    /*
+    指定ステップ（8分音符単位: 0〜7）に対応する王道8ビートのドラムサウンドを発音する。
+    
+    Arguments:
+    step
+      現在の8分音符ステップ（0〜7）。
+      タイマー進行時にadvanceStepまたはplay()から渡される。
+    
+    Usage:
+    playSoundsForCurrentStepから呼び出され、全8分音符ハイハット＋2/4拍スネア＋1/3拍キック（3拍裏推進キック付）を発音する。
+    */
+    
+    private func playDrumStep(step: Int) {
+        logger.debug("Playing drum step: \(step), program: \(self.drumProgram)")
+
+        // 8分音符ハイハット（表拍は強め、裏拍は軽めでグルーヴを形成）
+        let hiHatVelocity: UInt8 = (step % 2 == 0) ? 90 : 65
+        drumSampler.startNote(42, withVelocity: hiHatVelocity, onChannel: 0)
+
+        // キックとスネアの王道8ビートパターン
+        switch step {
+        case 0: // 1拍目: キック
+            drumSampler.startNote(36, withVelocity: 110, onChannel: 0)
+        case 2: // 2拍目: スネア
+            drumSampler.startNote(38, withVelocity: 105, onChannel: 0)
+        case 4: // 3拍目: キック
+            drumSampler.startNote(36, withVelocity: 100, onChannel: 0)
+        case 5: // 3拍裏: 推進力を生む軽めのキック（8ビートの定番フィール）
+            drumSampler.startNote(36, withVelocity: 85, onChannel: 0)
+        case 6: // 4拍目: スネア
+            drumSampler.startNote(38, withVelocity: 105, onChannel: 0)
+        default:
+            break
+        }
+    }
+
+    /*
+    指定ステップのベース音を発音する（1拍目と3拍目の頭: step 0, 4でトリガー）。
+    
+    Arguments:
+    measureIndex
+      対象小節のインデックス。
+      projectの小節リストから渡される。
+    step
+      現在の8分音符ステップ（0〜7）。
+      advanceStepから渡される。
+    
+    Usage:
+    playSoundsForCurrentStepから呼び出され、2分音符のベース音を発音する。
+    */
+    
+    private func playBassStep(measureIndex: Int, step: Int) {
+        guard let measures = project?.sections.first?.measures,
+              measureIndex < measures.count else { return }
+
+        // 1拍目（step 0）と3拍目（step 4）の頭でベース音を鳴らす（2分音符のグルーヴ）
+        if step == 0 || step == 4 {
+            let bassNoteName = measures[measureIndex].bassNote
+            let midiNote = midiNoteForBass(bassNoteName)
+
+            if let active = activeBassNote {
+                bassSampler.stopNote(active, onChannel: 0)
+            }
+            bassSampler.startNote(midiNote, withVelocity: 105, onChannel: 0)
+            activeBassNote = midiNote
+        }
+    }
+
+    /*
+    発音中のベースノートを強制停止する。
+    
+    Arguments:
+    なし
+    
+    Usage:
+    pause, stop, 曲停止時に呼び出される。
+    */
+    
+    private func stopAllNotes() {
+        if let active = activeBassNote {
+            bassSampler.stopNote(active, onChannel: 0)
+            activeBassNote = nil
+        }
+    }
+
+    /*
+    ベース音名（例: "C", "F", "D♭"）から適切なMIDIノート番号（C2=36基準）を算出する。
+    
+    Arguments:
+    noteName
+      音名文字列。
+    
+    Usage:
+    playBassBeatでサンプラーへのMIDIノート番号決定に使用される。
+    */
+    
+    private func midiNoteForBass(_ noteName: String) -> UInt8 {
+        let baseMidiC2: UInt8 = 36
+        let semitones: [String: UInt8] = [
+            "C": 0, "C#": 1, "D♭": 1, "Db": 1,
+            "D": 2, "D#": 3, "E♭": 3, "Eb": 3,
+            "E": 4, "F": 5, "F#": 6, "G♭": 6, "Gb": 6,
+            "G": 7, "G#": 8, "A♭": 8, "Ab": 8,
+            "A": 9, "A#": 10, "B♭": 10, "Bb": 10,
+            "B": 11
+        ]
+        let offset = semitones[noteName] ?? 0
+        return baseMidiC2 + offset
     }
 }

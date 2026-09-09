@@ -11,7 +11,9 @@ import SwiftUI
 
 /*
 伴奏再生、コード表示、コード候補選択を統合したアプリの中核ビュー。
-ViewModelを監視し、譜面台に置いた演奏時の使い勝手と視認性を最大化する。
+上部にKeyおよびコード進行選択の固定ヘッダー、
+中央にスクロール可能な演奏情報エリア（拍タイムライン、特大コード、譜面、フレーバー候補）、
+下部にPlay/Stop、テンポ、音量を集約した固定フッターを配置する。
 */
 @MainActor
 struct PlayEditorView: View {
@@ -24,8 +26,9 @@ struct PlayEditorView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 20) {
-                    // 1. 小節進行 & 拍インジケーター
+                VStack(spacing: 18) {
+                    // 1. 小節進行 & 拍インジケーター（一時コメントアウト）
+                    /*
                     if let measures = viewModel.project.sections.first?.measures {
                         BeatTimelineView(
                             measures: measures,
@@ -33,41 +36,58 @@ struct PlayEditorView: View {
                             currentBeat: viewModel.currentBeat
                         )
                     }
+                    */
 
-                    // 2. 特大コード表示
+                    // 1. 一体型コード選択カード（CURRENT / NEXT 特大表示 ＋ 4フレーバー候補選択 ＋ 代理コード提案）
                     ChordDisplayView(
                         currentChord: viewModel.currentChord,
                         nextChord: viewModel.nextChord,
-                        bassNote: currentMeasureBassNote,
-                        baseDegree: currentMeasureDegree
-                    )
-
-                    // 3. コード候補選択ボタングリッド
-                    CandidateButtonsView(
                         candidates: viewModel.currentCandidates,
+                        substituteCandidates: viewModel.currentSubstituteCandidates,
                         selectedChord: currentSelectedChord,
                         onSelect: { selected in
                             viewModel.selectChord(selected, forMeasureIndex: viewModel.currentMeasureIndex)
                         }
                     )
 
-                    // 4. 再生コントロール & 設定
+                    // 2. 譜面エリア（ギターTAB譜 / 五線譜）
+                    ScoreSegmentView(
+                        voicing: viewModel.currentVoicing,
+                        notes: viewModel.currentStaffNotes,
+                        chordName: viewModel.currentChord.displayString
+                    )
+                }
+                .padding(.vertical, 14)
+            }
+            .safeAreaInset(edge: .top, spacing: 0) {
+                VStack(spacing: 0) {
+                    topHeaderView
+                    Divider()
+                }
+                .background(Color(uiColor: .systemBackground))
+            }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                VStack(spacing: 0) {
+                    Divider()
                     PlaybackControlsView(
                         isPlaying: viewModel.isPlaying,
                         bpm: viewModel.project.bpm,
-                        currentKey: viewModel.project.key,
-                        currentTemplate: viewModel.selectedTemplate,
+                        volume: viewModel.volume,
                         onTogglePlay: { viewModel.togglePlay() },
                         onBPMChange: { viewModel.changeBPM($0) },
-                        onKeyChange: { viewModel.changeKey($0) },
-                        onTemplateChange: { viewModel.applyTemplate($0) }
+                        onVolumeChange: { viewModel.changeVolume($0) },
+                        onOpenMixer: { viewModel.isShowingMixer = true }
                     )
                 }
-                .padding(.vertical)
+                .background(Color(uiColor: .secondarySystemBackground))
             }
             .background(Color(uiColor: .systemBackground))
-            .navigationTitle("Jam-Rythm")
-            .navigationBarTitleDisplayMode(.inline)
+            .toolbar(.hidden, for: .navigationBar)
+            .sheet(isPresented: $viewModel.isShowingMixer) {
+                MixerView(viewModel: viewModel)
+                    .presentationDetents([.fraction(0.55), .medium])
+                    .presentationDragIndicator(.visible)
+            }
             .alert("エラー", isPresented: Binding(
                 get: { viewModel.errorMessage != nil },
                 set: { if !$0 { viewModel.errorMessage = nil } }
@@ -78,6 +98,110 @@ struct PlayEditorView: View {
             } message: {
                 Text(viewModel.errorMessage ?? "")
             }
+        }
+    }
+
+    // MARK: - 固定ヘッダーサブビュー
+
+    /*
+    Key選択ボタンおよびコード進行選択ボタンを左詰めで配置した固定ヘッダーを描画する。
+    
+    Arguments:
+    なし
+    
+    Usage:
+    画面最上部の固定バーとして使用される。
+    */
+    
+    private var topHeaderView: some View {
+        HStack(spacing: 10) {
+            // Key選択ボタン（Key名 + 下矢印）
+            keyMenuButton
+
+            // コード進行選択ボタン（進行名 + 下矢印）
+            progressionMenuButton
+
+            Spacer()
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .background(Color(uiColor: .systemBackground))
+    }
+
+    /*
+    調（Key）を1タップで変更できるコンパクトなドロップダウンメニューを描画する。
+    
+    Arguments:
+    なし
+    
+    Usage:
+    topHeaderViewの左端に配置される。
+    */
+    
+    private var keyMenuButton: some View {
+        Menu {
+            ForEach(Key.allCases) { key in
+                Button(action: { viewModel.changeKey(key) }) {
+                    if key == viewModel.project.key {
+                        Label(key.rawValue, systemImage: "checkmark")
+                    } else {
+                        Text(key.rawValue)
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 5) {
+                Text(viewModel.project.key.rawValue)
+                    .font(.headline.bold())
+                    .foregroundColor(.primary)
+
+                Image(systemName: "chevron.down")
+                    .font(.caption2.bold())
+                    .foregroundColor(.secondary)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
+            .background(Color(uiColor: .secondarySystemBackground))
+            .cornerRadius(10)
+        }
+    }
+
+    /*
+    コード進行テンプレートを切り替えるドロップダウンメニューを描画する。
+    
+    Arguments:
+    なし
+    
+    Usage:
+    topHeaderViewのKeyメニュー横に配置される。
+    */
+    
+    private var progressionMenuButton: some View {
+        Menu {
+            ForEach(ProgressionTemplate.allTemplates) { template in
+                Button(action: { viewModel.applyTemplate(template) }) {
+                    if template.id == viewModel.selectedTemplate.id {
+                        Label(template.name, systemImage: "checkmark")
+                    } else {
+                        Text(template.name)
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 5) {
+                Text(viewModel.selectedTemplate.name)
+                    .font(.subheadline.bold())
+                    .foregroundColor(.primary)
+                    .lineLimit(1)
+
+                Image(systemName: "chevron.down")
+                    .font(.caption2.bold())
+                    .foregroundColor(.secondary)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
+            .background(Color(uiColor: .secondarySystemBackground))
+            .cornerRadius(10)
         }
     }
 
