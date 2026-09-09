@@ -120,6 +120,11 @@ struct PlayEditorView: View {
                     .presentationDragIndicator(.visible)
                 }
             }
+            .sheet(isPresented: $viewModel.isShowingSongStructureSheet) {
+                SongStructureSheetView(viewModel: viewModel)
+                    .presentationDetents([.medium, .large])
+                    .presentationDragIndicator(.visible)
+            }
             .alert("エラー", isPresented: Binding(
                 get: { viewModel.errorMessage != nil },
                 set: { if !$0 { viewModel.errorMessage = nil } }

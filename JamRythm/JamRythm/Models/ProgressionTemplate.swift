@@ -125,6 +125,33 @@ struct ProgressionTemplate: Identifiable, Equatable {
         genreTag: "エモーショナル"
     )
 
+    static let standByMe = ProgressionTemplate(
+        id: "stand_by_me",
+        name: "スタンド・バイ・ミー進行 (1-6-4-5)",
+        description: "洋楽黄金期から愛され続けるオールディーズ＆ドゥーワップの普遍的進行",
+        degrees: [1, 6, 4, 5],
+        iconName: "guitars.fill",
+        genreTag: "50s定番"
+    )
+
+    static let andalusia = ProgressionTemplate(
+        id: "andalusia",
+        name: "アンダルシア進行 (6-5-4-3)",
+        description: "切ないマイナーコード下降が胸に迫る、情熱的で哀愁漂うドラマチック進行",
+        degrees: [6, 5, 4, 3],
+        iconName: "flame",
+        genreTag: "哀愁・マイナー"
+    )
+
+    static let canonShort = ProgressionTemplate(
+        id: "canon_short",
+        name: "カノン進行・4小節 (1-5-6-3)",
+        description: "カノン進行の美しい前半部を凝縮した、穏やかで歌いやすい4小節構成",
+        degrees: [1, 5, 6, 3],
+        iconName: "leaf.fill",
+        genreTag: "穏やか・Aメロ"
+    )
+
     static let allTemplates: [ProgressionTemplate] = [
         .royalRoad,
         .komuro,
@@ -132,6 +159,9 @@ struct ProgressionTemplate: Identifiable, Equatable {
         .popPunk,
         .fourFiveSix,
         .twoFiveOne,
+        .standByMe,
+        .andalusia,
+        .canonShort,
         .canon
     ]
 }

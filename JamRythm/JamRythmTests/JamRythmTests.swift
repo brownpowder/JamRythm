@@ -633,11 +633,11 @@ struct JamRythmTests {
     }
 
     /*
-    拡張されたコード進行テンプレート（ポップパンク、2-5-1、4-5-6等を含む7種類）の属性とローマ数字変換を検証する。
+    拡張されたコード進行テンプレート（王道、丸サ、小室、カノン、ポップパンク、2-5-1、4-5-6、スタンドバイミー、アンダルシア、カノン短縮の全10種類）の属性とローマ数字変換を検証する。
     */
     @Test func testProgressionTemplatesAttributes() async throws {
         let templates = ProgressionTemplate.allTemplates
-        #expect(templates.count == 7)
+        #expect(templates.count == 10)
 
         for template in templates {
             #expect(!template.id.isEmpty)
@@ -718,6 +718,82 @@ struct JamRythmTests {
         // セクション0の進行が丸サ進行に更新されていること
         #expect(viewModel.project.sections[0].measures.map { $0.baseDegree } == [4, 3, 6, 1])
         #expect(viewModel.sectionIndexForProgressionChange == nil)
+    }
+
+    /*
+    追加された定番進行テンプレート（スタンド・バイ・ミー、アンダルシア、カノン短縮）の度数および全件数を検証する。
+    */
+    @Test func testExpandedProgressionTemplates() async throws {
+        #expect(ProgressionTemplate.allTemplates.count == 10)
+
+        // スタンド・バイ・ミー進行 (1-6-4-5)
+        #expect(ProgressionTemplate.standByMe.degrees == [1, 6, 4, 5])
+        #expect(ProgressionTemplate.standByMe.romanDegrees == ["I", "VI", "IV", "V"])
+
+        // アンダルシア進行 (6-5-4-3)
+        #expect(ProgressionTemplate.andalusia.degrees == [6, 5, 4, 3])
+        #expect(ProgressionTemplate.andalusia.romanDegrees == ["VI", "V", "IV", "III"])
+
+        // カノン短縮版 (1-5-6-3)
+        #expect(ProgressionTemplate.canonShort.degrees == [1, 5, 6, 3])
+        #expect(ProgressionTemplate.canonShort.romanDegrees == ["I", "V", "VI", "III"])
+    }
+
+    /*
+    楽曲構成テンプレート（1コーラス・フル構成など）の一括自動生成とViewModelへの適用を検証する。
+    */
+    @Test @MainActor func testSongStructureTemplatesAndApplication() async throws {
+        #expect(SongStructureTemplate.allStructures.count == 5)
+
+        // 小節数計算の検証
+        #expect(SongStructureTemplate.jpopOneChorus.totalMeasures == 16)
+        #expect(SongStructureTemplate.jpopFullSong.totalMeasures == 28)
+        #expect(SongStructureTemplate.neoSoulGroove.totalMeasures == 16)
+        #expect(SongStructureTemplate.rockAnthem.totalMeasures == 16)
+        #expect(SongStructureTemplate.classicBallad.totalMeasures == 16)
+
+        let audioService = AudioService()
+        let theoryService = MusicTheoryService()
+        let viewModel = PlayEditorViewModel(audioService: audioService, theoryService: theoryService)
+
+        // シート表示フラグの検証
+        #expect(!viewModel.isShowingSongStructureSheet)
+        viewModel.isShowingSongStructureSheet = true
+        #expect(viewModel.isShowingSongStructureSheet)
+
+        // J-POP 1コーラスを適用
+        viewModel.applySongStructure(.jpopOneChorus)
+
+        #expect(viewModel.project.sections.count == 4)
+        #expect(viewModel.project.sections[0].type == .intro)
+        #expect(viewModel.project.sections[1].type == .verseA)
+        #expect(viewModel.project.sections[2].type == .verseB)
+        #expect(viewModel.project.sections[3].type == .chorus)
+        #expect(viewModel.selectedSectionIndex == 0)
+        #expect(viewModel.currentMeasureIndex == 0)
+        #expect(viewModel.project.genre == .pop)
+
+        // 各セクションの小節数・度数検証
+        // Intro: 王道 (4-5-3-6)
+        #expect(viewModel.project.sections[0].measures.map { $0.baseDegree } == [4, 5, 3, 6])
+        // Aメロ: ポップパンク (1-5-6-4)
+        #expect(viewModel.project.sections[1].measures.map { $0.baseDegree } == [1, 5, 6, 4])
+        // Bメロ: 丸サ (4-3-6-1)
+        #expect(viewModel.project.sections[2].measures.map { $0.baseDegree } == [4, 3, 6, 1])
+        // サビ: 4-5-6 (4-5-6-6)
+        #expect(viewModel.project.sections[3].measures.map { $0.baseDegree } == [4, 5, 6, 6])
+
+        // J-POP フル構成を適用 (28小節・7セクション)
+        viewModel.applySongStructure(.jpopFullSong)
+        #expect(viewModel.project.sections.count == 7)
+        let totalMeasures = viewModel.project.sections.reduce(0) { $0 + $1.measures.count }
+        #expect(totalMeasures == 28)
+        #expect(viewModel.project.sections.map { $0.type } == [.intro, .verseA, .verseB, .chorus, .bridge, .chorus, .outro])
+
+        // Lo-Fiジャムを適用（ジャンル連動検証）
+        viewModel.applySongStructure(.neoSoulGroove)
+        #expect(viewModel.project.genre == .lofi)
+        #expect(viewModel.project.sections.count == 4)
     }
 }
 

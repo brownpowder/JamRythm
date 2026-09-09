@@ -53,6 +53,7 @@ final class PlayEditorViewModel: ObservableObject {
     @Published var isShowingMixer: Bool = false
     @Published var isShowingAddSectionSheet: Bool = false
     @Published var sectionIndexForProgressionChange: Int? = nil
+    @Published var isShowingSongStructureSheet: Bool = false
     @Published var errorMessage: String?
 
     // MARK: - イニシャライザ
@@ -576,6 +577,46 @@ final class PlayEditorViewModel: ObservableObject {
         self.currentBeat = 1
         try? audioService.prepare(project: self.project)
         updateCandidatesForCurrentMeasure()
+    }
+
+    /*
+    楽曲構成テンプレート（1コーラスまたは1曲分）を一括適用し、セクション一覧を再構築する。
+
+    Arguments:
+    structure
+      適用する楽曲構成テンプレート（SongStructureTemplate）。
+      SongStructureSheetViewから渡される。
+
+    Usage:
+    楽曲構成自動生成シートでプリセットを選択した際に呼び出される。
+    */
+
+    func applySongStructure(_ structure: SongStructureTemplate) {
+        var newSections: [Section] = []
+
+        for sec in structure.sections {
+            let measures = Self.createMeasures(
+                for: sec.template,
+                key: project.key,
+                theoryService: theoryService
+            )
+            let section = Section(type: sec.type, measures: measures)
+            newSections.append(section)
+        }
+
+        self.project.sections = newSections
+        self.selectedSectionIndex = 0
+        self.currentMeasureIndex = 0
+        self.currentBeat = 1
+
+        // 構成に最適化された推奨ジャンルへ自動設定
+        changeGenre(structure.recommendedGenre)
+
+        try? audioService.prepare(project: self.project)
+        audioService.setPlaybackPosition(sectionIndex: 0, measureIndex: 0)
+        updateCandidatesForCurrentMeasure()
+
+        logger.info("Applied song structure: \(structure.name) with \(newSections.count) sections")
     }
 
     /*

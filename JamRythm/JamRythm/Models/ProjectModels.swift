@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SwiftUI
 
 // MARK: - セクション種別
 
@@ -21,6 +22,19 @@ enum SectionType: String, Codable, CaseIterable, Identifiable {
     case outro = "Outro"
 
     var id: String { rawValue }
+
+    var displayName: String { rawValue }
+
+    var displayColor: Color {
+        switch self {
+        case .intro: return .purple
+        case .verseA: return .blue
+        case .verseB: return .teal
+        case .chorus: return .orange
+        case .bridge: return .pink
+        case .outro: return .indigo
+        }
+    }
 }
 
 // MARK: - コード候補モデル

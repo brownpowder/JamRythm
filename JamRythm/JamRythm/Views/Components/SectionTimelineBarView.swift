@@ -28,7 +28,10 @@ struct SectionTimelineBarView: View {
                 }
             }
 
-            addSectionButton
+            VStack(spacing: 8) {
+                addSectionButton
+                generateSongStructureButton
+            }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
@@ -164,6 +167,14 @@ struct SectionTimelineBarView: View {
                             .fill(Color.green)
                             .frame(width: 8, height: 8)
                     }
+
+                    Text(section.type.displayName)
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(.primary)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(section.type.displayColor.opacity(0.18))
+                        .cornerRadius(5)
 
                     Text("Section \(sectionIndex + 1)")
                         .font(.system(size: 14, weight: .bold, design: .rounded))
@@ -318,6 +329,39 @@ struct SectionTimelineBarView: View {
             .overlay(
                 RoundedRectangle(cornerRadius: 10)
                     .stroke(Color.accentColor.opacity(0.25), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    /*
+    楽曲構成（1コーラスや1曲分）を一括自動生成するモーダルシートを開くボタンを描画する。
+
+    Arguments:
+    なし
+
+    Usage:
+    セクション一覧の最下部に配置される。
+    */
+
+    private var generateSongStructureButton: some View {
+        Button(action: {
+            viewModel.isShowingSongStructureSheet = true
+        }) {
+            HStack(spacing: 6) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 13, weight: .bold))
+                Text("楽曲構成を自動生成 (1コーラス / 1曲)")
+                    .font(.system(size: 13, weight: .semibold))
+            }
+            .foregroundColor(.purple)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .background(Color.purple.opacity(0.1))
+            .cornerRadius(10)
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(Color.purple.opacity(0.25), lineWidth: 1)
             )
         }
         .buttonStyle(.plain)
