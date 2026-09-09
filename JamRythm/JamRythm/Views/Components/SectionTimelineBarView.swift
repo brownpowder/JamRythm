@@ -208,7 +208,7 @@ struct SectionTimelineBarView: View {
             Button(action: {
                 viewModel.duplicateSection(at: sectionIndex)
             }) {
-                Label("このセクションを複製", systemImage: "plus.square.on.square")
+                Label("セクションを複製", systemImage: "plus.square.on.square")
             }
 
             if viewModel.project.sections.count > 1 {
