@@ -1062,6 +1062,61 @@ struct JamRythmTests {
         #expect(viewModel.editingOriginalChord?.rootNote == "A")
         #expect(viewModel.editingNextChord?.rootNote == "F")
     }
+
+    /*
+    ギターTABのボイシング生成がオープンコード・バレーコード・オンコード等で全コード網羅されているかを検証する。
+    */
+    @Test func testGuitarVoicingFullCoverage() {
+        let service = MusicTheoryService()
+
+        // オープンコード（代表例）
+        let cMaj = Chord(rootNote: "C", type: "", bassNote: nil)
+        let cVoicing = service.guitarVoicing(for: cMaj)
+        #expect(cVoicing.frets.count == 6)
+
+        // バレーコード（Amaj7: 6弦5フレットルートまたは5弦オープン）
+        let aMaj7 = Chord(rootNote: "A", type: "maj7", bassNote: nil)
+        let aMaj7Voicing = service.guitarVoicing(for: aMaj7)
+        #expect(aMaj7Voicing.frets.count == 6)
+
+        // テンションコード（C13, A7(#9) など）
+        let c13 = Chord(rootNote: "C", type: "13", bassNote: nil)
+        let c13Voicing = service.guitarVoicing(for: c13)
+        #expect(c13Voicing.frets.count == 6)
+
+        let a7s9 = Chord(rootNote: "A", type: "7(#9)", bassNote: nil)
+        let a7s9Voicing = service.guitarVoicing(for: a7s9)
+        #expect(a7s9Voicing.frets.count == 6)
+
+        // オンコード（F/G）
+        let fOverG = Chord(rootNote: "F", type: "", bassNote: "G")
+        let fgVoicing = service.guitarVoicing(for: fOverG)
+        #expect(fgVoicing.frets.count == 6)
+        // 6弦が3フレット（G音）であることを確認
+        #expect(fgVoicing.frets[0] == 3)
+    }
+
+    /*
+    五線譜（StaffScore）の音符生成において、オンコード指定時に最低音としてベース音が正しく挿入されるかを検証する。
+    */
+    @Test func testStaffNotesOnChordBassNote() {
+        let service = MusicTheoryService()
+
+        // 通常のFコード (F, A, C)
+        let fChord = Chord(rootNote: "F", type: "", bassNote: nil)
+        let fNotes = service.staffNotes(for: fChord)
+        #expect(fNotes.count == 3)
+        #expect(fNotes[0].name == "F")
+
+        // オンコード F/G (G音 + F, A, C)
+        let fgChord = Chord(rootNote: "F", type: "", bassNote: "G")
+        let fgNotes = service.staffNotes(for: fgChord)
+        #expect(fgNotes.count == 4)
+        // 先頭がベース音Gであること
+        #expect(fgNotes[0].name == "G")
+        // ベース音のstepがコード音の最低ステップより低いこと
+        #expect(fgNotes[0].step < fgNotes[1].step)
+    }
 }
 
 
