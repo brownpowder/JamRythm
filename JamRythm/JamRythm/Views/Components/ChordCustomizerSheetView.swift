@@ -119,9 +119,13 @@ struct ChordCustomizerSheetView: View {
 
     private var chordPreviewHeader: some View {
         VStack(spacing: 8) {
-            Text("PREVIEW")
-                .font(.caption2.bold())
-                .foregroundColor(.secondary)
+            Text(viewModel.editingMeasureTitle)
+                .font(.system(size: 12, weight: .bold))
+                .foregroundColor(.accentColor)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(Color.accentColor.opacity(0.12))
+                .cornerRadius(6)
 
             HStack(spacing: 12) {
                 Text(builtChord.displayString)

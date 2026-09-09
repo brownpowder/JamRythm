@@ -916,6 +916,31 @@ struct JamRythmTests {
         #expect(viewModel.currentChord == customChord)
         #expect(viewModel.currentChord.displayString == "G7sus4/F")
     }
+
+    /*
+    進行セクションから特定のセクション・小節を指定してコードカスタムシートを開く導線（openChordCustomizer）を検証する。
+    */
+    @Test @MainActor func testOpenChordCustomizerFromSection() async throws {
+        let audioService = AudioService()
+        let theoryService = MusicTheoryService()
+        let viewModel = PlayEditorViewModel(audioService: audioService, theoryService: theoryService)
+
+        // 3小節目（インデックス2）を指定してカスタマイザーを開く
+        viewModel.openChordCustomizer(forSection: 0, measureIndex: 2)
+
+        #expect(viewModel.selectedSectionIndex == 0)
+        #expect(viewModel.currentMeasureIndex == 2)
+        #expect(viewModel.isShowingChordCustomizer == true)
+        #expect(viewModel.editingMeasureTitle == "Section 1 - 3小節目")
+
+        // コード適用
+        let customChord = Chord(rootNote: "D", type: "m9", bassNote: nil)
+        viewModel.setCustomChord(customChord)
+
+        let targetMeasure = viewModel.project.sections[0].measures[2]
+        #expect(targetMeasure.activeChord == customChord)
+        #expect(viewModel.currentChord.displayString == "Dm9")
+    }
 }
 
 

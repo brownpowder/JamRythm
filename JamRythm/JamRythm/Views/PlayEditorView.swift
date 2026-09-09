@@ -57,9 +57,6 @@ struct PlayEditorView: View {
                         },
                         onPlayChord: { chord in
                             viewModel.playChordPreview(chord)
-                        },
-                        onOpenCustomizer: {
-                            viewModel.isShowingChordCustomizer = true
                         }
                     )
 

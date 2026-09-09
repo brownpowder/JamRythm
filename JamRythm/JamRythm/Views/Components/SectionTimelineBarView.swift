@@ -127,6 +127,10 @@ struct SectionTimelineBarView: View {
                     measureChordCard(measure: measure, sectionIndex: sectionIndex, measureIndex: mIndex)
                 }
             }
+
+            if isSelected {
+                focusedMeasureActionBar(section: section, sectionIndex: sectionIndex)
+            }
         }
         .padding(12)
         .background(
@@ -137,6 +141,57 @@ struct SectionTimelineBarView: View {
             RoundedRectangle(cornerRadius: 12)
                 .stroke(isSelected ? Color.accentColor.opacity(0.6) : Color.secondary.opacity(0.15), lineWidth: isSelected ? 1.5 : 1)
         )
+    }
+
+    /*
+    セクション内で現在フォーカスされている小節のコード情報と編集アクションバーを描画する。
+
+    Arguments:
+    section
+      表示対象のSectionデータ。
+    sectionIndex
+      セクションのインデックス番号。
+
+    Usage:
+    sectionCard内の小節グリッド直下に配置される。
+    */
+
+    @ViewBuilder
+    private func focusedMeasureActionBar(section: Section, sectionIndex: Int) -> some View {
+        if viewModel.currentMeasureIndex < section.measures.count {
+            let measure = section.measures[viewModel.currentMeasureIndex]
+            HStack(spacing: 8) {
+                HStack(spacing: 4) {
+                    Text("\(viewModel.currentMeasureIndex + 1)小節目:")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(.secondary)
+
+                    Text(measure.activeChord.displayString)
+                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .foregroundColor(.primary)
+                }
+
+                Spacer()
+
+                Button(action: {
+                    viewModel.openChordCustomizer(forSection: sectionIndex, measureIndex: viewModel.currentMeasureIndex)
+                }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "pencil")
+                            .font(.system(size: 10, weight: .bold))
+                        Text("コードを変更")
+                            .font(.system(size: 11, weight: .bold))
+                    }
+                    .foregroundColor(.orange)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.orange.opacity(0.12))
+                    .cornerRadius(6)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.top, 2)
+        }
     }
 
     /*
@@ -257,7 +312,11 @@ struct SectionTimelineBarView: View {
         let isPlayingThisMeasure = viewModel.isPlaying && viewModel.selectedSectionIndex == sectionIndex && viewModel.currentMeasureIndex == measureIndex
 
         return Button(action: {
-            viewModel.selectMeasure(inSection: sectionIndex, measureIndex: measureIndex)
+            if isFocused {
+                viewModel.openChordCustomizer(forSection: sectionIndex, measureIndex: measureIndex)
+            } else {
+                viewModel.selectMeasure(inSection: sectionIndex, measureIndex: measureIndex)
+            }
         }) {
             VStack(spacing: 3) {
                 HStack(spacing: 2) {
@@ -269,6 +328,14 @@ struct SectionTimelineBarView: View {
                         Circle()
                             .fill(Color.green)
                             .frame(width: 5, height: 5)
+                    }
+
+                    Spacer(minLength: 0)
+
+                    if isFocused {
+                        Image(systemName: "pencil")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundColor(.orange)
                     }
                 }
 
@@ -299,6 +366,19 @@ struct SectionTimelineBarView: View {
             )
         }
         .buttonStyle(.plain)
+        .contextMenu {
+            Button {
+                viewModel.openChordCustomizer(forSection: sectionIndex, measureIndex: measureIndex)
+            } label: {
+                Label("コードを編集", systemImage: "pencil")
+            }
+
+            Button {
+                viewModel.playChordPreview(measure.activeChord)
+            } label: {
+                Label("コードを試聴", systemImage: "speaker.wave.2")
+            }
+        }
     }
 
     /*

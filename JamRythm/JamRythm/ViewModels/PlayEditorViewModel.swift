@@ -293,6 +293,40 @@ final class PlayEditorViewModel: ObservableObject {
     }
 
     /*
+    指定されたセクション・小節を選択し、コードカスタム編集シートを開く。
+
+    Arguments:
+    sectionIndex
+      対象セクションのインデックス番号。進行セクションUIから渡される。
+    measureIndex
+      対象小節のインデックス番号。進行セクションUIから渡される。
+
+    Usage:
+    進行セクションの小節カードタップ（再タップ・鉛筆タップ・長押しメニュー）時に呼び出される。
+    */
+
+    func openChordCustomizer(forSection sectionIndex: Int, measureIndex: Int) {
+        selectMeasure(inSection: sectionIndex, measureIndex: measureIndex)
+        isShowingChordCustomizer = true
+    }
+
+    /*
+    現在カスタム編集対象となっているセクション・小節の表示用タイトルを返す。
+
+    Arguments:
+    なし
+
+    Usage:
+    ChordCustomizerSheetViewのヘッダーやナビゲーションタイトルに表示される。
+    */
+
+    var editingMeasureTitle: String {
+        let sectionNum = selectedSectionIndex + 1
+        let measureNum = currentMeasureIndex + 1
+        return "Section \(sectionNum) - \(measureNum)小節目"
+    }
+
+    /*
     指定されたコードの構成音をピアノ音源（piano1: 007）でプレビュー再生する。
 
     Arguments:
