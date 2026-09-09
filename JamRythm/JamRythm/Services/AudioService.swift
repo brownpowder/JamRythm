@@ -54,6 +54,7 @@ struct PlaybackPosition: Equatable {
 protocol AudioServiceProtocol: AnyObject {
     func setupEngine() throws
     func prepare(project: Project) throws
+    func updateProject(_ project: Project)
     func play()
     func pause()
     func stop()
@@ -151,6 +152,36 @@ protocol AudioServiceProtocol: AnyObject {
     var bassVolume: Float { get }
 
     /*
+    ピアノトラックの個別音量（0.0〜1.0）を設定する。
+
+    Arguments:
+    volume
+      音量値（0.0: ミュート 〜 1.0: 最大）。
+
+    Usage:
+    ミキサーのピアノ音量操作時に呼び出される。
+    */
+
+    func setPianoVolume(_ volume: Float)
+    var pianoVolume: Float { get }
+
+    var drumIsMuted: Bool { get }
+    var bassIsMuted: Bool { get }
+    var pianoIsMuted: Bool { get }
+
+    var drumIsSolo: Bool { get }
+    var bassIsSolo: Bool { get }
+    var pianoIsSolo: Bool { get }
+
+    func setDrumMuted(_ isMuted: Bool)
+    func setBassMuted(_ isMuted: Bool)
+    func setPianoMuted(_ isMuted: Bool)
+
+    func setDrumSolo(_ isSolo: Bool)
+    func setBassSolo(_ isSolo: Bool)
+    func setPianoSolo(_ isSolo: Bool)
+
+    /*
     指定されたMIDIノート配列をコード（和音）としてピアノ音源（piano1: 007）でプレビュー再生する。
 
     Arguments:
@@ -196,14 +227,25 @@ final class AudioService: AudioServiceProtocol {
     private let stepsPerMeasure: Int = 8
     private let beatsPerMeasure: Int = 4
 
+    private let theoryService: MusicTheoryServiceProtocol = MusicTheoryService()
+
     private(set) var playbackMode: PlaybackMode = .entireSong
     private(set) var bassProgram: UInt8 = 0
     private(set) var drumProgram: UInt8 = 0
     private(set) var volume: Float = 0.8
     private(set) var drumVolume: Float = 0.8
     private(set) var bassVolume: Float = 0.8
+    private(set) var pianoVolume: Float = 0.8
+    private(set) var drumIsMuted: Bool = false
+    private(set) var bassIsMuted: Bool = false
+    private(set) var pianoIsMuted: Bool = false
+    private(set) var drumIsSolo: Bool = false
+    private(set) var bassIsSolo: Bool = false
+    private(set) var pianoIsSolo: Bool = false
+
     private var activeBassNote: UInt8?
     private var activePianoNotes: [UInt8] = []
+    private var activePlaybackPianoNotes: [UInt8] = []
     private var pianoReleaseTask: Task<Void, Never>?
 
     // MARK: - Combine Publisher
@@ -263,9 +305,7 @@ final class AudioService: AudioServiceProtocol {
 
         let mainMixer = audioEngine.mainMixerNode
         mainMixer.outputVolume = volume
-        drumMixer.outputVolume = drumVolume
-        bassMixer.outputVolume = bassVolume
-        pianoMixer.outputVolume = 0.9
+        updateEffectiveVolumes()
 
         audioEngine.connect(drumSampler, to: drumMixer, format: nil)
         audioEngine.connect(bassSampler, to: bassMixer, format: nil)
@@ -475,7 +515,7 @@ final class AudioService: AudioServiceProtocol {
     func setDrumVolume(_ volume: Float) {
         let clamped = max(0.0, min(1.0, volume))
         self.drumVolume = clamped
-        drumMixer.outputVolume = clamped
+        updateEffectiveVolumes()
         logger.debug("Drum volume set to: \(clamped)")
     }
 
@@ -494,8 +534,85 @@ final class AudioService: AudioServiceProtocol {
     func setBassVolume(_ volume: Float) {
         let clamped = max(0.0, min(1.0, volume))
         self.bassVolume = clamped
-        bassMixer.outputVolume = clamped
+        updateEffectiveVolumes()
         logger.debug("Bass volume set to: \(clamped)")
+    }
+
+    /*
+    ピアノトラックの個別音量（0.0〜1.0）を設定する。
+
+    Arguments:
+    volume
+      音量値（0.0: ミュート 〜 1.0: 最大）。
+      UIのミキサーフェーダーから渡される。
+
+    Usage:
+    pianoMixerのoutputVolumeを動的に更新する。
+    */
+
+    func setPianoVolume(_ volume: Float) {
+        let clamped = max(0.0, min(1.0, volume))
+        self.pianoVolume = clamped
+        updateEffectiveVolumes()
+        logger.debug("Piano volume set to: \(clamped)")
+    }
+
+    /*
+    MuteおよびSolo状態に基づき、ドラム・ベース・ピアノ各ミキサーノードの実効出力音量を更新する。
+
+    Arguments:
+    なし
+
+    Usage:
+    音量フェーダー変更時やMute/Solo切り替え時に内部から呼び出される。
+    */
+
+    private func updateEffectiveVolumes() {
+        let hasAnySolo = drumIsSolo || bassIsSolo || pianoIsSolo
+
+        let drumAudible = hasAnySolo ? (drumIsSolo && !drumIsMuted) : !drumIsMuted
+        let bassAudible = hasAnySolo ? (bassIsSolo && !bassIsMuted) : !bassIsMuted
+        let pianoAudible = hasAnySolo ? (pianoIsSolo && !pianoIsMuted) : !pianoIsMuted
+
+        drumMixer.outputVolume = drumAudible ? drumVolume : 0.0
+        bassMixer.outputVolume = bassAudible ? bassVolume : 0.0
+        pianoMixer.outputVolume = pianoAudible ? pianoVolume : 0.0
+    }
+
+    func setDrumMuted(_ isMuted: Bool) {
+        self.drumIsMuted = isMuted
+        updateEffectiveVolumes()
+        logger.debug("Drum mute set to: \(isMuted)")
+    }
+
+    func setBassMuted(_ isMuted: Bool) {
+        self.bassIsMuted = isMuted
+        updateEffectiveVolumes()
+        logger.debug("Bass mute set to: \(isMuted)")
+    }
+
+    func setPianoMuted(_ isMuted: Bool) {
+        self.pianoIsMuted = isMuted
+        updateEffectiveVolumes()
+        logger.debug("Piano mute set to: \(isMuted)")
+    }
+
+    func setDrumSolo(_ isSolo: Bool) {
+        self.drumIsSolo = isSolo
+        updateEffectiveVolumes()
+        logger.debug("Drum solo set to: \(isSolo)")
+    }
+
+    func setBassSolo(_ isSolo: Bool) {
+        self.bassIsSolo = isSolo
+        updateEffectiveVolumes()
+        logger.debug("Bass solo set to: \(isSolo)")
+    }
+
+    func setPianoSolo(_ isSolo: Bool) {
+        self.pianoIsSolo = isSolo
+        updateEffectiveVolumes()
+        logger.debug("Piano solo set to: \(isSolo)")
     }
 
     /*
@@ -573,6 +690,22 @@ final class AudioService: AudioServiceProtocol {
         self.project = project
         self.bpm = project.bpm
         resetPosition()
+    }
+
+    /*
+    再生位置（currentMeasure等）をリセットすることなく、最新のプロジェクトデータ（選択コード等）を反映する。
+
+    Arguments:
+    project
+      最新のProjectデータ。
+
+    Usage:
+    ユーザーがコードを変更した際や進行を編集した際に呼び出される。
+    */
+
+    func updateProject(_ project: Project) {
+        self.project = project
+        self.bpm = project.bpm
     }
 
     /*
@@ -763,6 +896,7 @@ final class AudioService: AudioServiceProtocol {
     private func playSoundsForCurrentStep() {
         playDrumStep(step: currentStepIndex)
         playBassStep(measureIndex: currentMeasure, step: currentStepIndex)
+        playPianoStep(measureIndex: currentMeasure, step: currentStepIndex)
     }
 
     /*
@@ -824,7 +958,8 @@ final class AudioService: AudioServiceProtocol {
 
         // 1拍目（step 0）と3拍目（step 4）の頭でベース音を鳴らす（2分音符のグルーヴ）
         if step == 0 || step == 4 {
-            let bassNoteName = measures[measureIndex].bassNote
+            let chord = measures[measureIndex].activeChord
+            let bassNoteName = (chord.bassNote?.isEmpty == false) ? chord.bassNote! : measures[measureIndex].bassNote
             let midiNote = midiNoteForBass(bassNoteName)
 
             if let active = activeBassNote {
@@ -833,6 +968,58 @@ final class AudioService: AudioServiceProtocol {
             bassSampler.startNote(midiNote, withVelocity: 105, onChannel: 0)
             activeBassNote = midiNote
         }
+    }
+
+    /*
+    指定ステップのピアノコード音を発音する（小節の頭: step 0でトリガー）。
+    
+    Arguments:
+    measureIndex
+      対象小節のインデックス。
+    step
+      現在の8分音符ステップ（0〜7）。
+    
+    Usage:
+    playSoundsForCurrentStepから呼び出され、小節頭でピアノ和音を持続発音する。
+    */
+    
+    private func playPianoStep(measureIndex: Int, step: Int) {
+        guard let sections = project?.sections,
+              currentSectionIndex < sections.count else { return }
+        let measures = sections[currentSectionIndex].measures
+        guard measureIndex < measures.count else { return }
+
+        // 1拍目の頭（step 0）で現在のコードの和音を発音
+        if step == 0 {
+            stopActivePlaybackPianoNotes()
+
+            let chord = measures[measureIndex].activeChord
+            let midiNotes = theoryService.chordMidiNotes(for: chord)
+
+            guard !midiNotes.isEmpty else { return }
+
+            for note in midiNotes {
+                pianoSampler.startNote(note, withVelocity: 85, onChannel: 0)
+            }
+            activePlaybackPianoNotes = midiNotes
+        }
+    }
+
+    /*
+    自動伴奏で発音中のピアノノートを停止する。
+
+    Arguments:
+    なし
+
+    Usage:
+    小節頭の切り替え時やpause/stop時に呼び出される。
+    */
+
+    private func stopActivePlaybackPianoNotes() {
+        for note in activePlaybackPianoNotes {
+            pianoSampler.stopNote(note, onChannel: 0)
+        }
+        activePlaybackPianoNotes.removeAll()
     }
 
     /*
@@ -850,6 +1037,7 @@ final class AudioService: AudioServiceProtocol {
             bassSampler.stopNote(active, onChannel: 0)
             activeBassNote = nil
         }
+        stopActivePlaybackPianoNotes()
         pianoReleaseTask?.cancel()
         for note in activePianoNotes {
             pianoSampler.stopNote(note, onChannel: 0)

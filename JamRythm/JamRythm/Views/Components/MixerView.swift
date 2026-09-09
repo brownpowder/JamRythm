@@ -7,10 +7,10 @@
 
 import SwiftUI
 
-// MARK: - リズム隊ミキサー画面（ハーフシート）
+// MARK: - リズム隊＆コードミキサー画面（ハーフシート）
 
 /*
-ドラムおよびベースの個別音量調整、ミュート切り替え、音色プリセット選択を提供する
+ドラム、ベース、ピアノの個別音量調整、MUTE・SOLO切り替え、音色プリセット選択を提供する
 DAWコンソールスタイルのミキサーView。
 ハーフシートとして表示され、Jam演奏を止めずにリアルタイムにサウンドを微調整できる。
 */
@@ -18,18 +18,16 @@ struct MixerView: View {
     @ObservedObject var viewModel: PlayEditorViewModel
     @Environment(\.dismiss) private var dismiss
 
-    @State private var previousDrumVolume: Float = 0.8
-    @State private var previousBassVolume: Float = 0.8
-
     var body: some View {
         NavigationStack {
-            VStack(spacing: 20) {
-                // 2チャンネル・ストリップ（ドラム / ベース）
-                HStack(spacing: 16) {
+            VStack(spacing: 16) {
+                // 3チャンネル・ストリップ（ドラム / ベース / ピアノ）
+                HStack(spacing: 10) {
                     drumChannelStrip
                     bassChannelStrip
+                    pianoChannelStrip
                 }
-                .padding(.horizontal, 16)
+                .padding(.horizontal, 12)
                 .padding(.top, 12)
 
                 Spacer(minLength: 8)
@@ -51,7 +49,7 @@ struct MixerView: View {
     // MARK: - ドラムチャンネル・ストリップ
 
     /*
-    ドラム専用のチャンネルストリップ（音色選択、縦フェーダー、ミュート）を描画する。
+    ドラム専用のチャンネルストリップ（音色選択、縦フェーダー、MUTE/SOLO）を描画する。
 
     Arguments:
     なし
@@ -85,13 +83,15 @@ struct MixerView: View {
                 }
             )
 
-            // ミュートボタン
-            muteButton(
-                isMuted: viewModel.drumVolume <= 0.001,
-                onToggle: toggleDrumMute
+            // MUTE & SOLO ボタン
+            muteAndSoloButtons(
+                isMuted: viewModel.isDrumMuted,
+                isSolo: viewModel.isDrumSolo,
+                onToggleMute: { viewModel.toggleDrumMute() },
+                onToggleSolo: { viewModel.toggleDrumSolo() }
             )
         }
-        .padding(14)
+        .padding(12)
         .background(
             RoundedRectangle(cornerRadius: 18)
                 .fill(Color(uiColor: .secondarySystemGroupedBackground))
@@ -101,13 +101,13 @@ struct MixerView: View {
     // MARK: - ベースチャンネル・ストリップ
 
     /*
-    ベース専用のチャンネルストリップ（音色選択、縦フェーダー、ミュート）を描画する。
+    ベース専用のチャンネルストリップ（音色選択、縦フェーダー、MUTE/SOLO）を描画する。
 
     Arguments:
     なし
 
     Usage:
-    ミキサー画面の右列に配置される。
+    ミキサー画面の中央列に配置される。
     */
 
     private var bassChannelStrip: some View {
@@ -135,20 +135,74 @@ struct MixerView: View {
                 }
             )
 
-            // ミュートボタン
-            muteButton(
-                isMuted: viewModel.bassVolume <= 0.001,
-                onToggle: toggleBassMute
+            // MUTE & SOLO ボタン
+            muteAndSoloButtons(
+                isMuted: viewModel.isBassMuted,
+                isSolo: viewModel.isBassSolo,
+                onToggleMute: { viewModel.toggleBassMute() },
+                onToggleSolo: { viewModel.toggleBassSolo() }
             )
         }
-        .padding(14)
+        .padding(12)
         .background(
             RoundedRectangle(cornerRadius: 18)
                 .fill(Color(uiColor: .secondarySystemGroupedBackground))
         )
     }
 
-    // MARK: - 音色選択メニュー
+    // MARK: - ピアノチャンネル・ストリップ
+
+    /*
+    ピアノ専用のチャンネルストリップ（音色表示、縦フェーダー、MUTE/SOLO）を描画する。
+
+    Arguments:
+    なし
+
+    Usage:
+    ミキサー画面の右列に配置される。
+    */
+
+    private var pianoChannelStrip: some View {
+        VStack(spacing: 12) {
+            // トラックヘッダー
+            HStack(spacing: 6) {
+                Image(systemName: "pianokeys")
+                    .font(.headline)
+                    .foregroundColor(.teal)
+
+                Text("PIANO")
+                    .font(.headline.bold())
+                    .foregroundColor(.primary)
+            }
+
+            // 音色バッジ表示
+            pianoInstrumentBadge
+
+            // 縦フェーダー
+            MixerFaderView(
+                valueText: "\(Int(viewModel.pianoVolume * 100))%",
+                progress: Double(viewModel.pianoVolume),
+                onProgressChange: { newProgress in
+                    viewModel.changePianoVolume(Float(newProgress))
+                }
+            )
+
+            // MUTE & SOLO ボタン
+            muteAndSoloButtons(
+                isMuted: viewModel.isPianoMuted,
+                isSolo: viewModel.isPianoSolo,
+                onToggleMute: { viewModel.togglePianoMute() },
+                onToggleSolo: { viewModel.togglePianoSolo() }
+            )
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 18)
+                .fill(Color(uiColor: .secondarySystemGroupedBackground))
+        )
+    }
+
+    // MARK: - 音色選択メニュー & バッジ
 
     /*
     ドラム音色プリセットを選択するドロップダウンメニューを描画する。
@@ -182,7 +236,7 @@ struct MixerView: View {
                     .font(.caption2.bold())
                     .foregroundColor(.secondary)
             }
-            .padding(.horizontal, 8)
+            .padding(.horizontal, 6)
             .padding(.vertical, 6)
             .frame(maxWidth: .infinity)
             .background(Color(uiColor: .tertiarySystemFill))
@@ -222,7 +276,7 @@ struct MixerView: View {
                     .font(.caption2.bold())
                     .foregroundColor(.secondary)
             }
-            .padding(.horizontal, 8)
+            .padding(.horizontal, 6)
             .padding(.vertical, 6)
             .frame(maxWidth: .infinity)
             .background(Color(uiColor: .tertiarySystemFill))
@@ -230,72 +284,75 @@ struct MixerView: View {
         }
     }
 
-    // MARK: - ミュートボタン & ロジック
+    /*
+    ピアノ音色バッジを描画する。
+
+    Arguments:
+    なし
+
+    Usage:
+    ピアノチャンネルのトラックヘッダー直下に配置される。
+    */
+
+    private var pianoInstrumentBadge: some View {
+        HStack(spacing: 4) {
+            Text("Piano 1")
+                .font(.caption.bold())
+                .lineLimit(1)
+                .foregroundColor(.primary)
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity)
+        .background(Color(uiColor: .tertiarySystemFill))
+        .cornerRadius(8)
+    }
+
+    // MARK: - MUTE & SOLO ボタン
 
     /*
-    MUTE切り替えボタンを描画する。
+    DAWコンソールスタイルのMUTE [M] および SOLO [S] ボタンを描画する。
 
     Arguments:
     isMuted
-      現在ミュート中かどうか。チャンネル音量から判定される。
-    onToggle
-      ボタンタップ時に実行されるトグル処理。
+      現在ミュートされているかどうか。
+    isSolo
+      現在ソロ状態かどうか。
+    onToggleMute
+      MUTEトグルタップ時のコールバック。
+    onToggleSolo
+      SOLOトグルタップ時のコールバック。
 
     Usage:
-    各チャンネルストリップの最下段に配置される。
+    各チャンネルストリップの最下部に配置される。
     */
 
-    private func muteButton(isMuted: Bool, onToggle: @escaping () -> Void) -> some View {
-        Button(action: onToggle) {
-            Text("MUTE")
-                .font(.caption.bold())
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 7)
-                .background(isMuted ? Color.red : Color(uiColor: .tertiarySystemFill))
-                .foregroundColor(isMuted ? .white : .secondary)
-                .cornerRadius(8)
-        }
-    }
+    private func muteAndSoloButtons(
+        isMuted: Bool,
+        isSolo: Bool,
+        onToggleMute: @escaping () -> Void,
+        onToggleSolo: @escaping () -> Void
+    ) -> some View {
+        HStack(spacing: 6) {
+            Button(action: onToggleMute) {
+                Text("M")
+                    .font(.caption.bold())
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 7)
+                    .background(isMuted ? Color.red : Color(uiColor: .tertiarySystemFill))
+                    .foregroundColor(isMuted ? .white : .secondary)
+                    .cornerRadius(8)
+            }
 
-    /*
-    ドラムのミュート状態をトグルする。
-    音量が0なら前回音量へ復帰し、音量があれば前回値を記録して0にする。
-
-    Arguments:
-    なし
-
-    Usage:
-    ドラムのMUTEボタンタップ時に呼び出される。
-    */
-
-    private func toggleDrumMute() {
-        if viewModel.drumVolume <= 0.001 {
-            let restore = previousDrumVolume > 0.05 ? previousDrumVolume : 0.8
-            viewModel.changeDrumVolume(restore)
-        } else {
-            previousDrumVolume = viewModel.drumVolume
-            viewModel.changeDrumVolume(0.0)
-        }
-    }
-
-    /*
-    ベースのミュート状態をトグルする。
-    音量が0なら前回音量へ復帰し、音量があれば前回値を記録して0にする。
-
-    Arguments:
-    なし
-
-    Usage:
-    ベースのMUTEボタンタップ時に呼び出される。
-    */
-
-    private func toggleBassMute() {
-        if viewModel.bassVolume <= 0.001 {
-            let restore = previousBassVolume > 0.05 ? previousBassVolume : 0.8
-            viewModel.changeBassVolume(restore)
-        } else {
-            previousBassVolume = viewModel.bassVolume
-            viewModel.changeBassVolume(0.0)
+            Button(action: onToggleSolo) {
+                Text("S")
+                    .font(.caption.bold())
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 7)
+                    .background(isSolo ? Color.yellow : Color(uiColor: .tertiarySystemFill))
+                    .foregroundColor(isSolo ? .black : .secondary)
+                    .cornerRadius(8)
+            }
         }
     }
 }

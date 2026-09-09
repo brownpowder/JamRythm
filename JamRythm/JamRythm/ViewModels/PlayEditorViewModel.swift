@@ -40,6 +40,13 @@ final class PlayEditorViewModel: ObservableObject {
     @Published var volume: Float = 0.8
     @Published var drumVolume: Float = 0.8
     @Published var bassVolume: Float = 0.8
+    @Published var pianoVolume: Float = 0.8
+    @Published var isDrumMuted: Bool = false
+    @Published var isBassMuted: Bool = false
+    @Published var isPianoMuted: Bool = false
+    @Published var isDrumSolo: Bool = false
+    @Published var isBassSolo: Bool = false
+    @Published var isPianoSolo: Bool = false
     @Published var selectedDrumInstrument: DrumInstrument = .acoustic
     @Published var selectedBassInstrument: BassInstrument = .acoustic
     @Published var isShowingMixer: Bool = false
@@ -74,6 +81,13 @@ final class PlayEditorViewModel: ObservableObject {
         self.volume = audio.volume
         self.drumVolume = audio.drumVolume
         self.bassVolume = audio.bassVolume
+        self.pianoVolume = audio.pianoVolume
+        self.isDrumMuted = audio.drumIsMuted
+        self.isBassMuted = audio.bassIsMuted
+        self.isPianoMuted = audio.pianoIsMuted
+        self.isDrumSolo = audio.drumIsSolo
+        self.isBassSolo = audio.bassIsSolo
+        self.isPianoSolo = audio.pianoIsSolo
         self.selectedDrumInstrument = DrumInstrument(rawValue: audio.drumProgram) ?? .acoustic
         self.selectedBassInstrument = BassInstrument(rawValue: audio.bassProgram) ?? .acoustic
 
@@ -226,6 +240,7 @@ final class PlayEditorViewModel: ObservableObject {
         if isPlaying {
             audioService.pause()
         } else {
+            audioService.updateProject(project)
             audioService.setPlaybackPosition(sectionIndex: selectedSectionIndex, measureIndex: currentMeasureIndex)
             audioService.play()
         }
@@ -252,6 +267,7 @@ final class PlayEditorViewModel: ObservableObject {
             return
         }
         project.sections[sectionIdx].measures[index].selectedChord = chord
+        audioService.updateProject(project)
         playChordPreview(chord)
     }
 
@@ -627,6 +643,59 @@ final class PlayEditorViewModel: ObservableObject {
     }
 
     /*
+    ピアノトラックの音量を変更し、AudioServiceへ反映する。
+
+    Arguments:
+    newVolume
+      変更後の音量値（0.0〜1.0）。ミキサー画面のスライダーから渡される。
+
+    Usage:
+    ミキサーのピアノ音量操作時に呼び出される。
+    */
+
+    func changePianoVolume(_ newVolume: Float) {
+        let clamped = max(0.0, min(1.0, newVolume))
+        self.pianoVolume = clamped
+        audioService.setPianoVolume(clamped)
+    }
+
+    func toggleDrumMute() {
+        let next = !isDrumMuted
+        self.isDrumMuted = next
+        audioService.setDrumMuted(next)
+    }
+
+    func toggleBassMute() {
+        let next = !isBassMuted
+        self.isBassMuted = next
+        audioService.setBassMuted(next)
+    }
+
+    func togglePianoMute() {
+        let next = !isPianoMuted
+        self.isPianoMuted = next
+        audioService.setPianoMuted(next)
+    }
+
+    func toggleDrumSolo() {
+        let next = !isDrumSolo
+        self.isDrumSolo = next
+        audioService.setDrumSolo(next)
+    }
+
+    func toggleBassSolo() {
+        let next = !isBassSolo
+        self.isBassSolo = next
+        audioService.setBassSolo(next)
+    }
+
+    func togglePianoSolo() {
+        let next = !isPianoSolo
+        self.isPianoSolo = next
+        audioService.setPianoSolo(next)
+    }
+
+    /*
     ドラム音色プリセットを選択し、AudioServiceへ反映する。
 
     Arguments:
@@ -762,6 +831,7 @@ final class PlayEditorViewModel: ObservableObject {
                 )
             }
         }
+        audioService.updateProject(project)
     }
 
     // MARK: - ファクトリメソッド

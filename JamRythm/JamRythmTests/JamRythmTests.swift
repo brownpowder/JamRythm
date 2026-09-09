@@ -212,7 +212,7 @@ struct JamRythmTests {
     }
 
     /*
-    ドラムおよびベースの個別音量制御（AudioService）が正常にクランプ・反映されるかを検証する。
+    ドラム、ベース、ピアノの個別音量制御（AudioService）が正常にクランプ・反映されるかを検証する。
     */
     @Test func testIndividualTrackVolume() async throws {
         let audioService = AudioService()
@@ -224,12 +224,60 @@ struct JamRythmTests {
         audioService.setBassVolume(0.3)
         #expect(abs(audioService.bassVolume - 0.3) < 0.001)
 
+        audioService.setPianoVolume(0.7)
+        #expect(abs(audioService.pianoVolume - 0.7) < 0.001)
+
         // クランプ検証 (0.0〜1.0)
         audioService.setDrumVolume(1.5)
         #expect(audioService.drumVolume == 1.0)
 
         audioService.setBassVolume(-0.2)
         #expect(audioService.bassVolume == 0.0)
+
+        audioService.setPianoVolume(2.0)
+        #expect(audioService.pianoVolume == 1.0)
+
+        audioService.stop()
+    }
+
+    /*
+    ミキサーのMUTEおよびSOLO制御ロジック（DAW標準の排他・復元挙動）を検証する。
+    */
+    @Test func testMixerMuteAndSoloLogic() async throws {
+        let audioService = AudioService()
+        try audioService.setupEngine()
+
+        audioService.setDrumVolume(0.8)
+        audioService.setBassVolume(0.8)
+        audioService.setPianoVolume(0.8)
+
+        // 初期状態: 全て非ミュート・非ソロ
+        #expect(!audioService.drumIsMuted)
+        #expect(!audioService.bassIsMuted)
+        #expect(!audioService.pianoIsMuted)
+        #expect(!audioService.drumIsSolo)
+        #expect(!audioService.bassIsSolo)
+        #expect(!audioService.pianoIsSolo)
+
+        // ドラムをミュート
+        audioService.setDrumMuted(true)
+        #expect(audioService.drumIsMuted)
+
+        // ピアノをソロに設定（ドラムとベースは自動消音対象）
+        audioService.setPianoSolo(true)
+        #expect(audioService.pianoIsSolo)
+        #expect(!audioService.drumIsSolo)
+        #expect(!audioService.bassIsSolo)
+
+        // ピアノのソロを解除
+        audioService.setPianoSolo(false)
+        #expect(!audioService.pianoIsSolo)
+        // ドラムのミュート状態は保持されていること
+        #expect(audioService.drumIsMuted)
+
+        // ドラムのミュート解除
+        audioService.setDrumMuted(false)
+        #expect(!audioService.drumIsMuted)
 
         audioService.stop()
     }
@@ -484,6 +532,33 @@ struct JamRythmTests {
         // 最終小節でNextを押しても進まない
         await viewModel.moveToNextMeasure()
         #expect(await viewModel.currentMeasureIndex == 3)
+    }
+
+    /*
+    セクション内の小節にカスタム選択されたコードがAudioServiceへ即座に反映され、
+    安定コード（デフォルト）ではなく選択されたコード（例: Edim7）が再生対象となることを検証する。
+    */
+    @Test @MainActor func testCustomizedChordPlaybackInAudioService() async throws {
+        let audioService = AudioService()
+        let theoryService = MusicTheoryService()
+        let viewModel = PlayEditorViewModel(audioService: audioService, theoryService: theoryService)
+
+        // 王道進行 (Fmaj7 - G7 - Em7 - Am7) の小節2 (Em7)
+        let defaultChord = viewModel.project.sections[0].measures[2].activeChord
+        #expect(defaultChord.type == "m7") // デフォルトは安定コード(Em7)
+
+        // ユーザーがEdim7を選択
+        let edim7 = Chord(rootNote: "E", type: "dim7", bassNote: nil)
+        viewModel.selectChord(edim7, forMeasureIndex: 2)
+
+        // ViewModelの小節データがEdim7になっていること
+        #expect(viewModel.project.sections[0].measures[2].selectedChord == edim7)
+        #expect(viewModel.project.sections[0].measures[2].activeChord == edim7)
+
+        // AudioServiceの内部プロジェクトでも小節2がEdim7になっていること
+        audioService.setPlaybackPosition(sectionIndex: 0, measureIndex: 2)
+        let chordNotes = theoryService.chordMidiNotes(for: viewModel.project.sections[0].measures[2].activeChord)
+        #expect(chordNotes == [64, 67, 70, 73]) // Edim7 (E, G, Bb, Db)
     }
 }
 
