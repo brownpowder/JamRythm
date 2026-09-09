@@ -91,13 +91,16 @@ struct ChordDisplayView: View {
                 HStack(spacing: 4) {
                     Text(isExpanded ? "コード候補を隠す" : "コード候補を表示")
                         .font(.caption2.bold())
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
                         .foregroundColor(.secondary)
 
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                         .font(.system(size: 9, weight: .bold))
                         .foregroundColor(.secondary)
                 }
-                .padding(.horizontal, 8)
+                .fixedSize()
+                .padding(.horizontal, 10)
                 .padding(.vertical, 3)
                 .background(Color(uiColor: .tertiarySystemBackground))
                 .cornerRadius(6)
