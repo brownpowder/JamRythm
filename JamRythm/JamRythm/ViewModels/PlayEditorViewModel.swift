@@ -612,11 +612,14 @@ final class PlayEditorViewModel: ObservableObject {
         // 構成に最適化された推奨ジャンルへ自動設定
         changeGenre(structure.recommendedGenre)
 
+        // 構成に最適化された推奨テンポ（BPM）へ自動設定
+        changeBPM(structure.recommendedBpm)
+
         try? audioService.prepare(project: self.project)
         audioService.setPlaybackPosition(sectionIndex: 0, measureIndex: 0)
         updateCandidatesForCurrentMeasure()
 
-        logger.info("Applied song structure: \(structure.name) with \(newSections.count) sections")
+        logger.info("Applied song structure: \(structure.name) with \(newSections.count) sections at BPM \(structure.recommendedBpm)")
     }
 
     /*

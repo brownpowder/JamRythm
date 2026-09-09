@@ -157,13 +157,23 @@ struct SongStructureSheetView: View {
 
             Spacer()
 
-            Text("\(structure.totalMeasures)小節")
-                .font(.caption2.bold())
-                .foregroundColor(.secondary)
-                .padding(.horizontal, 7)
-                .padding(.vertical, 3)
-                .background(Color(uiColor: .tertiarySystemFill))
-                .cornerRadius(6)
+            HStack(spacing: 5) {
+                Text("BPM \(Int(structure.recommendedBpm))")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(Color(uiColor: .tertiarySystemFill))
+                    .cornerRadius(6)
+
+                Text("\(structure.totalMeasures)小節")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(Color(uiColor: .tertiarySystemFill))
+                    .cornerRadius(6)
+            }
 
             Image(systemName: "chevron.right")
                 .font(.caption2.bold())

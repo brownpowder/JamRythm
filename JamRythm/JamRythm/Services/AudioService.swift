@@ -58,6 +58,7 @@ protocol AudioServiceProtocol: AnyObject {
     func play()
     func pause()
     func stop()
+    var bpm: Double { get }
     func setBPM(_ bpm: Double)
     var currentPositionPublisher: AnyPublisher<PlaybackPosition, Never> { get }
     var syncOffsetMs: Double { get set }
@@ -235,7 +236,7 @@ final class AudioService: AudioServiceProtocol {
 
     // MARK: - 再生ステート & 音色プログラム
     private var project: Project?
-    private var bpm: Double = 120.0
+    private(set) var bpm: Double = 120.0
     private var timer: Timer?
     private var currentSectionIndex: Int = 0
     private var currentMeasure: Int = 0

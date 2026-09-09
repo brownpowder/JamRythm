@@ -37,6 +37,7 @@ struct SongStructureTemplate: Identifiable, Equatable {
     let iconName: String
     let genreTag: String
     let recommendedGenre: MusicGenre
+    let recommendedBpm: Double
     let sections: [SongStructureSection]
 
     /*
@@ -62,6 +63,7 @@ struct SongStructureTemplate: Identifiable, Equatable {
         iconName: "crown.fill",
         genreTag: "1コーラス・16小節",
         recommendedGenre: .pop,
+        recommendedBpm: 128.0,
         sections: [
             SongStructureSection(type: .intro, template: .royalRoad),
             SongStructureSection(type: .verseA, template: .popPunk),
@@ -77,6 +79,7 @@ struct SongStructureTemplate: Identifiable, Equatable {
         iconName: "sparkles",
         genreTag: "フル構成・28小節",
         recommendedGenre: .pop,
+        recommendedBpm: 125.0,
         sections: [
             SongStructureSection(type: .intro, template: .canonShort),
             SongStructureSection(type: .verseA, template: .komuro),
@@ -95,6 +98,7 @@ struct SongStructureTemplate: Identifiable, Equatable {
         iconName: "moon.stars.fill",
         genreTag: "Lo-Fi・16小節",
         recommendedGenre: .lofi,
+        recommendedBpm: 84.0,
         sections: [
             SongStructureSection(type: .intro, template: .justTheTwoOfUs),
             SongStructureSection(type: .verseA, template: .justTheTwoOfUs),
@@ -110,6 +114,7 @@ struct SongStructureTemplate: Identifiable, Equatable {
         iconName: "flame.fill",
         genreTag: "Rock・16小節",
         recommendedGenre: .rock,
+        recommendedBpm: 160.0,
         sections: [
             SongStructureSection(type: .intro, template: .popPunk),
             SongStructureSection(type: .verseA, template: .popPunk),
@@ -125,6 +130,7 @@ struct SongStructureTemplate: Identifiable, Equatable {
         iconName: "guitars.fill",
         genreTag: "バラード・16小節",
         recommendedGenre: .pop,
+        recommendedBpm: 116.0,
         sections: [
             SongStructureSection(type: .verseA, template: .standByMe),
             SongStructureSection(type: .verseB, template: .standByMe),

@@ -772,6 +772,8 @@ struct JamRythmTests {
         #expect(viewModel.selectedSectionIndex == 0)
         #expect(viewModel.currentMeasureIndex == 0)
         #expect(viewModel.project.genre == .pop)
+        #expect(viewModel.project.bpm == 128.0)
+        #expect(audioService.bpm == 128.0)
 
         // 各セクションの小節数・度数検証
         // Intro: 王道 (4-5-3-6)
@@ -789,11 +791,21 @@ struct JamRythmTests {
         let totalMeasures = viewModel.project.sections.reduce(0) { $0 + $1.measures.count }
         #expect(totalMeasures == 28)
         #expect(viewModel.project.sections.map { $0.type } == [.intro, .verseA, .verseB, .chorus, .bridge, .chorus, .outro])
+        #expect(viewModel.project.bpm == 125.0)
+        #expect(audioService.bpm == 125.0)
 
-        // Lo-Fiジャムを適用（ジャンル連動検証）
+        // Lo-Fiジャムを適用（ジャンル & テンポ連動検証）
         viewModel.applySongStructure(.neoSoulGroove)
         #expect(viewModel.project.genre == .lofi)
         #expect(viewModel.project.sections.count == 4)
+        #expect(viewModel.project.bpm == 84.0)
+        #expect(audioService.bpm == 84.0)
+
+        // Rockアンセムを適用（テンポ 160.0 検証）
+        viewModel.applySongStructure(.rockAnthem)
+        #expect(viewModel.project.genre == .rock)
+        #expect(viewModel.project.bpm == 160.0)
+        #expect(audioService.bpm == 160.0)
     }
 }
 
