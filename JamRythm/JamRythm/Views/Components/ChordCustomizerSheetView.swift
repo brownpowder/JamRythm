@@ -172,7 +172,7 @@ struct ChordCustomizerSheetView: View {
             HStack(spacing: 6) {
                 Image(systemName: "circle.circle.fill")
                     .font(.system(size: 9))
-                    .foregroundColor(.green)
+                    .foregroundColor(.accentColor)
                 Text("濃い色ほど、現在の進行（Key: \(viewModel.project.key.rawValue)）に破綻せずスムーズに調和します")
                     .font(.system(size: 10, weight: .medium))
                     .foregroundColor(.secondary)
@@ -481,6 +481,7 @@ struct ChordCustomizerSheetView: View {
 
     /*
     コードタイプボタンの背景色（選択状態または親和性の濃淡）を算出する。
+    ルート音選択と同様に、アクセントカラーの濃淡（濃いほどスムーズ）で統一する。
 
     Arguments:
     comp
@@ -497,15 +498,16 @@ struct ChordCustomizerSheetView: View {
             return .orange
         }
         switch comp {
-        case .verySmooth: return Color.green.opacity(0.28)
-        case .smooth: return Color.purple.opacity(0.18)
-        case .flavorful: return Color.orange.opacity(0.10)
+        case .verySmooth: return Color.accentColor.opacity(0.35)
+        case .smooth: return Color.accentColor.opacity(0.18)
+        case .flavorful: return Color.accentColor.opacity(0.08)
         case .dissonant: return Color(uiColor: .secondarySystemGroupedBackground)
         }
     }
 
     /*
     コードタイプボタンの枠線色を算出する。
+    ルート音選択と同様に、アクセントカラーの濃淡で統一する。
 
     Arguments:
     comp
@@ -522,9 +524,9 @@ struct ChordCustomizerSheetView: View {
             return .orange
         }
         switch comp {
-        case .verySmooth: return Color.green.opacity(0.65)
-        case .smooth: return Color.purple.opacity(0.45)
-        case .flavorful: return Color.orange.opacity(0.25)
+        case .verySmooth: return Color.accentColor.opacity(0.70)
+        case .smooth: return Color.accentColor.opacity(0.40)
+        case .flavorful: return Color.accentColor.opacity(0.20)
         case .dissonant: return Color.secondary.opacity(0.12)
         }
     }
