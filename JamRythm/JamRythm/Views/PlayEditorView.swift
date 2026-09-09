@@ -38,8 +38,9 @@ struct PlayEditorView: View {
                     }
                     */
 
-                    // 1. 一体型コード選択カード（CURRENT / NEXT 特大表示 ＋ 4フレーバー候補選択 ＋ 代理コード提案）
+                    // 1. 一体型コード選択カード（PREV / CURRENT / NEXT 表示 ＋ 4フレーバー候補選択 ＋ 代理コード提案）
                     ChordDisplayView(
+                        previousChord: viewModel.previousChord,
                         currentChord: viewModel.currentChord,
                         nextChord: viewModel.nextChord,
                         candidates: viewModel.currentCandidates,
@@ -47,6 +48,15 @@ struct PlayEditorView: View {
                         selectedChord: currentSelectedChord,
                         onSelect: { selected in
                             viewModel.selectChord(selected, forMeasureIndex: viewModel.currentMeasureIndex)
+                        },
+                        onPrevious: {
+                            viewModel.moveToPreviousMeasure()
+                        },
+                        onNext: {
+                            viewModel.moveToNextMeasure()
+                        },
+                        onPlayChord: { chord in
+                            viewModel.playChordPreview(chord)
                         }
                     )
 
@@ -56,6 +66,9 @@ struct PlayEditorView: View {
                         notes: viewModel.currentStaffNotes,
                         chordName: viewModel.currentChord.displayString
                     )
+
+                    // 3. 進行・セクション＆小節コード一覧（セクション追加・編集・全曲構成）
+                    SectionTimelineBarView(viewModel: viewModel)
                 }
                 .padding(.vertical, 14)
             }
@@ -104,7 +117,7 @@ struct PlayEditorView: View {
     // MARK: - 固定ヘッダーサブビュー
 
     /*
-    Key選択ボタンおよびコード進行選択ボタンを左詰めで配置した固定ヘッダーを描画する。
+    Key選択ボタンを配置した固定ヘッダーを描画する。
     
     Arguments:
     なし
@@ -118,10 +131,17 @@ struct PlayEditorView: View {
             // Key選択ボタン（Key名 + 下矢印）
             keyMenuButton
 
-            // コード進行選択ボタン（進行名 + 下矢印）
-            progressionMenuButton
-
             Spacer()
+
+            if viewModel.activeSection != nil {
+                Text("Section \(viewModel.selectedSectionIndex + 1)")
+                    .font(.caption.bold())
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color(uiColor: .tertiarySystemBackground))
+                    .cornerRadius(6)
+            }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
@@ -151,48 +171,9 @@ struct PlayEditorView: View {
             }
         } label: {
             HStack(spacing: 5) {
-                Text(viewModel.project.key.rawValue)
+                Text("Key: \(viewModel.project.key.rawValue)")
                     .font(.headline.bold())
                     .foregroundColor(.primary)
-
-                Image(systemName: "chevron.down")
-                    .font(.caption2.bold())
-                    .foregroundColor(.secondary)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 7)
-            .background(Color(uiColor: .secondarySystemBackground))
-            .cornerRadius(10)
-        }
-    }
-
-    /*
-    コード進行テンプレートを切り替えるドロップダウンメニューを描画する。
-    
-    Arguments:
-    なし
-    
-    Usage:
-    topHeaderViewのKeyメニュー横に配置される。
-    */
-    
-    private var progressionMenuButton: some View {
-        Menu {
-            ForEach(ProgressionTemplate.allTemplates) { template in
-                Button(action: { viewModel.applyTemplate(template) }) {
-                    if template.id == viewModel.selectedTemplate.id {
-                        Label(template.name, systemImage: "checkmark")
-                    } else {
-                        Text(template.name)
-                    }
-                }
-            }
-        } label: {
-            HStack(spacing: 5) {
-                Text(viewModel.selectedTemplate.name)
-                    .font(.subheadline.bold())
-                    .foregroundColor(.primary)
-                    .lineLimit(1)
 
                 Image(systemName: "chevron.down")
                     .font(.caption2.bold())
@@ -218,7 +199,7 @@ struct PlayEditorView: View {
     */
     
     private var currentMeasureBassNote: String {
-        guard let measures = viewModel.project.sections.first?.measures,
+        guard let measures = viewModel.activeSection?.measures,
               viewModel.currentMeasureIndex < measures.count else {
             return "C"
         }
@@ -236,7 +217,7 @@ struct PlayEditorView: View {
     */
     
     private var currentMeasureDegree: Int {
-        guard let measures = viewModel.project.sections.first?.measures,
+        guard let measures = viewModel.activeSection?.measures,
               viewModel.currentMeasureIndex < measures.count else {
             return 1
         }
@@ -254,7 +235,7 @@ struct PlayEditorView: View {
     */
     
     private var currentSelectedChord: Chord? {
-        guard let measures = viewModel.project.sections.first?.measures,
+        guard let measures = viewModel.activeSection?.measures,
               viewModel.currentMeasureIndex < measures.count else {
             return nil
         }

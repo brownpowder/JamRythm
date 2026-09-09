@@ -18,12 +18,16 @@ struct StaffScoreView: View {
     let chordName: String
 
     var body: some View {
-        staffCanvas
-            .frame(height: 130)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(uiColor: .tertiarySystemBackground))
-            )
+        VStack(spacing: 4) {
+            staffCanvas
+            noteNamesRow
+                .padding(.bottom, 6)
+        }
+        .frame(height: 130)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color(uiColor: .tertiarySystemBackground))
+        )
     }
 
     // MARK: - サブビュー
@@ -177,10 +181,11 @@ struct StaffScoreView: View {
 
         // 臨時記号（# や ♭）の描画
         if let accidental = note.accidental, !accidental.isEmpty {
+            let offset: CGFloat = accidental.count > 1 ? 18.0 : 14.0
             let accText = Text(accidental)
                 .font(.system(size: 13, weight: .bold))
                 .foregroundColor(.primary)
-            context.draw(context.resolve(accText), at: CGPoint(x: x - 14, y: y))
+            context.draw(context.resolve(accText), at: CGPoint(x: x - offset, y: y))
         }
 
         // 符頭（全音符風の楕円）

@@ -89,6 +89,35 @@ enum Key: String, Codable, CaseIterable, Identifiable {
         let normalized = ((semitone % 12) + 12) % 12
         return noteNames[normalized]
     }
+
+    /*
+    音名文字列から半音インデックス（0〜11）を算出する。
+    
+    Arguments:
+    noteName
+      音名文字列（例: "C", "D♭", "F#", "Bb"）。
+    
+    Usage:
+    コードの構成音やMIDIノート番号計算時に使用される。
+    */
+
+    static func semitone(forNoteName noteName: String) -> Int {
+        switch noteName {
+        case "C": return 0
+        case "C#", "C♯", "Db", "D♭": return 1
+        case "D": return 2
+        case "D#", "D♯", "Eb", "E♭": return 3
+        case "E": return 4
+        case "F": return 5
+        case "F#", "F♯", "Gb", "G♭": return 6
+        case "G": return 7
+        case "G#", "G♯", "Ab", "A♭": return 8
+        case "A": return 9
+        case "A#", "A♯", "Bb", "B♭": return 10
+        case "B": return 11
+        default: return 0
+        }
+    }
 }
 
 // MARK: - 感情・役割ラベル (ChordFlavor)

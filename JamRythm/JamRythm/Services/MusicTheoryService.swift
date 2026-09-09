@@ -73,6 +73,19 @@ protocol MusicTheoryServiceProtocol {
     */
     
     func staffNotes(for chord: Chord) -> [StaffNote]
+
+    /*
+    指定されたコードの構成音をMIDIノート番号（UInt8）の配列として取得する。
+    
+    Arguments:
+    chord
+      MIDIノートを算出するChordオブジェクト。
+    
+    Usage:
+    ピアノ音源での和音試聴・プレビュー再生に使用される。
+    */
+
+    func chordMidiNotes(for chord: Chord) -> [UInt8]
 }
 
 // MARK: - プロトコルデフォルト実装
@@ -531,6 +544,7 @@ final class MusicTheoryService: MusicTheoryServiceProtocol {
 
     /*
     代表的な標準コードフォームのテーブル。
+    ディミニッシュ、サスフォー、オーギュメント、ハーフディミニッシュ等も網羅。
     */
     private var standardVoicingTable: [String: GuitarVoicing] {
         [
@@ -539,21 +553,38 @@ final class MusicTheoryService: MusicTheoryServiceProtocol {
             "C6": GuitarVoicing(frets: [nil, 3, 2, 2, 1, 0]),
             "Cadd9": GuitarVoicing(frets: [nil, 3, 2, 0, 3, 0]),
             "Cm7": GuitarVoicing(frets: [nil, 3, 5, 3, 4, 3]),
+            "Cm": GuitarVoicing(frets: [nil, 3, 5, 5, 4, 3]),
+            "Csus4": GuitarVoicing(frets: [nil, 3, 3, 0, 1, 1]),
+            "Caug": GuitarVoicing(frets: [nil, 3, 2, 1, 1, 0]),
             "D7": GuitarVoicing(frets: [nil, nil, 0, 2, 1, 2]),
             "Dm7": GuitarVoicing(frets: [nil, nil, 0, 2, 1, 1]),
+            "Dm": GuitarVoicing(frets: [nil, nil, 0, 2, 3, 1]),
             "D♭7": GuitarVoicing(frets: [nil, 4, 3, 4, 2, nil]),
             "E7": GuitarVoicing(frets: [0, 2, 0, 1, 0, 0]),
             "Em7": GuitarVoicing(frets: [0, 2, 0, 0, 0, 0]),
+            "Em": GuitarVoicing(frets: [0, 2, 2, 0, 0, 0]),
+            "Edim7": GuitarVoicing(frets: [nil, nil, 2, 3, 2, 3]),
             "Fmaj7": GuitarVoicing(frets: [nil, nil, 3, 2, 1, 0]),
             "Fm7": GuitarVoicing(frets: [1, 3, 1, 1, 1, 1]),
+            "Fm": GuitarVoicing(frets: [1, 3, 3, 1, 1, 1]),
             "Fmaj9": GuitarVoicing(frets: [nil, nil, 3, 0, 1, 0]),
+            "F#m7b5": GuitarVoicing(frets: [2, nil, 2, 2, 1, nil]),
             "G": GuitarVoicing(frets: [3, 2, 0, 0, 0, 3]),
             "G7": GuitarVoicing(frets: [3, 2, 0, 0, 0, 1]),
             "Gmaj7": GuitarVoicing(frets: [3, nil, 0, 0, 0, 2]),
+            "Gsus4": GuitarVoicing(frets: [3, 3, 0, 0, 1, 3]),
+            "G7sus4": GuitarVoicing(frets: [3, 3, 0, 0, 1, 1]),
             "G13": GuitarVoicing(frets: [3, nil, 3, 4, 5, nil]),
+            "Gm": GuitarVoicing(frets: [3, 5, 5, 3, 3, 3]),
             "Am7": GuitarVoicing(frets: [nil, 0, 2, 0, 1, 0]),
             "Am9": GuitarVoicing(frets: [nil, 0, 2, 4, 1, 0]),
-            "Bm7b5": GuitarVoicing(frets: [nil, 2, 3, 2, 3, nil])
+            "Am": GuitarVoicing(frets: [nil, 0, 2, 2, 1, 0]),
+            "Adim7": GuitarVoicing(frets: [nil, 0, 1, 2, 1, 2]),
+            "Bm7b5": GuitarVoicing(frets: [nil, 2, 3, 2, 3, nil]),
+            "Bdim7": GuitarVoicing(frets: [nil, 2, 3, 1, 3, nil]),
+            "B7": GuitarVoicing(frets: [nil, 2, 1, 2, 0, 2]),
+            "B♭7": GuitarVoicing(frets: [nil, 1, 3, 1, 3, 1]),
+            "Bm": GuitarVoicing(frets: [nil, 2, 4, 4, 3, 2])
         ]
     }
 
@@ -581,10 +612,92 @@ final class MusicTheoryService: MusicTheoryServiceProtocol {
         }
     }
 
+    // MARK: - コードトーン定義と五線譜・音源共通計算
+
+    /*
+    コード種別に応じた構成音の度数ステップオフセットと半音オフセットのタプル配列を返す。
+    
+    Arguments:
+    chordType
+      コードの種別文字列（例: "dim7", "m7", "maj7", "7(b9)" など）。
+    
+    Usage:
+    五線譜の音符配置（staffNotes）およびピアノ音源再生（chordMidiNotes）で共通利用される。
+    */
+
+    private func chordToneFormulas(for chordType: String) -> [(stepOffset: Int, semitoneOffset: Int)] {
+        let type = chordType.lowercased()
+
+        if type.contains("dim7") {
+            return [(0, 0), (2, 3), (4, 6), (6, 9)]
+        } else if type.contains("dim") {
+            return [(0, 0), (2, 3), (4, 6)]
+        } else if type.contains("m7b5") {
+            return [(0, 0), (2, 3), (4, 6), (6, 10)]
+        } else if type.contains("7(b9)") || type.contains("7b9") {
+            return [(0, 0), (2, 4), (4, 7), (6, 10), (8, 13)]
+        } else if type.contains("7sus4") {
+            return [(0, 0), (3, 5), (4, 7), (6, 10)]
+        } else if type.contains("sus4") {
+            return [(0, 0), (3, 5), (4, 7)]
+        } else if type.contains("maj9") {
+            return [(0, 0), (2, 4), (4, 7), (6, 11), (8, 14)]
+        } else if type.contains("m9") {
+            return [(0, 0), (2, 3), (4, 7), (6, 10), (8, 14)]
+        } else if type.contains("m11") {
+            return [(0, 0), (2, 3), (4, 7), (6, 10), (10, 17)]
+        } else if type.contains("add9") {
+            return [(0, 0), (2, 4), (4, 7), (8, 14)]
+        } else if type.contains("maj7") {
+            return [(0, 0), (2, 4), (4, 7), (6, 11)]
+        } else if type.contains("m7") {
+            return [(0, 0), (2, 3), (4, 7), (6, 10)]
+        } else if type == "9" || type.contains("9") {
+            return [(0, 0), (2, 4), (4, 7), (6, 10), (8, 14)]
+        } else if type.contains("7") {
+            return [(0, 0), (2, 4), (4, 7), (6, 10)]
+        } else if type.contains("m6") {
+            return [(0, 0), (2, 3), (4, 7), (5, 9)]
+        } else if type.contains("6") {
+            return [(0, 0), (2, 4), (4, 7), (5, 9)]
+        } else if type.contains("aug") {
+            return [(0, 0), (2, 4), (4, 8)]
+        } else if type.contains("m") {
+            return [(0, 0), (2, 3), (4, 7)]
+        } else {
+            return [(0, 0), (2, 4), (4, 7)]
+        }
+    }
+
+    /*
+    音名からダイアトニック幹音インデックス（C=0, D=1, E=2, F=3, G=4, A=5, B=6）を取得する。
+    
+    Arguments:
+    noteName
+      音名文字列（例: "C", "D♭", "F#", "G"）。
+    
+    Usage:
+    五線譜の基準ステップおよび度数計算に使用される。
+    */
+
+    private func diatonicIndexForNote(_ noteName: String) -> Int {
+        guard let firstChar = noteName.first else { return 0 }
+        switch firstChar {
+        case "C": return 0
+        case "D": return 1
+        case "E": return 2
+        case "F": return 3
+        case "G": return 4
+        case "A": return 5
+        case "B": return 6
+        default: return 0
+        }
+    }
+
     // MARK: - 五線譜音符提供
 
     /*
-    指定されたコードの構成音を五線譜の音高ステップ（E4=0基準）として返す。
+    指定されたコードの構成音を五線譜の音高ステップ（E4=0基準）および臨時記号・音名付きで返す。
     
     Arguments:
     chord
@@ -595,28 +708,47 @@ final class MusicTheoryService: MusicTheoryServiceProtocol {
     */
     
     func staffNotes(for chord: Chord) -> [StaffNote] {
-        let baseStep = stepForNote(chord.rootNote)
-        var intervals: [(name: String, stepOffset: Int)] = []
+        let rootDIndex = diatonicIndexForNote(chord.rootNote)
+        let rootBaseStep = rootDIndex - 2
+        let rootSemitone = Key.semitone(forNoteName: chord.rootNote)
+        let formulas = chordToneFormulas(for: chord.type)
 
-        // コード種別に応じた音程オフセット
-        if chord.type.contains("maj7") {
-            intervals = [("", 0), ("3", 2), ("5", 4), ("7", 6)]
-        } else if chord.type.contains("m7b5") {
-            intervals = [("", 0), ("b3", 2), ("b5", 4), ("b7", 6)]
-        } else if chord.type.contains("m7") || chord.type.contains("m9") {
-            intervals = [("", 0), ("b3", 2), ("5", 4), ("b7", 6)]
-        } else if chord.type.contains("7") {
-            intervals = [("", 0), ("3", 2), ("5", 4), ("b7", 6)]
-        } else if chord.type.contains("6") {
-            intervals = [("", 0), ("3", 2), ("5", 4), ("6", 5)]
-        } else {
-            intervals = [("", 0), ("3", 2), ("5", 4)]
-        }
+        let diatonicLetters = ["C", "D", "E", "F", "G", "A", "B"]
+        let diatonicNaturalSemitones = [0, 2, 4, 5, 7, 9, 11]
 
-        return intervals.map { interval in
-            let calculatedStep = baseStep + interval.stepOffset
-            let noteLabel = labelForStep(calculatedStep)
-            return StaffNote(name: noteLabel, step: calculatedStep)
+        return formulas.map { formula in
+            let calculatedStep = rootBaseStep + formula.stepOffset
+            let targetDIndex = ((rootDIndex + formula.stepOffset) % 7 + 7) % 7
+            let letterName = diatonicLetters[targetDIndex]
+            let naturalSemitone = diatonicNaturalSemitones[targetDIndex]
+            let actualSemitone = ((rootSemitone + formula.semitoneOffset) % 12 + 12) % 12
+
+            let diff = ((actualSemitone - naturalSemitone) % 12 + 12) % 12
+            let accidental: String?
+            let noteName: String
+
+            switch diff {
+            case 0:
+                accidental = nil
+                noteName = letterName
+            case 1:
+                accidental = "♯"
+                noteName = "\(letterName)♯"
+            case 2:
+                accidental = "𝄪"
+                noteName = "\(letterName)𝄪"
+            case 11:
+                accidental = "♭"
+                noteName = "\(letterName)♭"
+            case 10:
+                accidental = "♭♭"
+                noteName = "\(letterName)♭♭"
+            default:
+                accidental = nil
+                noteName = letterName
+            }
+
+            return StaffNote(name: noteName, accidental: accidental, step: calculatedStep)
         }
     }
 
@@ -628,18 +760,11 @@ final class MusicTheoryService: MusicTheoryServiceProtocol {
       音名文字列（例: "C", "D", "G"）。
     
     Usage:
-    コードのルート音の五線譜上での高さを決定するために使用される。
+    外部や互換性のために保持されるルートステップ算出関数。
     */
     
     private func stepForNote(_ noteName: String) -> Int {
-        if noteName.hasPrefix("C") { return -2 }
-        if noteName.hasPrefix("D") { return -1 }
-        if noteName.hasPrefix("E") { return 0 }
-        if noteName.hasPrefix("F") { return 1 }
-        if noteName.hasPrefix("G") { return 2 }
-        if noteName.hasPrefix("A") { return 3 }
-        if noteName.hasPrefix("B") { return 4 }
-        return 0
+        return diatonicIndexForNote(noteName) - 2
     }
 
     /*
@@ -650,12 +775,48 @@ final class MusicTheoryService: MusicTheoryServiceProtocol {
       E4=0基準のステップ数。
     
     Usage:
-    StaffNoteの表示名として使用される。
+    ステップ値から幹音名を簡易取得する。
     */
     
     private func labelForStep(_ step: Int) -> String {
         let noteOrder = ["E", "F", "G", "A", "B", "C", "D"]
         let index = ((step % 7) + 7) % 7
         return noteOrder[index]
+    }
+
+    /*
+    指定されたコードの構成音をMIDIノート番号（UInt8）の配列として取得する。
+    
+    Arguments:
+    chord
+      MIDIノートを算出するChordオブジェクト。
+    
+    Usage:
+    ピアノ音源での和音試聴・プレビュー再生に使用される。
+    */
+
+    func chordMidiNotes(for chord: Chord) -> [UInt8] {
+        let rootSemitone = Key.semitone(forNoteName: chord.rootNote)
+        let baseMidi: Int = (rootSemitone >= 7) ? (48 + rootSemitone) : (60 + rootSemitone)
+        let formulas = chordToneFormulas(for: chord.type)
+        let intervals = formulas.map { $0.semitoneOffset }
+
+        var notes = intervals.compactMap { interval -> UInt8? in
+            let noteVal = baseMidi + interval
+            return (noteVal >= 0 && noteVal <= 127) ? UInt8(noteVal) : nil
+        }
+
+        if let bass = chord.bassNote, !bass.isEmpty {
+            let bassSemitone = Key.semitone(forNoteName: bass)
+            let bassMidi = 36 + bassSemitone
+            if bassMidi >= 0 && bassMidi <= 127 {
+                let uBass = UInt8(bassMidi)
+                if !notes.contains(uBass) {
+                    notes.insert(uBass, at: 0)
+                }
+            }
+        }
+
+        return notes
     }
 }

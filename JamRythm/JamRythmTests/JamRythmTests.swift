@@ -110,6 +110,63 @@ struct JamRythmTests {
     }
 
     /*
+    Em7 と Edim7 の五線譜構成音および臨時記号が厳密に区別され、Edim7に♭が付与されることを検証する。
+    また、C7、Cm、Caug、Csus4、F#m7b5 などの各コード種別で正確な音名・臨時記号が算出されるかを検証する。
+    */
+    @Test func testStaffNotesAccidentalsAndDifferentiation() async throws {
+        let service = MusicTheoryService()
+
+        let em7 = Chord(rootNote: "E", type: "m7", bassNote: nil)
+        let edim7 = Chord(rootNote: "E", type: "dim7", bassNote: nil)
+
+        let em7Notes = service.staffNotes(for: em7)
+        let edim7Notes = service.staffNotes(for: edim7)
+
+        // Em7: E4, G4, B4, D5 (すべてナチュラル)
+        #expect(em7Notes.map { $0.name } == ["E", "G", "B", "D"])
+        #expect(em7Notes.map { $0.accidental } == [nil, nil, nil, nil])
+
+        // Edim7: E4, G4, B♭4, D♭5 (減5度、減7度に♭)
+        #expect(edim7Notes.map { $0.name } == ["E", "G", "B♭", "D♭"])
+        #expect(edim7Notes.map { $0.accidental } == [nil, nil, "♭", "♭"])
+        #expect(em7Notes != edim7Notes)
+
+        // C7: Bに♭
+        let c7Notes = service.staffNotes(for: Chord(rootNote: "C", type: "7", bassNote: nil))
+        #expect(c7Notes.map { $0.name } == ["C", "E", "G", "B♭"])
+        #expect(c7Notes[3].accidental == "♭")
+
+        // Cm: Eに♭
+        let cmNotes = service.staffNotes(for: Chord(rootNote: "C", type: "m", bassNote: nil))
+        #expect(cmNotes.map { $0.name } == ["C", "E♭", "G"])
+        #expect(cmNotes[1].accidental == "♭")
+
+        // Caug: Gに♯
+        let caugNotes = service.staffNotes(for: Chord(rootNote: "C", type: "aug", bassNote: nil))
+        #expect(caugNotes.map { $0.name } == ["C", "E", "G♯"])
+        #expect(caugNotes[2].accidental == "♯")
+
+        // Csus4: 4度(F)が含まれる
+        let csus4Notes = service.staffNotes(for: Chord(rootNote: "C", type: "sus4", bassNote: nil))
+        #expect(csus4Notes.map { $0.name } == ["C", "F", "G"])
+
+        // F#m7b5: ルートに♯
+        let fSharpM7b5Notes = service.staffNotes(for: Chord(rootNote: "F#", type: "m7b5", bassNote: nil))
+        #expect(fSharpM7b5Notes.map { $0.name } == ["F♯", "A", "C", "E"])
+        #expect(fSharpM7b5Notes[0].accidental == "♯")
+
+        // ギター運指の検証
+        let edim7Voicing = service.guitarVoicing(for: edim7)
+        #expect(edim7Voicing.frets == [nil, nil, 2, 3, 2, 3])
+
+        // MIDI再生音の検証 (Edim7 vs Em7)
+        let edim7Midi = service.chordMidiNotes(for: edim7)
+        let em7Midi = service.chordMidiNotes(for: em7)
+        #expect(edim7Midi == [64, 67, 70, 73])
+        #expect(em7Midi == [64, 67, 71, 74])
+    }
+
+    /*
     JamRythm.sf2 からドラム音色(MSB: 120)とベース音色(MSB: 121)が正しくロードできるか検証する。
     */
     @Test func testSoundFontLoading() async throws {
@@ -263,5 +320,171 @@ struct JamRythmTests {
         let canonSubs = await viewModel.currentSubstituteCandidates
         #expect(!canonSubs.isEmpty)
     }
+
+    /*
+    PlayEditorViewModelにおける複数セクションの追加・複製・削除・選択切り替えおよび再生モードのトグル動作を検証する。
+    */
+    @Test func testMultiSectionViewModelManagement() async throws {
+        let viewModel = await PlayEditorViewModel()
+
+        // 初期セクション数は1（サビ）
+        #expect(await viewModel.project.sections.count == 1)
+        #expect(await viewModel.selectedSectionIndex == 0)
+        #expect(await viewModel.playbackMode == .entireSong)
+
+        // セクション追加 (進行テンプレート直接指定)
+        await viewModel.addSection(template: .komuro)
+        #expect(await viewModel.project.sections.count == 2)
+        #expect(await viewModel.selectedSectionIndex == 1)
+
+        // セクション複製
+        await viewModel.duplicateSection(at: 1)
+        #expect(await viewModel.project.sections.count == 3)
+        #expect(await viewModel.selectedSectionIndex == 2)
+
+        // セクション区分変更
+        await viewModel.changeSectionType(at: 2, to: .verseB)
+        #expect(await viewModel.project.sections[2].type == .verseB)
+
+        // セクション選択切り替え
+        await viewModel.selectSection(at: 0)
+        #expect(await viewModel.selectedSectionIndex == 0)
+        #expect(await viewModel.activeSection?.type == .chorus)
+
+        // 再生モードトグル (全曲通し ⇔ セクションループ)
+        #expect(await viewModel.playbackMode == .entireSong)
+        await viewModel.togglePlaybackMode()
+        #expect(await viewModel.playbackMode == .sectionLoop)
+        await viewModel.togglePlaybackMode()
+        #expect(await viewModel.playbackMode == .entireSong)
+
+        // セクション削除
+        await viewModel.removeSection(at: 2)
+        #expect(await viewModel.project.sections.count == 2)
+    }
+
+    /*
+    AudioServiceの再生モード切り替えおよびセクションインデックス・小節の更新が正常に反映されるかを検証する。
+    */
+    @Test func testAudioServiceMultiSectionPlayback() async throws {
+        let audioService = AudioService()
+        try audioService.setupEngine()
+
+        // 2セクションを持つプロジェクトを準備
+        let section1 = Section(type: .verseA, measures: [
+            Measure(baseDegree: 6, bassNote: "A"),
+            Measure(baseDegree: 4, bassNote: "F")
+        ])
+        let section2 = Section(type: .chorus, measures: [
+            Measure(baseDegree: 4, bassNote: "F"),
+            Measure(baseDegree: 5, bassNote: "G")
+        ])
+        let multiSectionProject = Project(
+            title: "Multi Test",
+            bpm: 120.0,
+            key: .C,
+            sections: [section1, section2]
+        )
+
+        try audioService.prepare(project: multiSectionProject)
+
+        // 初期は全曲通しモード
+        #expect(audioService.playbackMode == .entireSong)
+
+        // セクションループモードに変更
+        audioService.setPlaybackMode(.sectionLoop)
+        #expect(audioService.playbackMode == .sectionLoop)
+        audioService.setPlaybackMode(.entireSong)
+
+        // 指定セクション・小節への頭出し
+        audioService.setPlaybackPosition(sectionIndex: 1, measureIndex: 1)
+        audioService.setActiveSectionIndex(1)
+
+        audioService.stop()
+    }
+
+    /*
+    MusicTheoryServiceのchordMidiNotesが各種コードおよび分数コードに対して正しいMIDIノート番号を返すかを検証する。
+    */
+    @Test func testChordMidiNotesCalculation() async throws {
+        let service = MusicTheoryService()
+
+        // Cmaj7: C4(60), E4(64), G4(67), B4(71)
+        let cmaj7 = Chord(rootNote: "C", type: "maj7", bassNote: nil)
+        let cmaj7Notes = service.chordMidiNotes(for: cmaj7)
+        #expect(cmaj7Notes == [60, 64, 67, 71])
+
+        // G7: G3(55), B3(59), D4(62), F4(65)
+        let g7 = Chord(rootNote: "G", type: "7", bassNote: nil)
+        let g7Notes = service.chordMidiNotes(for: g7)
+        #expect(g7Notes == [55, 59, 62, 65])
+
+        // 分数コード (Em7/G): ベース音 G2(43) が先頭に付加される
+        let em7g = Chord(rootNote: "E", type: "m7", bassNote: "G")
+        let em7gNotes = service.chordMidiNotes(for: em7g)
+        #expect(em7gNotes.first == 43)
+        #expect(em7gNotes.contains(64)) // E4
+    }
+
+    /*
+    AudioServiceのplayChordNotesおよびViewModelのplayChordPreviewが正常に実行されるかを検証する。
+    */
+    @Test func testPianoChordPreviewPlayback() async throws {
+        let audioService = AudioService()
+        try audioService.setupEngine()
+
+        // ピアノコードプレビュー発音
+        audioService.playChordNotes([60, 64, 67, 71])
+
+        let viewModel = await PlayEditorViewModel(audioService: audioService)
+        let chord = Chord(rootNote: "F", type: "maj7", bassNote: nil)
+        await viewModel.playChordPreview(chord)
+
+        audioService.stop()
+    }
+
+    /*
+    ViewModelのmoveToNextMeasureおよびmoveToPreviousMeasureによる小節・セクション跨ぎのナビゲーションおよび曲境界（先頭でPrevなし、末尾でNextなし）を検証する。
+    */
+    @Test func testMeasureNavigation() async throws {
+        let viewModel = await PlayEditorViewModel()
+
+        // 初期: セクション0, 小節0（曲頭なのでPrevはnil）
+        #expect(await viewModel.currentMeasureIndex == 0)
+        #expect(await viewModel.previousChord == nil)
+        let initialCurrent = await viewModel.currentChord
+        let initialNext = await viewModel.nextChord
+        #expect(initialNext != nil)
+
+        // 先頭でPreviousを押しても小節は0のまま
+        await viewModel.moveToPreviousMeasure()
+        #expect(await viewModel.currentMeasureIndex == 0)
+        #expect(await viewModel.previousChord == nil)
+
+        // Nextへ進む
+        await viewModel.moveToNextMeasure()
+        #expect(await viewModel.currentMeasureIndex == 1)
+        #expect(await viewModel.currentChord.displayString == initialNext?.displayString)
+        #expect(await viewModel.previousChord?.displayString == initialCurrent.displayString)
+
+        // Previousで戻る
+        await viewModel.moveToPreviousMeasure()
+        #expect(await viewModel.currentMeasureIndex == 0)
+        #expect(await viewModel.previousChord == nil)
+        #expect(await viewModel.currentChord.displayString == initialCurrent.displayString)
+
+        // 最後の小節まで進める（4小節進行の末尾: measure 3）
+        await viewModel.moveToNextMeasure() // 1
+        await viewModel.moveToNextMeasure() // 2
+        await viewModel.moveToNextMeasure() // 3
+        #expect(await viewModel.currentMeasureIndex == 3)
+        // 最終小節なのでNextはnil
+        #expect(await viewModel.nextChord == nil)
+
+        // 最終小節でNextを押しても進まない
+        await viewModel.moveToNextMeasure()
+        #expect(await viewModel.currentMeasureIndex == 3)
+    }
 }
+
 

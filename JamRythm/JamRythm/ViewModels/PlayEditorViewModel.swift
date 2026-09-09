@@ -28,6 +28,8 @@ final class PlayEditorViewModel: ObservableObject {
     // MARK: - 公開State (Viewが監視・バインドするプロパティ)
     @Published var project: Project
     @Published var isPlaying: Bool = false
+    @Published var selectedSectionIndex: Int = 0
+    @Published var playbackMode: PlaybackMode = .entireSong
     @Published var currentMeasureIndex: Int = 0
     @Published var currentBeat: Int = 1
     @Published var currentCandidates: [ChordCandidate] = []
@@ -101,21 +103,67 @@ final class PlayEditorViewModel: ObservableObject {
     }
 
     /*
-    次の小節のコードを返す（ループ末尾の場合は1小節目）。
+    前の小節のコードを返す（曲の先頭ではnil）。
     
     Arguments:
     なし
     
     Usage:
-    演奏者が次の小節を準備できるように画面に表示する「Next Chord」で使用される。
+    画面に表示する「PREV」コードの表示に使用される。曲頭ではボタン非表示となる。
+    */
+
+    var previousChord: Chord? {
+        guard !project.sections.isEmpty else { return nil }
+        let secIdx = min(selectedSectionIndex, project.sections.count - 1)
+        let measures = project.sections[secIdx].measures
+        guard !measures.isEmpty else { return nil }
+
+        // 曲全体の先頭（第1セクションの第1小節）ならPrevなし
+        if secIdx == 0 && currentMeasureIndex == 0 {
+            return nil
+        }
+
+        if currentMeasureIndex > 0 && currentMeasureIndex - 1 < measures.count {
+            return measures[currentMeasureIndex - 1].activeChord
+        } else if secIdx > 0 {
+            let prevSecIdx = secIdx - 1
+            let prevMeasures = project.sections[prevSecIdx].measures
+            return prevMeasures.last?.activeChord
+        }
+        return nil
+    }
+
+    /*
+    次の小節のコードを返す（曲の末尾ではnil）。
+    
+    Arguments:
+    なし
+    
+    Usage:
+    演奏者が次の小節を準備できるように画面に表示する「NEXT」コードで使用される。曲末尾ではボタン非表示となる。
     */
     
-    var nextChord: Chord {
-        guard let measures = activeSection?.measures, !measures.isEmpty else {
-            return Chord(rootNote: "C", type: "", bassNote: nil)
+    var nextChord: Chord? {
+        guard !project.sections.isEmpty else { return nil }
+        let secIdx = min(selectedSectionIndex, project.sections.count - 1)
+        let measures = project.sections[secIdx].measures
+        guard !measures.isEmpty else { return nil }
+
+        // 曲全体の末尾（最終セクションの最終小節）ならNextなし
+        let isLastSection = secIdx == project.sections.count - 1
+        let isLastMeasure = currentMeasureIndex >= measures.count - 1
+        if isLastSection && isLastMeasure {
+            return nil
         }
-        let nextIndex = (currentMeasureIndex + 1) % measures.count
-        return measures[nextIndex].activeChord
+
+        if currentMeasureIndex + 1 < measures.count {
+            return measures[currentMeasureIndex + 1].activeChord
+        } else if secIdx + 1 < project.sections.count {
+            let nextSecIdx = secIdx + 1
+            let nextMeasures = project.sections[nextSecIdx].measures
+            return nextMeasures.first?.activeChord
+        }
+        return nil
     }
 
     /*
@@ -156,8 +204,10 @@ final class PlayEditorViewModel: ObservableObject {
     小節リストの取得や更新時に内部で使用される。
     */
     
-    private var activeSection: Section? {
-        return project.sections.first
+    var activeSection: Section? {
+        guard !project.sections.isEmpty else { return nil }
+        let index = min(selectedSectionIndex, project.sections.count - 1)
+        return project.sections[index]
     }
 
     // MARK: - ユーザーインテント (Viewからの操作イベント)
@@ -176,6 +226,7 @@ final class PlayEditorViewModel: ObservableObject {
         if isPlaying {
             audioService.pause()
         } else {
+            audioService.setPlaybackPosition(sectionIndex: selectedSectionIndex, measureIndex: currentMeasureIndex)
             audioService.play()
         }
         isPlaying.toggle()
@@ -195,12 +246,29 @@ final class PlayEditorViewModel: ObservableObject {
     */
     
     func selectChord(_ chord: Chord, forMeasureIndex index: Int) {
-        guard var section = project.sections.first,
-              index < section.measures.count else {
+        let sectionIdx = min(selectedSectionIndex, project.sections.count - 1)
+        guard sectionIdx >= 0,
+              index < project.sections[sectionIdx].measures.count else {
             return
         }
-        section.measures[index].selectedChord = chord
-        project.sections[0] = section
+        project.sections[sectionIdx].measures[index].selectedChord = chord
+        playChordPreview(chord)
+    }
+
+    /*
+    指定されたコードの構成音をピアノ音源（piano1: 007）でプレビュー再生する。
+
+    Arguments:
+    chord
+      再生するChordオブジェクト。
+
+    Usage:
+    コード選択時や小節・カードタップ時に呼び出される。
+    */
+
+    func playChordPreview(_ chord: Chord) {
+        let midiNotes = theoryService.chordMidiNotes(for: chord)
+        audioService.playChordNotes(midiNotes)
     }
 
     /*
@@ -255,19 +323,235 @@ final class PlayEditorViewModel: ObservableObject {
     }
 
     /*
-    王道進行テンプレートを切り替え、小節構成を再生成する。
+    対象セクションを編集・再生フォーカスとして選択する。
+    
+    Arguments:
+    index
+      選択するセクションインデックス。
+    
+    Usage:
+    SectionTimelineBarViewのタブタップ時に呼び出される。
+    */
+    
+    func selectSection(at index: Int) {
+        guard index >= 0, index < project.sections.count else { return }
+        self.selectedSectionIndex = index
+        self.currentMeasureIndex = 0
+        audioService.setActiveSectionIndex(index)
+        updateCandidatesForCurrentMeasure()
+    }
+
+    /*
+    指定したセクションの特定小節を選択し、コード候補や表示を更新するとともにプレビュー音を再生する。
+
+    Arguments:
+    sectionIndex
+      選択するセクションのインデックス。
+    measureIndex
+      選択する小節のインデックス。
+
+    Usage:
+    タイムライン上の小節カードタップ時に呼び出される。
+    */
+
+    func selectMeasure(inSection sectionIndex: Int, measureIndex: Int) {
+        guard sectionIndex >= 0, sectionIndex < project.sections.count else { return }
+        self.selectedSectionIndex = sectionIndex
+        let measureCount = project.sections[sectionIndex].measures.count
+        guard measureIndex >= 0, measureIndex < measureCount else { return }
+        self.currentMeasureIndex = measureIndex
+        audioService.setPlaybackPosition(sectionIndex: sectionIndex, measureIndex: measureIndex)
+        updateCandidatesForCurrentMeasure()
+        let activeChord = project.sections[sectionIndex].measures[measureIndex].activeChord
+        playChordPreview(activeChord)
+    }
+
+    /*
+    次の小節へ選択を進める（NEXTタップ時）。曲の末尾では進まない。
+
+    Arguments:
+    なし
+
+    Usage:
+    ChordDisplayViewのNEXTタップ時に呼び出される。
+    */
+
+    func moveToNextMeasure() {
+        guard !project.sections.isEmpty else { return }
+        let secIdx = min(selectedSectionIndex, project.sections.count - 1)
+        let measures = project.sections[secIdx].measures
+        guard !measures.isEmpty else { return }
+
+        if currentMeasureIndex + 1 < measures.count {
+            selectMeasure(inSection: secIdx, measureIndex: currentMeasureIndex + 1)
+        } else if secIdx + 1 < project.sections.count {
+            selectMeasure(inSection: secIdx + 1, measureIndex: 0)
+        }
+    }
+
+    /*
+    前の小節へ選択を戻す（PREVタップ時）。曲の先頭では戻らない。
+
+    Arguments:
+    なし
+
+    Usage:
+    ChordDisplayViewのPREVタップ時に呼び出される。
+    */
+
+    func moveToPreviousMeasure() {
+        guard !project.sections.isEmpty else { return }
+        let secIdx = min(selectedSectionIndex, project.sections.count - 1)
+        let measures = project.sections[secIdx].measures
+        guard !measures.isEmpty else { return }
+
+        if currentMeasureIndex > 0 {
+            selectMeasure(inSection: secIdx, measureIndex: currentMeasureIndex - 1)
+        } else if secIdx > 0 {
+            let prevSecIdx = secIdx - 1
+            let prevMeasures = project.sections[prevSecIdx].measures
+            let targetMeasure = max(0, prevMeasures.count - 1)
+            selectMeasure(inSection: prevSecIdx, measureIndex: targetMeasure)
+        }
+    }
+
+    /*
+    再生モード（セクションループ ⇔ 全曲通し）を切り替える。
+    
+    Arguments:
+    なし
+    
+    Usage:
+    セクションバーのループ切り替えボタンから呼び出される。
+    */
+    
+    func togglePlaybackMode() {
+        playbackMode = (playbackMode == .sectionLoop) ? .entireSong : .sectionLoop
+        audioService.setPlaybackMode(playbackMode)
+    }
+
+    /*
+    新しいセクションを追加し、選択状態にする。
+    
+    Arguments:
+    type
+      追加するセクション種別（省略時は .verseA）。
+    template
+      適用する進行テンプレート（省略時は王道進行）。
+    
+    Usage:
+    セクション追加メニューから呼び出される。
+    */
+    
+    func addSection(type: SectionType = .verseA, template: ProgressionTemplate? = nil) {
+        let appliedTemplate = template ?? .royalRoad
+        let measures = Self.createMeasures(for: appliedTemplate, key: project.key, theoryService: theoryService)
+        let newSection = Section(type: type, measures: measures)
+        project.sections.append(newSection)
+        try? audioService.prepare(project: project)
+        selectSection(at: project.sections.count - 1)
+    }
+
+    /*
+    指定したコード進行テンプレートで新しいセクションを追加する。
+
+    Arguments:
+    template
+      適用する進行テンプレート。
+
+    Usage:
+    進行選択によるセクション追加ボタンから呼び出される。
+    */
+
+    func addSection(template: ProgressionTemplate) {
+        addSection(type: .verseA, template: template)
+    }
+
+    /*
+    指定したセクションを複製して直後に挿入する。
+    
+    Arguments:
+    index
+      複製元セクションのインデックス。
+    
+    Usage:
+    セクションメニューの「複製」から呼び出される。
+    */
+    
+    func duplicateSection(at index: Int) {
+        guard index >= 0, index < project.sections.count else { return }
+        let source = project.sections[index]
+        let duplicatedMeasures = source.measures.map { measure in
+            Measure(
+                baseDegree: measure.baseDegree,
+                bassNote: measure.bassNote,
+                chordCandidates: measure.chordCandidates,
+                substituteCandidates: measure.substituteCandidates,
+                selectedChord: measure.selectedChord
+            )
+        }
+        let newSection = Section(type: source.type, measures: duplicatedMeasures)
+        project.sections.insert(newSection, at: index + 1)
+        try? audioService.prepare(project: project)
+        selectSection(at: index + 1)
+    }
+
+    /*
+    指定したセクションを削除する（最低1セクションは保持）。
+    
+    Arguments:
+    index
+      削除対象セクションのインデックス。
+    
+    Usage:
+    セクションメニューの「削除」から呼び出される。
+    */
+    
+    func removeSection(at index: Int) {
+        guard project.sections.count > 1, index >= 0, index < project.sections.count else { return }
+        project.sections.remove(at: index)
+        let nextIndex = min(index, project.sections.count - 1)
+        try? audioService.prepare(project: project)
+        selectSection(at: nextIndex)
+    }
+
+    /*
+    指定したセクションの区分（Intro, Aメロ等）を変更する。
+    
+    Arguments:
+    index
+      対象セクションのインデックス。
+    newType
+      新しく設定するSectionType。
+    
+    Usage:
+    セクションメニューの名前変更から呼び出される。
+    */
+    
+    func changeSectionType(at index: Int, to newType: SectionType) {
+        guard index >= 0, index < project.sections.count else { return }
+        project.sections[index].type = newType
+    }
+
+    /*
+    選択中（または指定）のセクションに進行テンプレートを適用する。
     
     Arguments:
     template
-      適用する王道進行テンプレート。テンプレート選択UIから渡される。
+      適用する王道進行テンプレート。
+    sectionIndex
+      適用対象セクションインデックス（省略時は選択中のセクション）。
     
     Usage:
     進行テンプレート選択時に呼び出される。
     */
     
-    func applyTemplate(_ template: ProgressionTemplate) {
+    func applyTemplate(_ template: ProgressionTemplate, toSectionIndex index: Int? = nil) {
+        let targetIndex = index ?? selectedSectionIndex
+        guard targetIndex >= 0, targetIndex < project.sections.count else { return }
         self.selectedTemplate = template
-        self.project = Self.createDefaultProject(template: template, key: project.key, theoryService: theoryService)
+        let measures = Self.createMeasures(for: template, key: project.key, theoryService: theoryService)
+        project.sections[targetIndex].measures = measures
         self.currentMeasureIndex = 0
         self.currentBeat = 1
         try? audioService.prepare(project: self.project)
@@ -413,6 +697,9 @@ final class PlayEditorViewModel: ObservableObject {
             .receive(on: RunLoop.main)
             .sink { [weak self] position in
                 guard let self = self else { return }
+                if self.isPlaying && self.playbackMode == .entireSong && self.selectedSectionIndex != position.sectionIndex {
+                    self.selectedSectionIndex = position.sectionIndex
+                }
                 self.currentMeasureIndex = position.measureIndex
                 self.currentBeat = position.beat
                 self.updateCandidatesForCurrentMeasure()
@@ -452,10 +739,54 @@ final class PlayEditorViewModel: ObservableObject {
     */
     
     private func recalculateAllMeasures(for key: Key) {
-        guard var section = project.sections.first else { return }
+        for sIndex in 0..<project.sections.count {
+            for mIndex in 0..<project.sections[sIndex].measures.count {
+                let degree = project.sections[sIndex].measures[mIndex].baseDegree
+                let semitone = key.semitoneOffset + Key.semitonesForMajorDegree(degree)
+                let bassNote = Key.noteName(forSemitone: semitone)
+                let candidates = theoryService.calculateCandidates(key: key, baseDegree: degree)
+                let candidateChords = candidates.map { $0.chord }
+                let substitutes = theoryService.calculateSubstituteCandidates(
+                    key: key,
+                    baseDegree: degree,
+                    excludingChords: candidateChords
+                )
 
-        for index in 0..<section.measures.count {
-            let degree = section.measures[index].baseDegree
+                project.sections[sIndex].measures[mIndex] = Measure(
+                    id: project.sections[sIndex].measures[mIndex].id,
+                    baseDegree: degree,
+                    bassNote: bassNote,
+                    chordCandidates: candidates,
+                    substituteCandidates: substitutes,
+                    selectedChord: nil
+                )
+            }
+        }
+    }
+
+    // MARK: - ファクトリメソッド
+
+    /*
+    テンプレートとKeyから小節配列を生成する。
+    
+    Arguments:
+    template
+      進行テンプレート。
+    key
+      基準調。
+    theoryService
+      コード候補算出サービス。
+    
+    Usage:
+    セクション追加時、テンプレート変更時、プロジェクト初期化時に呼び出される。
+    */
+    
+    static func createMeasures(
+        for template: ProgressionTemplate,
+        key: Key,
+        theoryService: MusicTheoryServiceProtocol
+    ) -> [Measure] {
+        return template.degrees.map { degree -> Measure in
             let semitone = key.semitoneOffset + Key.semitonesForMajorDegree(degree)
             let bassNote = Key.noteName(forSemitone: semitone)
             let candidates = theoryService.calculateCandidates(key: key, baseDegree: degree)
@@ -465,9 +796,7 @@ final class PlayEditorViewModel: ObservableObject {
                 baseDegree: degree,
                 excludingChords: candidateChords
             )
-
-            section.measures[index] = Measure(
-                id: section.measures[index].id,
+            return Measure(
                 baseDegree: degree,
                 bassNote: bassNote,
                 chordCandidates: candidates,
@@ -475,11 +804,7 @@ final class PlayEditorViewModel: ObservableObject {
                 selectedChord: nil
             )
         }
-
-        project.sections[0] = section
     }
-
-    // MARK: - ファクトリメソッド
 
     /*
     テンプレートとKeyから初期プロジェクトデータを生成する。
@@ -501,25 +826,7 @@ final class PlayEditorViewModel: ObservableObject {
         key: Key,
         theoryService: MusicTheoryServiceProtocol
     ) -> Project {
-        let measures = template.degrees.map { degree -> Measure in
-            let semitone = key.semitoneOffset + Key.semitonesForMajorDegree(degree)
-            let bassNote = Key.noteName(forSemitone: semitone)
-            let candidates = theoryService.calculateCandidates(key: key, baseDegree: degree)
-            let candidateChords = candidates.map { $0.chord }
-            let substitutes = theoryService.calculateSubstituteCandidates(
-                key: key,
-                baseDegree: degree,
-                excludingChords: candidateChords
-            )
-            return Measure(
-                baseDegree: degree,
-                bassNote: bassNote,
-                chordCandidates: candidates,
-                substituteCandidates: substitutes,
-                selectedChord: nil
-            )
-        }
-
+        let measures = createMeasures(for: template, key: key, theoryService: theoryService)
         let section = Section(type: .chorus, measures: measures)
         return Project(
             title: template.name,

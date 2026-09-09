@@ -13,11 +13,37 @@ import os.log
 // MARK: - 再生位置データ構造
 
 /*
-現在の再生進行位置（小節インデックスと小節内の拍数）を表す構造体。
+再生モード（セクション単体集中ループ or 楽曲全体通し再生）を表す列挙型。
+*/
+enum PlaybackMode: String, Codable, CaseIterable, Identifiable {
+    case sectionLoop = "セクションループ"
+    case entireSong = "曲全体通し"
+
+    var id: String { rawValue }
+
+    var iconName: String {
+        switch self {
+        case .sectionLoop:
+            return "repeat.1"
+        case .entireSong:
+            return "repeat"
+        }
+    }
+}
+
+/*
+現在の再生進行位置（セクションインデックス、小節インデックス、拍数）を表す構造体。
 */
 struct PlaybackPosition: Equatable {
+    let sectionIndex: Int
     let measureIndex: Int
     let beat: Int
+
+    init(sectionIndex: Int = 0, measureIndex: Int, beat: Int) {
+        self.sectionIndex = sectionIndex
+        self.measureIndex = measureIndex
+        self.beat = beat
+    }
 }
 
 // MARK: - オーディオサービス・プロトコル
@@ -34,6 +60,24 @@ protocol AudioServiceProtocol: AnyObject {
     func setBPM(_ bpm: Double)
     var currentPositionPublisher: AnyPublisher<PlaybackPosition, Never> { get }
     var syncOffsetMs: Double { get set }
+    var playbackMode: PlaybackMode { get }
+    func setPlaybackMode(_ mode: PlaybackMode)
+    func setActiveSectionIndex(_ index: Int)
+
+    /*
+    再生位置（セクションおよび小節）を指定位置へセットする。
+
+    Arguments:
+    sectionIndex
+      対象セクションのインデックス。
+    measureIndex
+      対象小節のインデックス。
+
+    Usage:
+    選択セクション・小節からの再生開始時や位置更新時に呼び出される。
+    */
+
+    func setPlaybackPosition(sectionIndex: Int, measureIndex: Int)
 
     /*
     Bass音源のプログラム番号（0〜6）を変更する。
@@ -105,6 +149,19 @@ protocol AudioServiceProtocol: AnyObject {
 
     func setBassVolume(_ volume: Float)
     var bassVolume: Float { get }
+
+    /*
+    指定されたMIDIノート配列をコード（和音）としてピアノ音源（piano1: 007）でプレビュー再生する。
+
+    Arguments:
+    notes
+      同時に発音するMIDIノート番号（UInt8）の配列。
+
+    Usage:
+    ユーザーがコードカードや候補をタップした際の試聴再生で使用される。
+    */
+
+    func playChordNotes(_ notes: [UInt8])
 }
 
 // MARK: - オーディオサービス・実装クラス
@@ -121,8 +178,10 @@ final class AudioService: AudioServiceProtocol {
     private let audioEngine = AVAudioEngine()
     private let drumSampler = AVAudioUnitSampler()
     private let bassSampler = AVAudioUnitSampler()
+    private let pianoSampler = AVAudioUnitSampler()
     private let drumMixer = AVAudioMixerNode()
     private let bassMixer = AVAudioMixerNode()
+    private let pianoMixer = AVAudioMixerNode()
     private let rhythmMixer = AVAudioMixerNode()
     private let equalizer = AVAudioUnitEQ(numberOfBands: 2)
 
@@ -130,21 +189,25 @@ final class AudioService: AudioServiceProtocol {
     private var project: Project?
     private var bpm: Double = 120.0
     private var timer: Timer?
+    private var currentSectionIndex: Int = 0
     private var currentMeasure: Int = 0
     private var currentStepIndex: Int = 0
     private var currentBeatIndex: Int = 1
     private let stepsPerMeasure: Int = 8
     private let beatsPerMeasure: Int = 4
 
+    private(set) var playbackMode: PlaybackMode = .entireSong
     private(set) var bassProgram: UInt8 = 0
     private(set) var drumProgram: UInt8 = 0
     private(set) var volume: Float = 0.8
     private(set) var drumVolume: Float = 0.8
     private(set) var bassVolume: Float = 0.8
     private var activeBassNote: UInt8?
+    private var activePianoNotes: [UInt8] = []
+    private var pianoReleaseTask: Task<Void, Never>?
 
     // MARK: - Combine Publisher
-    private let positionSubject = CurrentValueSubject<PlaybackPosition, Never>(PlaybackPosition(measureIndex: 0, beat: 1))
+    private let positionSubject = CurrentValueSubject<PlaybackPosition, Never>(PlaybackPosition(sectionIndex: 0, measureIndex: 0, beat: 1))
     var currentPositionPublisher: AnyPublisher<PlaybackPosition, Never> {
         positionSubject.eraseToAnyPublisher()
     }
@@ -164,20 +227,22 @@ final class AudioService: AudioServiceProtocol {
     /*
     AVAudioEngineのノード接続およびEQ（スマホスピーカー向け倍音・中域強調）の初期設定を行う。
     ドラムとベースをそれぞれ独立したミキサー（drumMixer, bassMixer）経由でrhythmMixerにまとめ、
-    EQおよびメインミキサーへ送出する。
+    EQおよびメインミキサーへ送出する。ピアノ音源（pianoSampler）は直接メインミキサーへ接続する。
     
     Arguments:
     なし
     
     Usage:
-    初期化時に呼び出され、ドラム・ベースの個別音量制御と輪郭強調を行う。
+    初期化時に呼び出され、ドラム・ベース・ピアノの個別音量制御と輪郭強調を行う。
     */
     
     private func configureAudioNodes() {
         audioEngine.attach(drumSampler)
         audioEngine.attach(bassSampler)
+        audioEngine.attach(pianoSampler)
         audioEngine.attach(drumMixer)
         audioEngine.attach(bassMixer)
+        audioEngine.attach(pianoMixer)
         audioEngine.attach(rhythmMixer)
         audioEngine.attach(equalizer)
 
@@ -200,11 +265,14 @@ final class AudioService: AudioServiceProtocol {
         mainMixer.outputVolume = volume
         drumMixer.outputVolume = drumVolume
         bassMixer.outputVolume = bassVolume
+        pianoMixer.outputVolume = 0.9
 
         audioEngine.connect(drumSampler, to: drumMixer, format: nil)
         audioEngine.connect(bassSampler, to: bassMixer, format: nil)
+        audioEngine.connect(pianoSampler, to: pianoMixer, format: nil)
         audioEngine.connect(drumMixer, to: rhythmMixer, format: nil)
         audioEngine.connect(bassMixer, to: rhythmMixer, format: nil)
+        audioEngine.connect(pianoMixer, to: mainMixer, format: nil)
         audioEngine.connect(rhythmMixer, to: equalizer, format: nil)
         audioEngine.connect(equalizer, to: mainMixer, format: nil)
     }
@@ -257,6 +325,32 @@ final class AudioService: AudioServiceProtocol {
         }
         loadBassInstrument(sf2Url: sf2Url)
         loadDrumInstrument(sf2Url: sf2Url)
+        loadPianoInstrument(sf2Url: sf2Url)
+    }
+
+    /*
+    Piano音源（Bank 000, Program 007 piano1）をサンプラーへロードする。
+
+    Arguments:
+    sf2Url
+      SoundFontファイルのURL。
+
+    Usage:
+    loadSoundFontIfAvailableから呼び出される。
+    */
+
+    private func loadPianoInstrument(sf2Url: URL) {
+        do {
+            try pianoSampler.loadSoundBankInstrument(
+                at: sf2Url,
+                program: 7,
+                bankMSB: UInt8(kAUSampler_DefaultMelodicBankMSB),
+                bankLSB: 0
+            )
+            logger.info("Successfully loaded Piano: Program 007 (piano1)")
+        } catch {
+            logger.error("Failed to load Piano instrument: \(error.localizedDescription)")
+        }
     }
 
     /*
@@ -404,6 +498,64 @@ final class AudioService: AudioServiceProtocol {
         logger.debug("Bass volume set to: \(clamped)")
     }
 
+    /*
+    再生モード（セクションループ or 全曲通し）を切り替える。
+    
+    Arguments:
+    mode
+      新しいPlaybackMode（.sectionLoop または .entireSong）。
+    
+    Usage:
+    UIのループモード切り替えボタンから呼び出される。
+    */
+    
+    func setPlaybackMode(_ mode: PlaybackMode) {
+        self.playbackMode = mode
+        logger.info("Playback mode changed to: \(mode.rawValue)")
+    }
+
+    /*
+    再生および編集対象のアクティブセクションインデックスを変更し、小節の先頭に頭出しする。
+    
+    Arguments:
+    index
+      対象のセクションインデックス。
+    
+    Usage:
+    ユーザーがセクションタブを選択した際に呼び出される。
+    */
+    
+    func setActiveSectionIndex(_ index: Int) {
+        setPlaybackPosition(sectionIndex: index, measureIndex: 0)
+    }
+
+    /*
+    再生位置（セクションおよび小節）を指定位置へセットする。
+
+    Arguments:
+    sectionIndex
+      対象セクションのインデックス。
+    measureIndex
+      対象小節のインデックス。
+
+    Usage:
+    選択セクション・小節からの再生開始時や位置更新時に呼び出される。
+    */
+
+    func setPlaybackPosition(sectionIndex: Int, measureIndex: Int) {
+        guard let sections = project?.sections, !sections.isEmpty else { return }
+        let validSection = max(0, min(sectionIndex, sections.count - 1))
+        let measures = sections[validSection].measures
+        let validMeasure = max(0, min(measureIndex, max(0, measures.count - 1)))
+
+        self.currentSectionIndex = validSection
+        self.currentMeasure = validMeasure
+        self.currentStepIndex = 0
+        self.currentBeatIndex = 1
+        positionSubject.send(PlaybackPosition(sectionIndex: validSection, measureIndex: validMeasure, beat: 1))
+        logger.info("Playback position set to section: \(validSection), measure: \(validMeasure)")
+    }
+
     // MARK: - 再生制御
 
     /*
@@ -542,13 +694,26 @@ final class AudioService: AudioServiceProtocol {
     */
     
     private func advanceStep() {
-        let totalMeasures = project?.sections.first?.measures.count ?? 4
+        guard let sections = project?.sections, !sections.isEmpty else { return }
+        let validSectionIndex = min(currentSectionIndex, sections.count - 1)
+        let currentSectionMeasures = sections[validSectionIndex].measures
+        let totalMeasures = max(1, currentSectionMeasures.count)
 
         if currentStepIndex < stepsPerMeasure - 1 {
             currentStepIndex += 1
         } else {
             currentStepIndex = 0
-            currentMeasure = (currentMeasure + 1) % max(1, totalMeasures)
+            switch playbackMode {
+            case .sectionLoop:
+                currentMeasure = (currentMeasure + 1) % totalMeasures
+            case .entireSong:
+                if currentMeasure + 1 < totalMeasures {
+                    currentMeasure += 1
+                } else {
+                    currentMeasure = 0
+                    currentSectionIndex = (validSectionIndex + 1) % sections.count
+                }
+            }
         }
 
         currentBeatIndex = (currentStepIndex / 2) + 1
@@ -557,13 +722,17 @@ final class AudioService: AudioServiceProtocol {
 
         // 拍頭（表拍: step 0, 2, 4, 6）のときのみUIへ位置通知を送信
         if currentStepIndex % 2 == 0 {
-            let newPosition = PlaybackPosition(measureIndex: currentMeasure, beat: currentBeatIndex)
+            let newPosition = PlaybackPosition(
+                sectionIndex: currentSectionIndex,
+                measureIndex: currentMeasure,
+                beat: currentBeatIndex
+            )
             positionSubject.send(newPosition)
         }
     }
 
     /*
-    再生位置を1小節目1拍目（step 0）に初期化する。
+    再生位置を現在セクションの1小節目1拍目（step 0）に初期化する。
     
     Arguments:
     なし
@@ -576,7 +745,7 @@ final class AudioService: AudioServiceProtocol {
         currentMeasure = 0
         currentStepIndex = 0
         currentBeatIndex = 1
-        positionSubject.send(PlaybackPosition(measureIndex: 0, beat: 1))
+        positionSubject.send(PlaybackPosition(sectionIndex: currentSectionIndex, measureIndex: 0, beat: 1))
     }
 
     // MARK: - MIDIノート発音処理
@@ -648,8 +817,10 @@ final class AudioService: AudioServiceProtocol {
     */
     
     private func playBassStep(measureIndex: Int, step: Int) {
-        guard let measures = project?.sections.first?.measures,
-              measureIndex < measures.count else { return }
+        guard let sections = project?.sections,
+              currentSectionIndex < sections.count else { return }
+        let measures = sections[currentSectionIndex].measures
+        guard measureIndex < measures.count else { return }
 
         // 1拍目（step 0）と3拍目（step 4）の頭でベース音を鳴らす（2分音符のグルーヴ）
         if step == 0 || step == 4 {
@@ -665,7 +836,7 @@ final class AudioService: AudioServiceProtocol {
     }
 
     /*
-    発音中のベースノートを強制停止する。
+    発音中のベースノートおよびピアノノートを強制停止する。
     
     Arguments:
     なし
@@ -678,6 +849,52 @@ final class AudioService: AudioServiceProtocol {
         if let active = activeBassNote {
             bassSampler.stopNote(active, onChannel: 0)
             activeBassNote = nil
+        }
+        pianoReleaseTask?.cancel()
+        for note in activePianoNotes {
+            pianoSampler.stopNote(note, onChannel: 0)
+        }
+        activePianoNotes.removeAll()
+    }
+
+    /*
+    指定されたMIDIノート配列をコード（和音）としてピアノ音源（piano1: 007）でプレビュー再生する。
+
+    Arguments:
+    notes
+      同時に発音するMIDIノート番号（UInt8）の配列。
+
+    Usage:
+    ユーザーがコードカードや候補をタップした際の試聴再生で使用される。
+    */
+
+    func playChordNotes(_ notes: [UInt8]) {
+        pianoReleaseTask?.cancel()
+        for note in activePianoNotes {
+            pianoSampler.stopNote(note, onChannel: 0)
+        }
+        activePianoNotes = notes
+
+        guard !notes.isEmpty else { return }
+
+        if !audioEngine.isRunning {
+            try? audioEngine.start()
+        }
+
+        for note in notes {
+            pianoSampler.startNote(note, withVelocity: 90, onChannel: 0)
+        }
+
+        let currentNotes = notes
+        pianoReleaseTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 1_800_000_000)
+            guard let self = self, !Task.isCancelled else { return }
+            for note in currentNotes {
+                self.pianoSampler.stopNote(note, onChannel: 0)
+            }
+            if self.activePianoNotes == currentNotes {
+                self.activePianoNotes.removeAll()
+            }
         }
     }
 
