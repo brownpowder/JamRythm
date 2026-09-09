@@ -31,22 +31,26 @@ struct ChordDisplayView: View {
         GridItem(.flexible(), spacing: 10)
     ]
 
+    @State private var isExpanded: Bool = true
+
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 10) {
             // 上段: PREV・CURRENT・NEXT コード表示
             chordHeaderRow
 
-            Divider()
-                .padding(.horizontal, 4)
+            // 折りたたみ／展開トグルバー
+            toggleCollapseButton
 
-            // 下段: 4つのフレーバーコード候補グリッド
-            choicesSection
+            // 下段: コード候補（フレーバー候補 ＆ 代理コード）
+            if isExpanded {
+                choicesSection
 
-            if !substituteCandidates.isEmpty {
-                Divider()
-                    .padding(.horizontal, 4)
+                if !substituteCandidates.isEmpty {
+                    Divider()
+                        .padding(.horizontal, 4)
 
-                substitutesSection
+                    substitutesSection
+                }
             }
         }
         .padding(14)
@@ -62,6 +66,49 @@ struct ChordDisplayView: View {
     }
 
     // MARK: - サブビュー
+
+    /*
+    コード候補（フレーバー候補・代理コード）の展開／折りたたみを切り替えるボタンを描画する。
+
+    Arguments:
+    なし
+
+    Usage:
+    chordHeaderRowの直下に配置され、タップで候補エリアをアコーディオン開閉する。
+    */
+
+    private var toggleCollapseButton: some View {
+        Button(action: {
+            withAnimation(.easeInOut(duration: 0.22)) {
+                isExpanded.toggle()
+            }
+        }) {
+            HStack(spacing: 6) {
+                Rectangle()
+                    .fill(Color.secondary.opacity(0.18))
+                    .frame(height: 1)
+
+                HStack(spacing: 4) {
+                    Text(isExpanded ? "コード候補を隠す" : "コード候補を表示")
+                        .font(.caption2.bold())
+                        .foregroundColor(.secondary)
+
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundColor(.secondary)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(Color(uiColor: .tertiarySystemBackground))
+                .cornerRadius(6)
+
+                Rectangle()
+                    .fill(Color.secondary.opacity(0.18))
+                    .frame(height: 1)
+            }
+        }
+        .buttonStyle(.plain)
+    }
 
     /*
     前のコード（PREV）、現在のコード（CURRENT・特大中央）、次のコード（NEXT）を横並びで表示する上段ヘッダー。
