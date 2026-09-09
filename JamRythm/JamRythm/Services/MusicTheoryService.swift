@@ -7,6 +7,88 @@
 
 import Foundation
 
+// MARK: - スケール種別
+
+/*
+アドリブやメロディ演奏で使用するスケール種別（ペンタトニックまたはダイアトニック）。
+*/
+enum ScaleType: String, Codable, CaseIterable, Identifiable {
+    case pentatonic = "ペンタトニック"
+    case diatonic = "ダイアトニック"
+
+    var id: String { rawValue }
+
+    var shortName: String {
+        switch self {
+        case .pentatonic: return "Penta (5音)"
+        case .diatonic: return "7音スケール"
+        }
+    }
+}
+
+// MARK: - 指板楽器モード
+
+/*
+指板ダイアグラムで表示する弦の本数（6弦ギターまたは4弦ベース）。
+*/
+enum FretboardInstrument: String, Codable, CaseIterable, Identifiable {
+    case guitar = "6弦 (Guitar)"
+    case bass = "4弦 (Bass)"
+
+    var id: String { rawValue }
+
+    var shortName: String {
+        switch self {
+        case .guitar: return "6弦 Guitar"
+        case .bass: return "4弦 Bass"
+        }
+    }
+}
+
+// MARK: - スケール音の役割
+
+/*
+指板上の音が現在のコード進行において果たす音楽的役割。
+*/
+enum ScaleToneRole: Equatable {
+    case root         // 現在のコードの根音（最重要、オレンジ）
+    case chordTone     // コードの構成音（3度、5度など、シアン）
+    case scaleTone     // スケール内の通過音（白/グレー）
+}
+
+// MARK: - 指板上のスケール音ポジション
+
+/*
+ギター/ベース指板上の特定の弦・フレットにおけるスケール音の配置情報。
+*/
+struct ScaleFretPosition: Identifiable, Equatable {
+    let id: UUID
+    let stringNumber: Int    // ギター基準: 1〜6弦（6弦=低音E, 1弦=高音E）
+    let fret: Int            // 0〜5フレット
+    let noteName: String     // 音名（例: "C", "G"）
+    let role: ScaleToneRole  // 音の役割（ルート、コードトーン、スケール音）
+
+    init(id: UUID = UUID(), stringNumber: Int, fret: Int, noteName: String, role: ScaleToneRole) {
+        self.id = id
+        self.stringNumber = stringNumber
+        self.fret = fret
+        self.noteName = noteName
+        self.role = role
+    }
+}
+
+// MARK: - スケール情報モデル
+
+/*
+現在のKeyとコードに応じたスケール構成音および指板ポジションの集合体。
+*/
+struct ScaleInfo: Equatable {
+    let keyName: String
+    let scaleName: String
+    let scaleNotes: [String]
+    let positions: [ScaleFretPosition]
+}
+
 // MARK: - 音楽理論サービス・プロトコル
 
 /*
@@ -86,6 +168,23 @@ protocol MusicTheoryServiceProtocol {
     */
 
     func chordMidiNotes(for chord: Chord) -> [UInt8]
+
+    /*
+    指定されたKey、コード、スケール種別に基づき、スケール構成音および指板ポジション一覧を取得する。
+
+    Arguments:
+    key
+      基準調（Key.C等）。プロジェクト設定から渡される。
+    chord
+      現在選択中の小節コード。ルート音やコードトーン判定に使用される。
+    scaleType
+      ペンタトニックまたはダイアトニック。Picker選択値から渡される。
+
+    Usage:
+    ScaleFretboardViewでスケールノートバッジおよび指板マーカーを描画するために呼び出される。
+    */
+
+    func scaleInfo(for key: Key, chord: Chord, scaleType: ScaleType) -> ScaleInfo
 }
 
 // MARK: - プロトコルデフォルト実装
@@ -818,5 +917,116 @@ final class MusicTheoryService: MusicTheoryServiceProtocol {
         }
 
         return notes
+    }
+
+    // MARK: - スケール情報算出
+
+    /*
+    指定されたKey、コード、スケール種別に基づき、スケール構成音および指板ポジション一覧を取得する。
+
+    Arguments:
+    key
+      基準調（Key.C等）。
+    chord
+      現在選択中の小節コード。
+    scaleType
+      ペンタトニックまたはダイアトニック。
+
+    Usage:
+    ScaleFretboardViewでスケールノートバッジおよび指板マーカーを描画するために呼び出される。
+    */
+
+    func scaleInfo(for key: Key, chord: Chord, scaleType: ScaleType) -> ScaleInfo {
+        let scaleSemitones = calculateScaleSemitones(key: key, scaleType: scaleType)
+        let scaleNotes = scaleSemitones.map { Key.noteName(forSemitone: $0) }
+        let scaleName = "\(key.rawValue) \(scaleType == .pentatonic ? "メジャーペンタトニック" : "メジャースケール")"
+        let positions = calculateScalePositions(scaleSemitones: scaleSemitones, chord: chord)
+
+        return ScaleInfo(
+            keyName: key.rawValue,
+            scaleName: scaleName,
+            scaleNotes: scaleNotes,
+            positions: positions
+        )
+    }
+
+    /*
+    Keyとスケール種別から、スケール構成音の半音インデックス（0〜11）配列を算出する。
+
+    Arguments:
+    key
+      基準調。
+    scaleType
+      スケール種別。
+
+    Usage:
+    scaleInfo内でスケール音名の取得および指板プロットの判定に使用される。
+    */
+
+    private func calculateScaleSemitones(key: Key, scaleType: ScaleType) -> [Int] {
+        let offsets: [Int]
+        switch scaleType {
+        case .pentatonic:
+            // メジャーペンタトニック (1, 2, 3, 5, 6)
+            offsets = [0, 2, 4, 7, 9]
+        case .diatonic:
+            // メジャーダイアトニックスケール (1, 2, 3, 4, 5, 6, 7)
+            offsets = [0, 2, 4, 5, 7, 9, 11]
+        }
+
+        return offsets.map { (key.semitoneOffset + $0) % 12 }
+    }
+
+    /*
+    ギター6弦の0〜5フレットを走査し、スケールに含まれるフレットポジションおよび役割を導出する。
+
+    Arguments:
+    scaleSemitones
+      スケール構成音の半音番号一覧。
+    chord
+      現在のコード（ルートおよびコードトーン判定用）。
+
+    Usage:
+    scaleInfo内で指板上のマーカー配列（ScaleFretPosition）を生成する際に使用される。
+    */
+
+    private func calculateScalePositions(scaleSemitones: [Int], chord: Chord) -> [ScaleFretPosition] {
+        let chordRootSemitone = Key.semitone(forNoteName: chord.rootNote)
+        let formulas = chordToneFormulas(for: chord.type)
+        let chordToneSemitones = formulas.map { (chordRootSemitone + $0.semitoneOffset) % 12 }
+
+        // ギター6弦の開放弦半音値（6弦E=4, 5弦A=9, 4弦D=2, 3弦G=7, 2弦B=11, 1弦E=4）
+        let openStrings: [(stringNumber: Int, openSemitone: Int)] = [
+            (6, 4), (5, 9), (4, 2), (3, 7), (2, 11), (1, 4)
+        ]
+
+        var result: [ScaleFretPosition] = []
+
+        for (stringNum, openSemi) in openStrings {
+            for fret in 0...5 {
+                let fretSemitone = (openSemi + fret) % 12
+                guard scaleSemitones.contains(fretSemitone) else { continue }
+
+                let noteName = Key.noteName(forSemitone: fretSemitone)
+                let role: ScaleToneRole
+
+                if fretSemitone == chordRootSemitone {
+                    role = .root
+                } else if chordToneSemitones.contains(fretSemitone) {
+                    role = .chordTone
+                } else {
+                    role = .scaleTone
+                }
+
+                result.append(ScaleFretPosition(
+                    stringNumber: stringNum,
+                    fret: fret,
+                    noteName: noteName,
+                    role: role
+                ))
+            }
+        }
+
+        return result
     }
 }

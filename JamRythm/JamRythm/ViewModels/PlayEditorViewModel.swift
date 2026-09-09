@@ -22,7 +22,7 @@ final class PlayEditorViewModel: ObservableObject {
 
     // MARK: - 依存サービス
     private let audioService: AudioServiceProtocol
-    private let theoryService: MusicTheoryServiceProtocol
+    let theoryService: MusicTheoryServiceProtocol
     private var cancellables = Set<AnyCancellable>()
 
     // MARK: - 公開State (Viewが監視・バインドするプロパティ)

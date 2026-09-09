@@ -60,11 +60,14 @@ struct PlayEditorView: View {
                         }
                     )
 
-                    // 2. 譜面エリア（ギターTAB譜 / 五線譜）
+                    // 2. 譜面エリア（コードTAB譜 / スケール指板 / 五線譜）
                     ScoreSegmentView(
                         voicing: viewModel.currentVoicing,
                         notes: viewModel.currentStaffNotes,
-                        chordName: viewModel.currentChord.displayString
+                        chordName: viewModel.currentChord.displayString,
+                        key: viewModel.project.key,
+                        chord: viewModel.currentChord,
+                        theoryService: viewModel.theoryService
                     )
 
                     // 3. 進行・セクション＆小節コード一覧（セクション追加・編集・全曲構成）

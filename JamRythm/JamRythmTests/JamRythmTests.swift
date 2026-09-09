@@ -807,6 +807,60 @@ struct JamRythmTests {
         #expect(viewModel.project.bpm == 160.0)
         #expect(audioService.bpm == 160.0)
     }
+
+    /*
+    Key Cにおけるペンタトニック（5音）およびダイアトニック（7音）のスケール構成音・指板ポジション算出を検証する。
+    */
+    @Test func testScaleInfoCalculation() async throws {
+        let theoryService = MusicTheoryService()
+        let chordC = Chord(rootNote: "C", type: "", bassNote: nil)
+
+        // Key C メジャーペンタトニック (C, D, E, G, A)
+        let pentaInfo = theoryService.scaleInfo(for: .C, chord: chordC, scaleType: .pentatonic)
+        #expect(pentaInfo.keyName == "C")
+        #expect(pentaInfo.scaleNotes == ["C", "D", "E", "G", "A"])
+        #expect(!pentaInfo.positions.isEmpty)
+
+        // 5弦3フレットがルート音 "C"（.root）であること
+        let cOn5thString = pentaInfo.positions.first { $0.stringNumber == 5 && $0.fret == 3 }
+        #expect(cOn5thString != nil)
+        #expect(cOn5thString?.noteName == "C")
+        #expect(cOn5thString?.role == .root)
+
+        // Key C メジャースケール (C, D, E, F, G, A, B)
+        let diatonicInfo = theoryService.scaleInfo(for: .C, chord: chordC, scaleType: .diatonic)
+        #expect(diatonicInfo.scaleNotes == ["C", "D", "E", "F", "G", "A", "B"])
+        #expect(diatonicInfo.positions.count > pentaInfo.positions.count)
+    }
+
+    /*
+    現在のコードに応じて指板上の音の役割（Root, ChordTone, ScaleTone）が正しく割り振られるかを検証する。
+    */
+    @Test func testScalePositionsRolesWithDifferentChords() async throws {
+        let theoryService = MusicTheoryService()
+
+        // Key C でコードが F の場合（ダイアトニックスケール）
+        let chordF = Chord(rootNote: "F", type: "", bassNote: nil)
+        let scaleInfo = theoryService.scaleInfo(for: .C, chord: chordF, scaleType: .diatonic)
+
+        // 6弦1フレット（F）はコードのRoot
+        let fOn6th = scaleInfo.positions.first { $0.stringNumber == 6 && $0.fret == 1 }
+        #expect(fOn6th != nil)
+        #expect(fOn6th?.noteName == "F")
+        #expect(fOn6th?.role == .root)
+
+        // 5弦0フレット開放弦（A）はFの3度（ChordTone）
+        let aOn5th = scaleInfo.positions.first { $0.stringNumber == 5 && $0.fret == 0 }
+        #expect(aOn5th != nil)
+        #expect(aOn5th?.noteName == "A")
+        #expect(aOn5th?.role == .chordTone)
+
+        // 4弦0フレット開放弦（D）はスケール通過音（ScaleTone）
+        let dOn4th = scaleInfo.positions.first { $0.stringNumber == 4 && $0.fret == 0 }
+        #expect(dOn4th != nil)
+        #expect(dOn4th?.noteName == "D")
+        #expect(dOn4th?.role == .scaleTone)
+    }
 }
 
 

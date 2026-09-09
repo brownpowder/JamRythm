@@ -10,7 +10,8 @@ import SwiftUI
 // MARK: - 表示モード列挙型
 
 enum ScoreDisplayMode: String, CaseIterable, Identifiable {
-    case tab = "🎸 ギターTAB"
+    case tab = "🎸 コードTAB"
+    case scale = "🗺️ スケール指板"
     case staff = "🎼 五線譜"
 
     var id: String { rawValue }
@@ -19,13 +20,16 @@ enum ScoreDisplayMode: String, CaseIterable, Identifiable {
 // MARK: - スコア表示セグメントラッパービュー
 
 /*
-ギターTAB譜と五線譜の表示を切り替えるコンテナビュー。
-ユーザーのプレイスタイルや楽器に応じて好みのビューを選択できる。
+コードTAB譜、スケール指板（6弦/4弦切替）、五線譜の表示を切り替えるコンテナビュー。
+ユーザーのプレイスタイルや楽器（ギター、ベース、鍵盤ソロ等）に応じて好みのビューを選択できる。
 */
 struct ScoreSegmentView: View {
     let voicing: GuitarVoicing
     let notes: [StaffNote]
     let chordName: String
+    var key: Key = .C
+    var chord: Chord = Chord(rootNote: "C", type: "", bassNote: nil)
+    var theoryService: MusicTheoryServiceProtocol = MusicTheoryService()
 
     @State private var displayMode: ScoreDisplayMode = .tab
 
@@ -45,6 +49,8 @@ struct ScoreSegmentView: View {
                 switch displayMode {
                 case .tab:
                     GuitarTabView(voicing: voicing, chordName: chordName)
+                case .scale:
+                    ScaleFretboardView(key: key, chord: chord, theoryService: theoryService)
                 case .staff:
                     StaffScoreView(notes: notes, chordName: chordName)
                 }
