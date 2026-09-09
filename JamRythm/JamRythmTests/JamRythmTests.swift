@@ -941,6 +941,80 @@ struct JamRythmTests {
         #expect(targetMeasure.activeChord == customChord)
         #expect(viewModel.currentChord.displayString == "Dm9")
     }
+
+    /*
+    和声的親和性（ルート音判定）の音楽理論的整合性を検証する。
+    */
+    @Test func testRootCompatibilityCalculation() throws {
+        let service = MusicTheoryService()
+
+        // Key C (ダイアトニック音: C, D, E, F, G, A, B)
+        #expect(service.rootCompatibility(root: "C", key: .C, baseDegree: 1) == .verySmooth)
+        #expect(service.rootCompatibility(root: "F", key: .C, baseDegree: 4) == .verySmooth)
+        #expect(service.rootCompatibility(root: "G", key: .C, baseDegree: 5) == .verySmooth)
+        #expect(service.rootCompatibility(root: "A", key: .C, baseDegree: 6) == .verySmooth)
+
+        // モーダルインターチェンジ / 定番借用和音 (bVI=Ab, bVII=Bb, bIII=Eb)
+        #expect(service.rootCompatibility(root: "A♭", key: .C, baseDegree: 1) == .smooth)
+        #expect(service.rootCompatibility(root: "B♭", key: .C, baseDegree: 1) == .smooth)
+        #expect(service.rootCompatibility(root: "E♭", key: .C, baseDegree: 1) == .smooth)
+
+        // 裏コード (bII=Db) / パッシング (F#)
+        #expect(service.rootCompatibility(root: "D♭", key: .C, baseDegree: 1) == .flavorful)
+        #expect(service.rootCompatibility(root: "G♭", key: .C, baseDegree: 1) == .flavorful)
+    }
+
+    /*
+    和声的親和性（コード全体判定）の音楽理論的整合性を検証する。
+    ダイアトニック、セカンダリードミナント、サブドミナントマイナー、裏コードの分類を担保する。
+    */
+    @Test func testChordCompatibilityCalculation() throws {
+        let service = MusicTheoryService()
+
+        // ダイアトニック王道コード (Key C)
+        let cMaj7 = Chord(rootNote: "C", type: "maj7", bassNote: nil)
+        #expect(service.chordCompatibility(chord: cMaj7, key: .C, baseDegree: 1, originalChord: nil) == .verySmooth)
+
+        let dm7 = Chord(rootNote: "D", type: "m7", bassNote: nil)
+        #expect(service.chordCompatibility(chord: dm7, key: .C, baseDegree: 2, originalChord: nil) == .verySmooth)
+
+        let g7 = Chord(rootNote: "G", type: "7", bassNote: nil)
+        #expect(service.chordCompatibility(chord: g7, key: .C, baseDegree: 5, originalChord: nil) == .verySmooth)
+
+        // セカンダリードミナント (A7 -> Dm, D7 -> G, E7 -> Am, C7 -> F)
+        let a7 = Chord(rootNote: "A", type: "7", bassNote: nil)
+        #expect(service.chordCompatibility(chord: a7, key: .C, baseDegree: 6, originalChord: nil) == .smooth)
+
+        let c7 = Chord(rootNote: "C", type: "7", bassNote: nil)
+        #expect(service.chordCompatibility(chord: c7, key: .C, baseDegree: 1, originalChord: nil) == .smooth)
+
+        // サブドミナントマイナー (Fm, Fm7)
+        let fm = Chord(rootNote: "F", type: "m", bassNote: nil)
+        #expect(service.chordCompatibility(chord: fm, key: .C, baseDegree: 4, originalChord: nil) == .smooth)
+
+        // 裏コード (Db7)
+        let db7 = Chord(rootNote: "D♭", type: "7", bassNote: nil)
+        #expect(service.chordCompatibility(chord: db7, key: .C, baseDegree: 2, originalChord: nil) == .flavorful)
+    }
+
+    /*
+    ViewModelの編集対象小節情報（editingOriginalChord, editingBaseDegree）の取得を検証する。
+    */
+    @Test @MainActor func testViewModelEditingMeasureProperties() async throws {
+        let audioService = AudioService()
+        let theoryService = MusicTheoryService()
+        let viewModel = PlayEditorViewModel(audioService: audioService, theoryService: theoryService)
+
+        // 初期状態（1小節目: 王道進行IV-V-iii-viなら4度F）
+        #expect(viewModel.editingBaseDegree == 4)
+        #expect(viewModel.editingOriginalChord != nil)
+        #expect(viewModel.editingOriginalChord?.rootNote == "F")
+
+        // 2小節目（5度G）
+        viewModel.selectMeasure(inSection: 0, measureIndex: 1)
+        #expect(viewModel.editingBaseDegree == 5)
+        #expect(viewModel.editingOriginalChord?.rootNote == "G")
+    }
 }
 
 

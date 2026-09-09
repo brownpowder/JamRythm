@@ -327,6 +327,38 @@ final class PlayEditorViewModel: ObservableObject {
     }
 
     /*
+    現在編集対象となっている小節の元のコード（編集前）を返す。
+
+    Arguments:
+    なし
+
+    Usage:
+    ChordCustomizerSheetViewで親和性判定の基準コードとして使用される。
+    */
+
+    var editingOriginalChord: Chord? {
+        guard let measures = activeSection?.measures,
+              currentMeasureIndex < measures.count else { return nil }
+        return measures[currentMeasureIndex].activeChord
+    }
+
+    /*
+    現在編集対象となっている小節の土台度数（baseDegree）を返す。
+
+    Arguments:
+    なし
+
+    Usage:
+    ChordCustomizerSheetViewで和声的親和性を判定する際に使用される。
+    */
+
+    var editingBaseDegree: Int {
+        guard let measures = activeSection?.measures,
+              currentMeasureIndex < measures.count else { return 1 }
+        return measures[currentMeasureIndex].baseDegree
+    }
+
+    /*
     指定されたコードの構成音をピアノ音源（piano1: 007）でプレビュー再生する。
 
     Arguments:

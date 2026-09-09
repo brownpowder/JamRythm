@@ -77,6 +77,61 @@ struct ScaleFretPosition: Identifiable, Equatable {
     }
 }
 
+// MARK: - 和声的親和性・スムーズ度 (HarmonicCompatibility)
+
+/*
+楽曲のKeyおよび元のコード進行に対して、指定されたコードやルート音がどの程度破綻せずスムーズに調和するかを表す評価指標。
+濃淡による視覚的ガイド表示に利用される。
+*/
+enum HarmonicCompatibility: Int, Comparable, CaseIterable, Identifiable {
+    case verySmooth = 3   // 最も濃い: ダイアトニック、基本和音、王道進行
+    case smooth = 2       // 中濃: セカンダリードミナント、サブドミナントマイナー、定番借用
+    case flavorful = 1    // 淡い: オルタード、テンションスパイス、裏コード
+    case dissonant = 0    // 無色: 衝突注意、不協和音
+
+    var id: Int { rawValue }
+
+    static func < (lhs: HarmonicCompatibility, rhs: HarmonicCompatibility) -> Bool {
+        lhs.rawValue < rhs.rawValue
+    }
+
+    var badgeText: String {
+        switch self {
+        case .verySmooth: return "とてもスムーズ"
+        case .smooth: return "スムーズ (エモい)"
+        case .flavorful: return "個性的 (スパイス)"
+        case .dissonant: return "挑戦的 (アブストラクト)"
+        }
+    }
+
+    var badgeIcon: String {
+        switch self {
+        case .verySmooth: return "sparkles"
+        case .smooth: return "heart.fill"
+        case .flavorful: return "flame.fill"
+        case .dissonant: return "questionmark"
+        }
+    }
+
+    var colorOpacity: Double {
+        switch self {
+        case .verySmooth: return 0.38
+        case .smooth: return 0.20
+        case .flavorful: return 0.08
+        case .dissonant: return 0.0
+        }
+    }
+
+    var strokeOpacity: Double {
+        switch self {
+        case .verySmooth: return 0.70
+        case .smooth: return 0.40
+        case .flavorful: return 0.20
+        case .dissonant: return 0.0
+        }
+    }
+}
+
 // MARK: - スケール情報モデル
 
 /*
@@ -96,6 +151,40 @@ Keyと度数（ベース音）に基づき、音楽的なコード候補を算�
 テスタビリティと差し替え容易性を確保するためProtocolで定義する。
 */
 protocol MusicTheoryServiceProtocol {
+    /*
+    指定されたKeyとベース度数に対して、指定ルート音が和声的にどれだけスムーズに調和するかを判定する。
+    
+    Arguments:
+    root
+      判定対象のルート音名（"C", "D", 等）。
+    key
+      基準調。
+    baseDegree
+      現在の小節の度数（1〜7）。
+    
+    Usage:
+    ChordCustomizerSheetViewのルート音グリッドの濃淡表示に利用される。
+    */
+    func rootCompatibility(root: String, key: Key, baseDegree: Int) -> HarmonicCompatibility
+
+    /*
+    指定されたKey、ベース度数、元のコードに対して、指定コードが和声的にどれだけスムーズに調和するかを判定する。
+    
+    Arguments:
+    chord
+      判定対象のChordオブジェクト。
+    key
+      基準調。
+    baseDegree
+      現在の小節の度数（1〜7）。
+    originalChord
+      編集前の元の小節コード。
+    
+    Usage:
+    ChordCustomizerSheetViewのコードタイプボタンの濃淡表示やプレビューバッジ表示に利用される。
+    */
+    func chordCompatibility(chord: Chord, key: Key, baseDegree: Int, originalChord: Chord?) -> HarmonicCompatibility
+
     /*
     指定されたKeyとベース度数に対して、4つの感情ラベル（安定、少し切ない、おしゃれ、緊張感）に応じたコード候補を算出する。
     
@@ -1043,4 +1132,189 @@ final class MusicTheoryService: MusicTheoryServiceProtocol {
 
         return result
     }
+
+    // MARK: - 和声的親和性（スムーズ度）判定
+
+    /*
+    Keyおよび度数に対して、指定ルート音が和声的にどれだけスムーズに調和するかを判定する。
+
+    Arguments:
+    root
+      判定対象のルート音名（"C", "D", 等）。
+    key
+      楽曲の基準調。
+    baseDegree
+      現在の小節の度数（1〜7）。
+
+    Usage:
+    ChordCustomizerSheetViewのルート音選択ボタンの背景濃淡表示に利用される。
+    */
+
+    func rootCompatibility(root: String, key: Key, baseDegree: Int) -> HarmonicCompatibility {
+        let rSemi = Key.semitone(forNoteName: root)
+        let relSemi = ((rSemi - key.semitoneOffset) % 12 + 12) % 12
+
+        // ダイアトニック音階の相対半音 [0, 2, 4, 5, 7, 9, 11]
+        let diatonicRelSemitones = [0, 2, 4, 5, 7, 9, 11]
+        if diatonicRelSemitones.contains(relSemi) {
+            return .verySmooth
+        }
+
+        // モーダルインターチェンジ / 定番借用和音の根音 (bVI=8, bVII=10, bIII=3)
+        if [8, 10, 3].contains(relSemi) {
+            return .smooth
+        }
+
+        // 裏コード / パッシングディミニッシュ根音 (bII=1, #IV=6)
+        if [1, 6].contains(relSemi) {
+            return .flavorful
+        }
+
+        return .dissonant
+    }
+
+    /*
+    Key、度数、元のコードに対して、指定コードが和声的にどれだけスムーズに調和するかを判定する。
+
+    Arguments:
+    chord
+      判定対象のChordオブジェクト。
+    key
+      楽曲の基準調。
+    baseDegree
+      現在の小節の度数（1〜7）。
+    originalChord
+      編集前の元の小節コード。
+
+    Usage:
+    ChordCustomizerSheetViewのコードタイプ選択ボタンの濃淡表示やプレビューバッジ表示に利用される。
+    */
+
+    func chordCompatibility(
+        chord: Chord,
+        key: Key,
+        baseDegree: Int,
+        originalChord: Chord?
+    ) -> HarmonicCompatibility {
+        if let original = originalChord, chord.rootNote == original.rootNote && chord.type == original.type {
+            return .verySmooth
+        }
+
+        let rSemi = Key.semitone(forNoteName: chord.rootNote)
+        let relSemi = ((rSemi - key.semitoneOffset) % 12 + 12) % 12
+        let diatonicRelSemitones = [0, 2, 4, 5, 7, 9, 11]
+
+        var baseScore: HarmonicCompatibility
+        if diatonicRelSemitones.contains(relSemi) {
+            baseScore = diatonicChordCompatibility(relSemi: relSemi, type: chord.type)
+        } else {
+            baseScore = borrowedChordCompatibility(relSemi: relSemi, type: chord.type)
+        }
+
+        if let bass = chord.bassNote, !bass.isEmpty {
+            let bSemi = Key.semitone(forNoteName: bass)
+            let bRelSemi = ((bSemi - key.semitoneOffset) % 12 + 12) % 12
+            if !diatonicRelSemitones.contains(bRelSemi) && baseScore == .verySmooth {
+                baseScore = .smooth
+            }
+        }
+
+        return baseScore
+    }
+
+    /*
+    ダイアトニック度数上のルート音に対するコードタイプの適合性を判定する。
+
+    Arguments:
+    relSemi
+      Keyからの相対半音（0, 2, 4, 5, 7, 9, 11）。
+    type
+      判定対象のコードタイプ名（"", "m", "7", "maj7", 等）。
+
+    Usage:
+    chordCompatibility内部でダイアトニック根音のタイプ適合性評価に使用される。
+    */
+
+    private func diatonicChordCompatibility(relSemi: Int, type: String) -> HarmonicCompatibility {
+        switch relSemi {
+        case 0: // I (C)
+            if ["", "maj7", "6", "add9", "maj9", "sus4", "sus2"].contains(type) { return .verySmooth }
+            if ["7", "9", "13", "m", "m7"].contains(type) { return .smooth }
+            return .flavorful
+
+        case 2: // ii (Dm)
+            if ["m", "m7", "m9", "m11", "7sus4", "sus4"].contains(type) { return .verySmooth }
+            if ["7", "9", "7(#9)", "add9"].contains(type) { return .smooth }
+            return .flavorful
+
+        case 4: // iii (Em)
+            if ["m", "m7", "m9", "7sus4"].contains(type) { return .verySmooth }
+            if ["7", "7(b9)", "7(#9)"].contains(type) { return .smooth }
+            return .flavorful
+
+        case 5: // IV (F)
+            if ["", "maj7", "6", "add9", "maj9", "7(#11)", "sus2"].contains(type) { return .verySmooth }
+            if ["m", "m7", "m6", "7"].contains(type) { return .smooth }
+            return .flavorful
+
+        case 7: // V (G)
+            if ["", "7", "9", "13", "7sus4", "sus4", "7(b9)", "add9"].contains(type) { return .verySmooth }
+            if ["m", "m7"].contains(type) { return .smooth }
+            return .flavorful
+
+        case 9: // vi (Am)
+            if ["m", "m7", "m9", "11", "m11", "7sus4", "m6"].contains(type) { return .verySmooth }
+            if ["7", "7(b9)", "7(#9)"].contains(type) { return .smooth }
+            return .flavorful
+
+        case 11: // vii° (Bm7b5)
+            if ["m7b5", "dim", "dim7"].contains(type) { return .verySmooth }
+            if ["7", "7(b9)"].contains(type) { return .smooth }
+            return .flavorful
+
+        default:
+            return .flavorful
+        }
+    }
+
+    /*
+    ノンダイアトニック（借用和音・裏コード）上のルート音に対するコードタイプの適合性を判定する。
+
+    Arguments:
+    relSemi
+      Keyからの相対半音。
+    type
+      判定対象のコードタイプ名。
+
+    Usage:
+    chordCompatibility内部でノンダイアトニック根音のタイプ適合性評価に使用される。
+    */
+
+    private func borrowedChordCompatibility(relSemi: Int, type: String) -> HarmonicCompatibility {
+        switch relSemi {
+        case 8: // bVI (Ab)
+            if ["", "maj7", "7", "add9", "9"].contains(type) { return .smooth }
+            return .flavorful
+
+        case 10: // bVII (Bb)
+            if ["", "7", "9", "add9", "maj7"].contains(type) { return .smooth }
+            return .flavorful
+
+        case 3: // bIII (Eb)
+            if ["", "maj7", "add9"].contains(type) { return .smooth }
+            return .flavorful
+
+        case 1: // bII (Db: 裏コード)
+            if ["7", "9", "7(#11)"].contains(type) { return .flavorful }
+            return .dissonant
+
+        case 6: // #IV (F#: パッシング)
+            if ["dim", "dim7", "m7b5"].contains(type) { return .flavorful }
+            return .dissonant
+
+        default:
+            return .dissonant
+        }
+    }
 }
+

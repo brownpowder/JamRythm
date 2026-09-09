@@ -118,14 +118,36 @@ struct ChordCustomizerSheetView: View {
     */
 
     private var chordPreviewHeader: some View {
-        VStack(spacing: 8) {
-            Text(viewModel.editingMeasureTitle)
-                .font(.system(size: 12, weight: .bold))
-                .foregroundColor(.accentColor)
+        let comp = viewModel.theoryService.chordCompatibility(
+            chord: builtChord,
+            key: viewModel.project.key,
+            baseDegree: viewModel.editingBaseDegree,
+            originalChord: viewModel.editingOriginalChord
+        )
+
+        return VStack(spacing: 10) {
+            HStack(spacing: 8) {
+                Text(viewModel.editingMeasureTitle)
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(.accentColor)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Color.accentColor.opacity(0.12))
+                    .cornerRadius(6)
+
+                // スムーズ度バッジ
+                HStack(spacing: 4) {
+                    Image(systemName: comp.badgeIcon)
+                        .font(.system(size: 10, weight: .bold))
+                    Text(comp.badgeText)
+                        .font(.system(size: 11, weight: .bold))
+                }
+                .foregroundColor(compatibilityColor(comp))
                 .padding(.horizontal, 8)
                 .padding(.vertical, 3)
-                .background(Color.accentColor.opacity(0.12))
+                .background(compatibilityColor(comp).opacity(0.14))
                 .cornerRadius(6)
+            }
 
             HStack(spacing: 12) {
                 Text(builtChord.displayString)
@@ -146,12 +168,25 @@ struct ChordCustomizerSheetView: View {
                 }
             }
 
-            Text("タップするとピアノで試聴できます")
-                .font(.caption2)
-                .foregroundColor(.secondary)
+            // 案内凡例バナー
+            HStack(spacing: 6) {
+                Image(systemName: "circle.circle.fill")
+                    .font(.system(size: 9))
+                    .foregroundColor(.green)
+                Text("濃い色ほど、現在の進行（Key: \(viewModel.project.key.rawValue)）に破綻せずスムーズに調和します")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .background(Color(uiColor: .tertiarySystemGroupedBackground))
+            .cornerRadius(6)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 16)
+        .padding(.vertical, 14)
+        .padding(.horizontal, 8)
         .background(
             RoundedRectangle(cornerRadius: 14)
                 .fill(Color(uiColor: .secondarySystemGroupedBackground))
@@ -162,16 +197,23 @@ struct ChordCustomizerSheetView: View {
 
     /*
     12の半音からコードのRoot音を選択するグリッドを描画する。
+    Keyおよび小節度数との親和性（スムーズ度）に応じてボタンの濃淡が変化する。
     */
 
     private var rootSelectorSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            sectionTitle("1. ルート音 (Root)", subtitle: "コードの基準となる土台の音")
+            sectionTitle("1. ルート音 (Root)", subtitle: "コードの基準となる土台の音（濃い色ほどスムーズに調和）")
 
             let columns = Array(repeating: GridItem(.flexible(), spacing: 6), count: 6)
             LazyVGrid(columns: columns, spacing: 6) {
                 ForEach(rootNotes, id: \.self) { note in
                     let isSelected = (selectedRoot == note)
+                    let comp = viewModel.theoryService.rootCompatibility(
+                        root: note,
+                        key: viewModel.project.key,
+                        baseDegree: viewModel.editingBaseDegree
+                    )
+
                     Button(action: {
                         selectedRoot = note
                         viewModel.playChordPreview(builtChord)
@@ -183,7 +225,11 @@ struct ChordCustomizerSheetView: View {
                             .padding(.vertical, 9)
                             .background(
                                 RoundedRectangle(cornerRadius: 8)
-                                    .fill(isSelected ? Color.accentColor : Color(uiColor: .secondarySystemGroupedBackground))
+                                    .fill(rootButtonFill(comp: comp, isSelected: isSelected))
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(rootButtonStroke(comp: comp, isSelected: isSelected), lineWidth: isSelected ? 2 : 1)
                             )
                     }
                     .buttonStyle(.plain)
@@ -200,7 +246,7 @@ struct ChordCustomizerSheetView: View {
 
     private var chordTypeSection: some View {
         VStack(alignment: .leading, spacing: 14) {
-            sectionTitle("2. コードの響き (Quality & Tension)", subtitle: "三和音・セブンス・sus・dim・テンション(〜13)")
+            sectionTitle("2. コードの響き (Quality & Tension)", subtitle: "選択中のRootに対して破綻しない響きほど濃い色で表示")
 
             VStack(alignment: .leading, spacing: 6) {
                 Text("基本三和音 / サス")
@@ -230,6 +276,7 @@ struct ChordCustomizerSheetView: View {
 
     /*
     コードタイプボタンのグリッドを生成するヘルパー。
+    選択中のルート音と組み合わせた親和性（スムーズ度）に応じてボタンの濃淡が変化する。
     */
 
     private func typeButtonGrid(items: [(label: String, type: String)], columnsCount: Int) -> some View {
@@ -237,6 +284,14 @@ struct ChordCustomizerSheetView: View {
         return LazyVGrid(columns: columns, spacing: 6) {
             ForEach(items, id: \.type) { item in
                 let isSelected = (selectedType == item.type)
+                let testChord = Chord(rootNote: selectedRoot, type: item.type, bassNote: nil)
+                let comp = viewModel.theoryService.chordCompatibility(
+                    chord: testChord,
+                    key: viewModel.project.key,
+                    baseDegree: viewModel.editingBaseDegree,
+                    originalChord: viewModel.editingOriginalChord
+                )
+
                 Button(action: {
                     selectedType = item.type
                     viewModel.playChordPreview(builtChord)
@@ -251,7 +306,11 @@ struct ChordCustomizerSheetView: View {
                         .padding(.horizontal, 2)
                         .background(
                             RoundedRectangle(cornerRadius: 8)
-                                .fill(isSelected ? Color.orange : Color(uiColor: .secondarySystemGroupedBackground))
+                                .fill(typeButtonFill(comp: comp, isSelected: isSelected))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(typeButtonStroke(comp: comp, isSelected: isSelected), lineWidth: isSelected ? 2 : 1)
                         )
                 }
                 .buttonStyle(.plain)
@@ -347,4 +406,127 @@ struct ChordCustomizerSheetView: View {
                 .foregroundColor(.secondary)
         }
     }
+
+    // MARK: - 親和性カラーヘルパー
+
+    /*
+    親和性レベルに応じたテーマカラーを返す。
+
+    Arguments:
+    comp
+      和声的親和性（HarmonicCompatibility）。
+
+    Usage:
+    プレビューバッジやボタン背景の濃淡生成に使用される。
+    */
+
+    private func compatibilityColor(_ comp: HarmonicCompatibility) -> Color {
+        switch comp {
+        case .verySmooth: return .green
+        case .smooth: return .purple
+        case .flavorful: return .orange
+        case .dissonant: return .secondary
+        }
+    }
+
+    /*
+    ルート音選択ボタンの背景色（選択状態または親和性の濃淡）を算出する。
+
+    Arguments:
+    comp
+      ルート音の親和性。
+    isSelected
+      現在選択中かどうか。
+
+    Usage:
+    rootSelectorSectionの各ボタン背景描画で使用される。
+    */
+
+    private func rootButtonFill(comp: HarmonicCompatibility, isSelected: Bool) -> Color {
+        if isSelected {
+            return .accentColor
+        }
+        switch comp {
+        case .verySmooth: return Color.accentColor.opacity(0.35)
+        case .smooth: return Color.accentColor.opacity(0.18)
+        case .flavorful: return Color.accentColor.opacity(0.08)
+        case .dissonant: return Color(uiColor: .secondarySystemGroupedBackground)
+        }
+    }
+
+    /*
+    ルート音選択ボタンの枠線色を算出する。
+
+    Arguments:
+    comp
+      ルート音の親和性。
+    isSelected
+      現在選択中かどうか。
+
+    Usage:
+    rootSelectorSectionの各ボタン枠線描画で使用される。
+    */
+
+    private func rootButtonStroke(comp: HarmonicCompatibility, isSelected: Bool) -> Color {
+        if isSelected {
+            return .accentColor
+        }
+        switch comp {
+        case .verySmooth: return Color.accentColor.opacity(0.70)
+        case .smooth: return Color.accentColor.opacity(0.40)
+        case .flavorful: return Color.accentColor.opacity(0.20)
+        case .dissonant: return Color.secondary.opacity(0.12)
+        }
+    }
+
+    /*
+    コードタイプボタンの背景色（選択状態または親和性の濃淡）を算出する。
+
+    Arguments:
+    comp
+      コードタイプの親和性。
+    isSelected
+      現在選択中かどうか。
+
+    Usage:
+    typeButtonGridの各ボタン背景描画で使用される。
+    */
+
+    private func typeButtonFill(comp: HarmonicCompatibility, isSelected: Bool) -> Color {
+        if isSelected {
+            return .orange
+        }
+        switch comp {
+        case .verySmooth: return Color.green.opacity(0.28)
+        case .smooth: return Color.purple.opacity(0.18)
+        case .flavorful: return Color.orange.opacity(0.10)
+        case .dissonant: return Color(uiColor: .secondarySystemGroupedBackground)
+        }
+    }
+
+    /*
+    コードタイプボタンの枠線色を算出する。
+
+    Arguments:
+    comp
+      コードタイプの親和性。
+    isSelected
+      現在選択中かどうか。
+
+    Usage:
+    typeButtonGridの各ボタン枠線描画で使用される。
+    */
+
+    private func typeButtonStroke(comp: HarmonicCompatibility, isSelected: Bool) -> Color {
+        if isSelected {
+            return .orange
+        }
+        switch comp {
+        case .verySmooth: return Color.green.opacity(0.65)
+        case .smooth: return Color.purple.opacity(0.45)
+        case .flavorful: return Color.orange.opacity(0.25)
+        case .dissonant: return Color.secondary.opacity(0.12)
+        }
+    }
 }
+
