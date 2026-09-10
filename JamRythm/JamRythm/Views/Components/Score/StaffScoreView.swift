@@ -18,12 +18,12 @@ struct StaffScoreView: View {
     let chordName: String
 
     var body: some View {
-        VStack(spacing: 4) {
+        VStack(spacing: 6) {
             staffCanvas
             noteNamesRow
-                .padding(.bottom, 6)
+                .padding(.bottom, 8)
         }
-        .frame(height: 130)
+        .frame(height: 175)
         .background(
             RoundedRectangle(cornerRadius: 12)
                 .fill(Color(uiColor: .tertiarySystemBackground))
@@ -46,12 +46,17 @@ struct StaffScoreView: View {
         Canvas { context, size in
             let paddingLeft: CGFloat = 52.0
             let paddingRight: CGFloat = 20.0
-            // 1ステップ（線と間の距離）を8.5ptに設定。五線譜の線間隔は2ステップ＝17pt
-            let stepSpacing: CGFloat = 8.5
+            // 1ステップ（線と間の距離）を7.2ptに設定。五線譜の線間隔は2ステップ＝14.4pt
+            let stepSpacing: CGFloat = 7.2
             let lineDistance = stepSpacing * 2.0
 
-            // 五線譜の上下中央を第3線（B4, step 4）に合わせる
-            let staffCenterY: CGFloat = size.height * 0.5
+            // 音域（最高音・最低音）に応じて五線譜の中心位置を上下に微調整し、はみ出しを完全防止
+            let minStep = notes.map(\.step).min() ?? 0
+            let maxStep = notes.map(\.step).max() ?? 8
+            let avgStep = CGFloat(minStep + maxStep) / 2.0
+            let verticalBias = min(max((avgStep - 4.0) * 1.8, -16.0), 16.0)
+
+            let staffCenterY: CGFloat = (size.height * 0.50) + verticalBias
             let b4Y = staffCenterY
             // 第1線（E4, step 0）のY座標
             let e4Y = b4Y + (lineDistance * 2.0)

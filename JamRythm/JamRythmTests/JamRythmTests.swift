@@ -1117,6 +1117,40 @@ struct JamRythmTests {
         // ベース音のstepがコード音の最低ステップより低いこと
         #expect(fgNotes[0].step < fgNotes[1].step)
     }
+
+    /*
+    スケール指板の「Key基準 ⇔ Chord基準」切替において、適切な旋法導出およびコードトーン包含が行われるかを検証する。
+    */
+    @Test func testScaleInfoWithReferenceModes() {
+        let service = MusicTheoryService()
+
+        // 1. Chord基準: Dm7 -> D ドリアン (7音) / D マイナーペンタ (5音)
+        let dm7 = Chord(rootNote: "D", type: "m7", bassNote: nil)
+        let dm7Diatonic = service.scaleInfo(for: .C, chord: dm7, scaleType: .diatonic, referenceMode: .chord)
+        #expect(dm7Diatonic.scaleName == "D ドリアン")
+        #expect(dm7Diatonic.scaleNotes.contains("F"))
+        #expect(dm7Diatonic.scaleNotes.contains("B"))
+
+        let dm7Penta = service.scaleInfo(for: .C, chord: dm7, scaleType: .pentatonic, referenceMode: .chord)
+        #expect(dm7Penta.scaleName == "D マイナーペンタ")
+        #expect(dm7Penta.scaleNotes.contains("F"))
+
+        // 2. Chord基準: E7(#9) -> E HMP5thビロウ (7音)
+        let e7sharp9 = Chord(rootNote: "E", type: "7(#9)", bassNote: nil)
+        let e7Diatonic = service.scaleInfo(for: .C, chord: e7sharp9, scaleType: .diatonic, referenceMode: .chord)
+        #expect(e7Diatonic.scaleName == "E HMP5thビロウ")
+        // 半音8 (G♯ / A♭) がスケール音に含まれること
+        #expect(e7Diatonic.scaleNotes.contains("A♭"))
+
+        // 3. Key基準: Key C で E7 を選択時、Key外の重要コードトーン「G♯/A♭」が指板に包含プロットされること
+        let e7 = Chord(rootNote: "E", type: "7", bassNote: nil)
+        let e7KeyMode = service.scaleInfo(for: .C, chord: e7, scaleType: .diatonic, referenceMode: .key)
+        #expect(e7KeyMode.scaleName == "C メジャースケール")
+        // Cメジャースケール外の G# (A♭) が指板のポジション（3弦1フレット等）に chordTone としてプロットされていること
+        let gSharpPositions = e7KeyMode.positions.filter { $0.noteName == "A♭" }
+        #expect(!gSharpPositions.isEmpty)
+        #expect(gSharpPositions.allSatisfy { $0.role == .chordTone })
+    }
 }
 
 

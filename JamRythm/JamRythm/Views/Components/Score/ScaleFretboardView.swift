@@ -21,17 +21,18 @@ struct ScaleFretboardView: View {
 
     @State private var instrument: FretboardInstrument = .guitar
     @State private var scaleType: ScaleType = .pentatonic
+    @State private var referenceMode: ScaleReferenceMode = .chord
 
     private var scaleInfo: ScaleInfo {
-        theoryService.scaleInfo(for: key, chord: chord, scaleType: scaleType)
+        theoryService.scaleInfo(for: key, chord: chord, scaleType: scaleType, referenceMode: referenceMode)
     }
 
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 6) {
             topControlBar
             fretboardCanvas
         }
-        .frame(height: 130)
+        .frame(height: 175)
         .padding(.vertical, 4)
         .background(
             RoundedRectangle(cornerRadius: 12)
@@ -42,7 +43,7 @@ struct ScaleFretboardView: View {
     // MARK: - 上部コントロールバー（スケール名・Notes・切替スイッチ）
 
     /*
-    スケール名、Scale Notesバッジ一覧、楽器切替、スケール切替ボタンを描画する。
+    スケール名、Scale Notesバッジ一覧、基準切替(Chord/Key)、楽器切替、スケール切替ボタンを描画する。
 
     Arguments:
     なし
@@ -52,11 +53,77 @@ struct ScaleFretboardView: View {
     */
 
     private var topControlBar: some View {
-        HStack(spacing: 8) {
-            // スケール構成音バッジ列
+        VStack(spacing: 5) {
+            // 上段: スケール名 & 各種切替ボタン
+            HStack(spacing: 6) {
+                // スケール名ラベル
+                HStack(spacing: 3) {
+                    Image(systemName: "music.note.list")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundColor(.accentColor)
+                    Text(scaleInfo.scaleName)
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
+                }
+
+                Spacer()
+
+                // 基準切替: Chord基準 ⇔ Key基準
+                Button(action: {
+                    referenceMode = (referenceMode == .chord) ? .key : .chord
+                }) {
+                    HStack(spacing: 2) {
+                        Image(systemName: referenceMode == .chord ? "target" : "globe")
+                            .font(.system(size: 8, weight: .bold))
+                        Text(referenceMode.shortName)
+                            .font(.system(size: 9, weight: .bold))
+                    }
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(referenceMode == .chord ? Color.accentColor.opacity(0.18) : Color(uiColor: .quaternarySystemFill))
+                    .foregroundColor(referenceMode == .chord ? .accentColor : .secondary)
+                    .cornerRadius(5)
+                }
+                .buttonStyle(.plain)
+
+                // ペンタ ⇔ 7音スケール切替ピッカー
+                Button(action: {
+                    scaleType = (scaleType == .pentatonic) ? .diatonic : .pentatonic
+                }) {
+                    Text(scaleType == .pentatonic ? "5音" : "7音")
+                        .font(.system(size: 9, weight: .bold))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(Color(uiColor: .quaternarySystemFill))
+                        .foregroundColor(.secondary)
+                        .cornerRadius(5)
+                }
+                .buttonStyle(.plain)
+
+                // 6弦(Guitar) ⇔ 4弦(Bass) 切替ピッカー
+                Button(action: {
+                    instrument = (instrument == .guitar) ? .bass : .guitar
+                }) {
+                    HStack(spacing: 2) {
+                        Image(systemName: "guitars")
+                            .font(.system(size: 8, weight: .bold))
+                        Text(instrument == .guitar ? "6弦" : "4弦")
+                            .font(.system(size: 9, weight: .bold))
+                    }
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(Color(uiColor: .quaternarySystemFill))
+                    .foregroundColor(.secondary)
+                    .cornerRadius(5)
+                }
+                .buttonStyle(.plain)
+            }
+
+            // 下段: スケール構成音バッジ列
             HStack(spacing: 4) {
                 Text("Notes:")
-                    .font(.system(size: 10, weight: .bold))
+                    .font(.system(size: 9, weight: .bold))
                     .foregroundColor(.secondary)
 
                 ForEach(scaleInfo.scaleNotes, id: \.self) { note in
@@ -65,49 +132,18 @@ struct ScaleFretboardView: View {
                         .font(.system(size: 9, weight: .bold))
                         .foregroundColor(isRoot ? .white : .primary)
                         .padding(.horizontal, 5)
-                        .padding(.vertical, 2)
+                        .padding(.vertical, 1.5)
                         .background(
                             isRoot ? Color.orange : Color(uiColor: .quaternarySystemFill)
                         )
-                        .cornerRadius(4)
+                        .cornerRadius(3)
                 }
-            }
 
-            Spacer()
-
-            // 6弦(Guitar) ⇔ 4弦(Bass) 切替ピッカー
-            Button(action: {
-                instrument = (instrument == .guitar) ? .bass : .guitar
-            }) {
-                HStack(spacing: 3) {
-                    Image(systemName: "guitars")
-                        .font(.system(size: 9, weight: .bold))
-                    Text(instrument == .guitar ? "6弦" : "4弦(Bass)")
-                        .font(.system(size: 9, weight: .bold))
-                }
-                .padding(.horizontal, 6)
-                .padding(.vertical, 3)
-                .background(Color.accentColor.opacity(0.12))
-                .foregroundColor(.accentColor)
-                .cornerRadius(6)
+                Spacer()
             }
-            .buttonStyle(.plain)
-
-            // ペンタ ⇔ 7音スケール切替ピッカー
-            Button(action: {
-                scaleType = (scaleType == .pentatonic) ? .diatonic : .pentatonic
-            }) {
-                Text(scaleType == .pentatonic ? "5音(Penta)" : "7音")
-                    .font(.system(size: 9, weight: .bold))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 3)
-                    .background(Color(uiColor: .quaternarySystemFill))
-                    .foregroundColor(.secondary)
-                    .cornerRadius(6)
-            }
-            .buttonStyle(.plain)
         }
         .padding(.horizontal, 10)
+        .padding(.top, 4)
     }
 
     // MARK: - 指板キャンバス描画

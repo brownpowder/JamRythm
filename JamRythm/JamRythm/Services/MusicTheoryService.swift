@@ -26,6 +26,25 @@ enum ScaleType: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+// MARK: - スケール基準モード
+
+/*
+スケール指板で表示するスケールの基準（曲のKey基準、または現在小節のChord基準）。
+*/
+enum ScaleReferenceMode: String, Codable, CaseIterable, Identifiable {
+    case chord = "Chord基準"
+    case key = "Key基準"
+
+    var id: String { rawValue }
+
+    var shortName: String {
+        switch self {
+        case .chord: return "Chord基準"
+        case .key: return "Key基準"
+        }
+    }
+}
+
 // MARK: - 指板楽器モード
 
 /*
@@ -271,7 +290,7 @@ protocol MusicTheoryServiceProtocol {
     func chordMidiNotes(for chord: Chord) -> [UInt8]
 
     /*
-    指定されたKey、コード、スケール種別に基づき、スケール構成音および指板ポジション一覧を取得する。
+    Key、小節コード、スケール種別、および基準モード（Chord基準/Key基準）から指板表示用スケール情報を算出する。
 
     Arguments:
     key
@@ -280,17 +299,30 @@ protocol MusicTheoryServiceProtocol {
       現在選択中の小節コード。ルート音やコードトーン判定に使用される。
     scaleType
       ペンタトニックまたはダイアトニック。Picker選択値から渡される。
+    referenceMode
+      Chord基準（コードスケール追従）またはKey基準（曲のキースケール）。
 
     Usage:
     ScaleFretboardViewでスケールノートバッジおよび指板マーカーを描画するために呼び出される。
     */
 
-    func scaleInfo(for key: Key, chord: Chord, scaleType: ScaleType) -> ScaleInfo
+    func scaleInfo(
+        for key: Key,
+        chord: Chord,
+        scaleType: ScaleType,
+        referenceMode: ScaleReferenceMode
+    ) -> ScaleInfo
 }
 
 // MARK: - プロトコルデフォルト実装
 
 extension MusicTheoryServiceProtocol {
+    /*
+    referenceModeを省略した場合にChord基準（コードスケール追従）を渡す互換デフォルト実装。
+    */
+    func scaleInfo(for key: Key, chord: Chord, scaleType: ScaleType) -> ScaleInfo {
+        return scaleInfo(for: key, chord: chord, scaleType: scaleType, referenceMode: .chord)
+    }
     /*
     excludingChords を省略した場合に空配列を渡すデフォルト実装。
     
@@ -1345,11 +1377,49 @@ final class MusicTheoryService: MusicTheoryServiceProtocol {
     ScaleFretboardViewでスケールノートバッジおよび指板マーカーを描画するために呼び出される。
     */
 
-    func scaleInfo(for key: Key, chord: Chord, scaleType: ScaleType) -> ScaleInfo {
-        let scaleSemitones = calculateScaleSemitones(key: key, scaleType: scaleType)
-        let scaleNotes = scaleSemitones.map { Key.noteName(forSemitone: $0) }
-        let scaleName = "\(key.rawValue) \(scaleType == .pentatonic ? "メジャーペンタトニック" : "メジャースケール")"
-        let positions = calculateScalePositions(scaleSemitones: scaleSemitones, chord: chord)
+    /*
+    Key、小節コード、スケール種別、および基準モード（Chord基準/Key基準）から指板表示用スケール情報を算出する。
+
+    Arguments:
+    key
+      基準調。
+    chord
+      現在選択中の小節コード。
+    scaleType
+      ペンタトニックまたはダイアトニック。
+    referenceMode
+      Chord基準（コードスケール追従）またはKey基準（曲のキースケール）。
+
+    Usage:
+    ScaleFretboardViewでスケールノートバッジおよび指板マーカーを描画するために呼び出される。
+    */
+
+    func scaleInfo(
+        for key: Key,
+        chord: Chord,
+        scaleType: ScaleType,
+        referenceMode: ScaleReferenceMode
+    ) -> ScaleInfo {
+        let semitones: [Int]
+        let scaleName: String
+
+        switch referenceMode {
+        case .chord:
+            let result = calculateChordScaleSemitonesAndName(chord: chord, scaleType: scaleType)
+            semitones = result.semitones
+            scaleName = result.name
+        case .key:
+            let result = calculateKeyScaleSemitonesAndName(key: key, scaleType: scaleType)
+            semitones = result.semitones
+            scaleName = result.name
+        }
+
+        let scaleNotes = semitones.map { Key.noteName(forSemitone: $0) }
+        let positions = calculateScalePositions(
+            scaleSemitones: semitones,
+            chord: chord,
+            alwaysIncludeChordTones: (referenceMode == .key)
+        )
 
         return ScaleInfo(
             keyName: key.rawValue,
@@ -1360,7 +1430,7 @@ final class MusicTheoryService: MusicTheoryServiceProtocol {
     }
 
     /*
-    Keyとスケール種別から、スケール構成音の半音インデックス（0〜11）配列を算出する。
+    Key基準のスケール半音インデックス配列と表示名称を算出する。
 
     Arguments:
     key
@@ -1369,21 +1439,90 @@ final class MusicTheoryService: MusicTheoryServiceProtocol {
       スケール種別。
 
     Usage:
-    scaleInfo内でスケール音名の取得および指板プロットの判定に使用される。
+    scaleInfoでKey基準が選択された場合に使用される。
     */
 
-    private func calculateScaleSemitones(key: Key, scaleType: ScaleType) -> [Int] {
+    private func calculateKeyScaleSemitonesAndName(
+        key: Key,
+        scaleType: ScaleType
+    ) -> (semitones: [Int], name: String) {
         let offsets: [Int]
+        let typeName: String
+
         switch scaleType {
         case .pentatonic:
-            // メジャーペンタトニック (1, 2, 3, 5, 6)
             offsets = [0, 2, 4, 7, 9]
+            typeName = "メジャーペンタ"
         case .diatonic:
-            // メジャーダイアトニックスケール (1, 2, 3, 4, 5, 6, 7)
             offsets = [0, 2, 4, 5, 7, 9, 11]
+            typeName = "メジャースケール"
         }
 
-        return offsets.map { (key.semitoneOffset + $0) % 12 }
+        let semitones = offsets.map { (key.semitoneOffset + $0) % 12 }
+        return (semitones, "\(key.rawValue) \(typeName)")
+    }
+
+    /*
+    Chord基準のコードスケール半音インデックス配列と表示名称を算出する。
+
+    Arguments:
+    chord
+      小節のコード。
+    scaleType
+      スケール種別。
+
+    Usage:
+    scaleInfoでChord基準が選択された場合にコード追従モードとして使用される。
+    */
+
+    private func calculateChordScaleSemitonesAndName(
+        chord: Chord,
+        scaleType: ScaleType
+    ) -> (semitones: [Int], name: String) {
+        let rootSemitone = Key.semitone(forNoteName: chord.rootNote)
+        let mode = chordScaleMode(for: chord.type)
+        let offsets = (scaleType == .pentatonic) ? mode.pentaOffsets : mode.diatonicOffsets
+        let modeName = (scaleType == .pentatonic) ? mode.pentaName : mode.diatonicName
+        let semitones = offsets.map { (rootSemitone + $0) % 12 }
+
+        return (semitones, "\(chord.rootNote) \(modeName)")
+    }
+
+    /*
+    コードタイプからChord基準で使用するモード（旋法）情報構造体を導出する。
+
+    Arguments:
+    chordType
+      コードタイプ文字列（例: "m7", "7", "7(#9)", "dim", "sus4"）。
+
+    Usage:
+    calculateChordScaleSemitonesAndName内でモード名と半音オフセットを導出する。
+    */
+
+    private func chordScaleMode(
+        for chordType: String
+    ) -> (diatonicName: String, diatonicOffsets: [Int], pentaName: String, pentaOffsets: [Int]) {
+        let type = chordType.trimmingCharacters(in: .whitespaces)
+
+        if type.contains("dim") {
+            return ("ディミニッシュ", [0, 2, 3, 5, 6, 8, 9, 11], "ディミニッシュ", [0, 3, 6, 9])
+        }
+        if type.contains("m7(♭5)") || type.contains("m7b5") {
+            return ("ロクリアン", [0, 1, 3, 5, 6, 8, 10], "マイナーペンタ♭5", [0, 3, 5, 6, 10])
+        }
+        if type.contains("7(♭9)") || type.contains("7(♯9)") || type.contains("7(#9)") || type.contains("7(b9)") {
+            return ("HMP5thビロウ", [0, 1, 4, 5, 7, 8, 10], "マイナーペンタ", [0, 3, 5, 7, 10])
+        }
+        if type == "sus4" || type.contains("7sus4") {
+            return ("ミクソリディアンsus4", [0, 2, 5, 7, 9, 10], "ペンタトニック", [0, 2, 5, 7, 9])
+        }
+        if type.hasPrefix("m") && !type.hasPrefix("maj") {
+            return ("ドリアン", [0, 2, 3, 5, 7, 9, 10], "マイナーペンタ", [0, 3, 5, 7, 10])
+        }
+        if type.contains("7") || type.contains("9") || type.contains("13") {
+            return ("ミクソリディアン", [0, 2, 4, 5, 7, 9, 10], "メジャーペンタ", [0, 2, 4, 7, 9])
+        }
+        return ("イオニアン", [0, 2, 4, 5, 7, 9, 11], "メジャーペンタ", [0, 2, 4, 7, 9])
     }
 
     /*
@@ -1394,12 +1533,18 @@ final class MusicTheoryService: MusicTheoryServiceProtocol {
       スケール構成音の半音番号一覧。
     chord
       現在のコード（ルートおよびコードトーン判定用）。
+    alwaysIncludeChordTones
+      trueの場合、スケール外であってもコード構成音を指板上に必ずプロットする（Key基準向け）。
 
     Usage:
     scaleInfo内で指板上のマーカー配列（ScaleFretPosition）を生成する際に使用される。
     */
 
-    private func calculateScalePositions(scaleSemitones: [Int], chord: Chord) -> [ScaleFretPosition] {
+    private func calculateScalePositions(
+        scaleSemitones: [Int],
+        chord: Chord,
+        alwaysIncludeChordTones: Bool = false
+    ) -> [ScaleFretPosition] {
         let chordRootSemitone = Key.semitone(forNoteName: chord.rootNote)
         let formulas = chordToneFormulas(for: chord.type)
         let chordToneSemitones = formulas.map { (chordRootSemitone + $0.semitoneOffset) % 12 }
@@ -1414,14 +1559,20 @@ final class MusicTheoryService: MusicTheoryServiceProtocol {
         for (stringNum, openSemi) in openStrings {
             for fret in 0...5 {
                 let fretSemitone = (openSemi + fret) % 12
-                guard scaleSemitones.contains(fretSemitone) else { continue }
+                let isChordTone = chordToneSemitones.contains(fretSemitone)
+                let isRoot = (fretSemitone == chordRootSemitone)
+
+                // スケールに含まれるか、またはコードトーン強制包含が有効な場合のコードトーン
+                guard scaleSemitones.contains(fretSemitone) || (alwaysIncludeChordTones && (isChordTone || isRoot)) else {
+                    continue
+                }
 
                 let noteName = Key.noteName(forSemitone: fretSemitone)
                 let role: ScaleToneRole
 
-                if fretSemitone == chordRootSemitone {
+                if isRoot {
                     role = .root
-                } else if chordToneSemitones.contains(fretSemitone) {
+                } else if isChordTone {
                     role = .chordTone
                 } else {
                     role = .scaleTone

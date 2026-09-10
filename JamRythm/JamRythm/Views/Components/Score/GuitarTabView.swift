@@ -19,7 +19,7 @@ struct GuitarTabView: View {
 
     var body: some View {
         fretboardCanvas
-            .frame(height: 130)
+            .frame(height: 175)
             .background(
                 RoundedRectangle(cornerRadius: 12)
                     .fill(Color(uiColor: .tertiarySystemBackground))
@@ -43,8 +43,8 @@ struct GuitarTabView: View {
             let paddingLeft: CGFloat = 36.0
             let nutX: CGFloat = 62.0
             let paddingRight: CGFloat = 20.0
-            let paddingTop: CGFloat = 24.0
-            let paddingBottom: CGFloat = 16.0
+            let paddingTop: CGFloat = 28.0
+            let paddingBottom: CGFloat = 20.0
 
             let usableWidth = size.width - nutX - paddingRight
             let fretWidth = usableWidth / 5.0
