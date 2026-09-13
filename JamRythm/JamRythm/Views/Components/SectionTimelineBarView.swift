@@ -398,7 +398,7 @@ struct SectionTimelineBarView: View {
             HStack(spacing: 6) {
                 Image(systemName: "plus.circle.fill")
                     .font(.system(size: 14, weight: .bold))
-                Text("進行を選んでセクションを追加")
+                Text("進行を追加")
                     .font(.system(size: 13, weight: .semibold))
             }
             .foregroundColor(.accentColor)

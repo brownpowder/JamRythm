@@ -105,7 +105,7 @@ struct PlayEditorView: View {
                     .presentationDragIndicator(.visible)
             }
             .sheet(isPresented: $viewModel.isShowingAddSectionSheet) {
-                ProgressionSelectionSheetView(title: "進行を選んでセクション追加") { template in
+                ProgressionSelectionSheetView(title: "進行を追加") { template in
                     viewModel.addSection(template: template)
                 }
                 .presentationDetents([.medium, .large])
