@@ -1151,6 +1151,51 @@ struct JamRythmTests {
         #expect(!gSharpPositions.isEmpty)
         #expect(gSharpPositions.allSatisfy { $0.role == .chordTone })
     }
+
+    /*
+    ミキサーのピアノ音量変更およびミュート・ソロがViewModelとAudioService間で確実に連動することを検証する。
+    */
+    @Test @MainActor func testMixerPianoVolumeAndMuteIntegration() async throws {
+        let audioService = AudioService()
+        try audioService.setupEngine()
+        let viewModel = PlayEditorViewModel(audioService: audioService)
+
+        // 初期状態
+        #expect(viewModel.pianoVolume == 0.8)
+        #expect(audioService.pianoVolume == 0.8)
+        #expect(!viewModel.isPianoMuted)
+        #expect(!audioService.pianoIsMuted)
+
+        // ピアノ音量変更 (50%)
+        viewModel.changePianoVolume(0.5)
+        #expect(viewModel.pianoVolume == 0.5)
+        #expect(audioService.pianoVolume == 0.5)
+
+        // ピアノミュートトグル
+        viewModel.togglePianoMute()
+        #expect(viewModel.isPianoMuted == true)
+        #expect(audioService.pianoIsMuted == true)
+
+        viewModel.togglePianoMute()
+        #expect(viewModel.isPianoMuted == false)
+        #expect(audioService.pianoIsMuted == false)
+
+        // ピアノソロトグル
+        viewModel.togglePianoSolo()
+        #expect(viewModel.isPianoSolo == true)
+        #expect(audioService.pianoIsSolo == true)
+
+        viewModel.togglePianoSolo()
+        #expect(viewModel.isPianoSolo == false)
+        #expect(audioService.pianoIsSolo == false)
+
+        // 音量ゼロ
+        viewModel.changePianoVolume(0.0)
+        #expect(viewModel.pianoVolume == 0.0)
+        #expect(audioService.pianoVolume == 0.0)
+
+        audioService.stop()
+    }
 }
 
 

@@ -594,9 +594,37 @@ final class AudioService: AudioServiceProtocol {
         let bassAudible = hasAnySolo ? (bassIsSolo && !bassIsMuted) : !bassIsMuted
         let pianoAudible = hasAnySolo ? (pianoIsSolo && !pianoIsMuted) : !pianoIsMuted
 
-        drumMixer.outputVolume = drumAudible ? drumVolume : 0.0
-        bassMixer.outputVolume = bassAudible ? bassVolume : 0.0
-        pianoMixer.outputVolume = pianoAudible ? pianoVolume : 0.0
+        let effDrumVol = drumAudible ? drumVolume : 0.0
+        let effBassVol = bassAudible ? bassVolume : 0.0
+        let effPianoVol = pianoAudible ? pianoVolume : 0.0
+
+        drumMixer.outputVolume = effDrumVol
+        bassMixer.outputVolume = effBassVol
+        pianoMixer.outputVolume = effPianoVol
+
+        // サンプラーノード自体のボリュームも直接同期
+        drumSampler.volume = effDrumVol
+        bassSampler.volume = effBassVol
+        pianoSampler.volume = effPianoVol
+
+        // MIDI CC 7 (Volume) も送信してSoundFont音源内部ゲインを確実に反映
+        let drumMidiVol = UInt8(max(0, min(127, Int(effDrumVol * 127))))
+        let bassMidiVol = UInt8(max(0, min(127, Int(effBassVol * 127))))
+        let pianoMidiVol = UInt8(max(0, min(127, Int(effPianoVol * 127))))
+
+        drumSampler.sendController(7, withValue: drumMidiVol, onChannel: 0)
+        bassSampler.sendController(7, withValue: bassMidiVol, onChannel: 0)
+        pianoSampler.sendController(7, withValue: pianoMidiVol, onChannel: 0)
+
+        // ピアノが非可聴または音量ゼロの場合、発音中のピアノ音を即時消音
+        if effPianoVol < 0.01 {
+            stopActivePlaybackPianoNotes()
+            for note in activePianoNotes {
+                pianoSampler.stopNote(note, onChannel: 0)
+            }
+            activePianoNotes.removeAll()
+            pianoReleaseTask?.cancel()
+        }
     }
 
     func setDrumMuted(_ isMuted: Bool) {
@@ -1175,13 +1203,20 @@ final class AudioService: AudioServiceProtocol {
         if step == 0 {
             stopActivePlaybackPianoNotes()
 
+            let hasAnySolo = drumIsSolo || bassIsSolo || pianoIsSolo
+            let pianoAudible = hasAnySolo ? (pianoIsSolo && !pianoIsMuted) : !pianoIsMuted
+            guard pianoAudible && pianoVolume > 0.01 else { return }
+
             let chord = measures[measureIndex].activeChord
             let midiNotes = theoryService.chordMidiNotes(for: chord)
 
             guard !midiNotes.isEmpty else { return }
 
+            let baseVelocity: Float = 85.0
+            let velocity = UInt8(max(1, min(127, Int(baseVelocity * pianoVolume))))
+
             for note in midiNotes {
-                pianoSampler.startNote(note, withVelocity: 85, onChannel: 0)
+                pianoSampler.startNote(note, withVelocity: velocity, onChannel: 0)
             }
             activePlaybackPianoNotes = midiNotes
         }
@@ -1247,12 +1282,19 @@ final class AudioService: AudioServiceProtocol {
 
         guard !notes.isEmpty else { return }
 
+        let hasAnySolo = drumIsSolo || bassIsSolo || pianoIsSolo
+        let pianoAudible = hasAnySolo ? (pianoIsSolo && !pianoIsMuted) : !pianoIsMuted
+        guard pianoAudible && pianoVolume > 0.01 else { return }
+
         if !audioEngine.isRunning {
             try? audioEngine.start()
         }
 
+        let baseVelocity: Float = 90.0
+        let velocity = UInt8(max(1, min(127, Int(baseVelocity * pianoVolume))))
+
         for note in notes {
-            pianoSampler.startNote(note, withVelocity: 90, onChannel: 0)
+            pianoSampler.startNote(note, withVelocity: velocity, onChannel: 0)
         }
 
         let currentNotes = notes
