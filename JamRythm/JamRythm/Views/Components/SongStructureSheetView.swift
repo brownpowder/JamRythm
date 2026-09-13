@@ -31,7 +31,7 @@ struct SongStructureSheetView: View {
                 .padding(.vertical, 14)
             }
             .background(Color(uiColor: .systemGroupedBackground))
-            .navigationTitle("楽曲構成を自動生成")
+            .navigationTitle("曲を生成")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

@@ -431,7 +431,7 @@ struct SectionTimelineBarView: View {
             HStack(spacing: 6) {
                 Image(systemName: "sparkles")
                     .font(.system(size: 13, weight: .bold))
-                Text("楽曲構成を自動生成 (1コーラス / 1曲)")
+                Text("曲を生成")
                     .font(.system(size: 13, weight: .semibold))
             }
             .foregroundColor(.purple)
