@@ -1050,8 +1050,10 @@ final class AudioService: AudioServiceProtocol {
     }
 
     private func playLoFiDrum(step: Int) {
-        let hiHatVelocity: UInt8 = (step % 2 == 0) ? 60 : 45
-        drumSampler.startNote(42, withVelocity: hiHatVelocity, onChannel: 0)
+        // ハットの刻みを半分（4分音符刻み: step 0, 2, 4, 6）にしてレイドバックしたチル感を演出
+        if step % 2 == 0 {
+            drumSampler.startNote(42, withVelocity: 60, onChannel: 0)
+        }
 
         switch step {
         case 0:
