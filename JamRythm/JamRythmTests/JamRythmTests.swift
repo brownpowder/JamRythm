@@ -155,6 +155,15 @@ struct JamRythmTests {
         #expect(fSharpM7b5Notes.map { $0.name } == ["F♯", "A", "C", "E"])
         #expect(fSharpM7b5Notes[0].accidental == "♯")
 
+        // G♭m7: B♭♭(ダブルフラット)やF♭を排し、実用的なエンハーモニック(A, E)として五線譜上に配置
+        let gFlatM7 = Chord(rootNote: "G♭", type: "m7", bassNote: nil)
+        let gFlatM7Notes = service.staffNotes(for: gFlatM7)
+        #expect(gFlatM7Notes.map { $0.name } == ["G♭", "A", "D♭", "E"])
+        #expect(gFlatM7Notes.map { $0.accidental } == ["♭", nil, "♭", nil])
+        // ステップ差の検証: G♭(step 2) と A(step 3) が2度音程(差が1)で隣接し、D♭(step 6) と E(step 7) も隣接
+        let gFlatSteps = gFlatM7Notes.map { $0.step }
+        #expect(gFlatSteps == [2, 3, 6, 7])
+
         // ギター運指の検証
         let edim7Voicing = service.guitarVoicing(for: edim7)
         #expect(edim7Voicing.frets == [nil, nil, 2, 3, 2, 3])

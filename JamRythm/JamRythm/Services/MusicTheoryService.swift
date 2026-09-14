@@ -1196,13 +1196,54 @@ final class MusicTheoryService: MusicTheoryServiceProtocol {
         let diatonicNaturalSemitones = [0, 2, 4, 5, 7, 9, 11]
 
         var notes = formulas.map { formula in
-            let calculatedStep = rootBaseStep + formula.stepOffset
-            let targetDIndex = ((rootDIndex + formula.stepOffset) % 7 + 7) % 7
-            let letterName = diatonicLetters[targetDIndex]
-            let naturalSemitone = diatonicNaturalSemitones[targetDIndex]
+            var calculatedStep = rootBaseStep + formula.stepOffset
+            var targetDIndex = ((rootDIndex + formula.stepOffset) % 7 + 7) % 7
+            var letterName = diatonicLetters[targetDIndex]
+            var naturalSemitone = diatonicNaturalSemitones[targetDIndex]
             let actualSemitone = ((rootSemitone + formula.semitoneOffset) % 12 + 12) % 12
 
-            let diff = ((actualSemitone - naturalSemitone) % 12 + 12) % 12
+            var diff = ((actualSemitone - naturalSemitone) % 12 + 12) % 12
+
+            // 読譜性向上のためのエンハーモニック（異名同音）簡略化
+            // 1. ダブルフラット (diff == 10) を解消し、1音下のナチュラル音に置換（例: B♭♭ -> A）
+            if diff == 10 {
+                targetDIndex = ((targetDIndex - 1) % 7 + 7) % 7
+                calculatedStep -= 1
+                letterName = diatonicLetters[targetDIndex]
+                naturalSemitone = diatonicNaturalSemitones[targetDIndex]
+                diff = ((actualSemitone - naturalSemitone) % 12 + 12) % 12
+            }
+            // 2. ダブルシャープ (diff == 2) を解消し、1音上のナチュラル音に置換（例: F𝄪 -> G）
+            else if diff == 2 {
+                targetDIndex = (targetDIndex + 1) % 7
+                calculatedStep += 1
+                letterName = diatonicLetters[targetDIndex]
+                naturalSemitone = diatonicNaturalSemitones[targetDIndex]
+                diff = ((actualSemitone - naturalSemitone) % 12 + 12) % 12
+            }
+            // 3. 視認性の悪い F♭ (実音E) や C♭ (実音B) を白鍵ナチュラルに置換
+            else if letterName == "F" && actualSemitone == 4 {
+                targetDIndex = 2
+                calculatedStep -= 1
+                letterName = "E"
+                diff = 0
+            } else if letterName == "C" && actualSemitone == 11 {
+                targetDIndex = 6
+                calculatedStep -= 1
+                letterName = "B"
+                diff = 0
+            } else if letterName == "B" && actualSemitone == 0 {
+                targetDIndex = 0
+                calculatedStep += 1
+                letterName = "C"
+                diff = 0
+            } else if letterName == "E" && actualSemitone == 5 {
+                targetDIndex = 3
+                calculatedStep += 1
+                letterName = "F"
+                diff = 0
+            }
+
             let accidental: String?
             let noteName: String
 
@@ -1213,15 +1254,9 @@ final class MusicTheoryService: MusicTheoryServiceProtocol {
             case 1:
                 accidental = "♯"
                 noteName = "\(letterName)♯"
-            case 2:
-                accidental = "𝄪"
-                noteName = "\(letterName)𝄪"
             case 11:
                 accidental = "♭"
                 noteName = "\(letterName)♭"
-            case 10:
-                accidental = "♭♭"
-                noteName = "\(letterName)♭♭"
             default:
                 accidental = nil
                 noteName = letterName
