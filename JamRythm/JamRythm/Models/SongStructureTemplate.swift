@@ -24,6 +24,37 @@ struct SongStructureSection: Identifiable, Equatable {
     }
 }
 
+// MARK: - 楽曲構成カテゴリ (1コーラス / 1曲丸ごと)
+
+/*
+楽曲構成の規模感を表すカテゴリ分類（1コーラス または 1曲丸ごと）。
+*/
+enum SongStructureCategory: String, CaseIterable, Identifiable {
+    case oneChorus = "1コーラス"
+    case fullSong = "1曲丸ごと"
+
+    var id: String { rawValue }
+
+    /*
+    カテゴリの説明テキストを返す。
+
+    Arguments:
+    なし
+
+    Usage:
+    楽曲生成シートのカテゴリ切り替え案内表示で使用される。
+    */
+
+    var description: String {
+        switch self {
+        case .oneChorus:
+            return "Introからサビまで、アイデアスケッチやループに最適な16小節構成"
+        case .fullSong:
+            return "Intro〜A/B〜サビ〜間奏〜ラスサビ〜Outroまで展開する24〜28小節構成"
+        }
+    }
+}
+
 // MARK: - 楽曲構成テンプレート (Song Form)
 
 /*
@@ -36,9 +67,32 @@ struct SongStructureTemplate: Identifiable, Equatable {
     let description: String
     let iconName: String
     let genreTag: String
+    let category: SongStructureCategory
     let recommendedGenre: MusicGenre
     let recommendedBpm: Double
     let sections: [SongStructureSection]
+
+    init(
+        id: String,
+        name: String,
+        description: String,
+        iconName: String,
+        genreTag: String,
+        category: SongStructureCategory = .oneChorus,
+        recommendedGenre: MusicGenre,
+        recommendedBpm: Double,
+        sections: [SongStructureSection]
+    ) {
+        self.id = id
+        self.name = name
+        self.description = description
+        self.iconName = iconName
+        self.genreTag = genreTag
+        self.category = category
+        self.recommendedGenre = recommendedGenre
+        self.recommendedBpm = recommendedBpm
+        self.sections = sections
+    }
 
     /*
     構成全体の小節数の合計を返す。
@@ -62,6 +116,7 @@ struct SongStructureTemplate: Identifiable, Equatable {
         description: "Introからサビまで駆け抜ける、日本のポップス・アニソン定番の16小節構成",
         iconName: "crown.fill",
         genreTag: "1コーラス・16小節",
+        category: .oneChorus,
         recommendedGenre: .pop,
         recommendedBpm: 128.0,
         sections: [
@@ -78,6 +133,7 @@ struct SongStructureTemplate: Identifiable, Equatable {
         description: "Introからラスサビ・Outroまで感情が波のように高まる本格的な28小節の1曲構成",
         iconName: "sparkles",
         genreTag: "フル構成・28小節",
+        category: .fullSong,
         recommendedGenre: .pop,
         recommendedBpm: 125.0,
         sections: [
@@ -97,6 +153,7 @@ struct SongStructureTemplate: Identifiable, Equatable {
         description: "丸サ進行と2-5-1を基軸にした、都会的でおしゃれな16小節のグルーヴィー構成",
         iconName: "moon.stars.fill",
         genreTag: "Lo-Fi・16小節",
+        category: .oneChorus,
         recommendedGenre: .lofi,
         recommendedBpm: 84.0,
         sections: [
@@ -107,17 +164,58 @@ struct SongStructureTemplate: Identifiable, Equatable {
         ]
     )
 
+    static let neoSoulFullSong = SongStructureTemplate(
+        id: "neo_soul_full_song",
+        name: "Neo-Soul / Lo-Fi フルジャーニー",
+        description: "チルなIntroから丸サのA/Bメロ、ジャジーなCメロを経て心地よく展開する28小節構成",
+        iconName: "headphones",
+        genreTag: "フル構成・28小節",
+        category: .fullSong,
+        recommendedGenre: .lofi,
+        recommendedBpm: 82.0,
+        sections: [
+            SongStructureSection(type: .intro, template: .justTheTwoOfUs),
+            SongStructureSection(type: .verseA, template: .justTheTwoOfUs),
+            SongStructureSection(type: .verseB, template: .twoFiveOne),
+            SongStructureSection(type: .chorus, template: .justTheTwoOfUs),
+            SongStructureSection(type: .bridge, template: .andalusia),
+            SongStructureSection(type: .chorus, template: .twoFiveOne),
+            SongStructureSection(type: .outro, template: .justTheTwoOfUs)
+        ]
+    )
+
     static let rockAnthem = SongStructureTemplate(
         id: "rock_anthem",
         name: "Rock / Pop-Punk アンセム",
         description: "力強い疾走感とサビの爆発力を持つ、ロックやパンクに最適な16小節構成",
         iconName: "flame.fill",
         genreTag: "Rock・16小節",
+        category: .oneChorus,
         recommendedGenre: .rock,
         recommendedBpm: 160.0,
         sections: [
             SongStructureSection(type: .intro, template: .popPunk),
             SongStructureSection(type: .verseA, template: .popPunk),
+            SongStructureSection(type: .chorus, template: .fourFiveSix),
+            SongStructureSection(type: .outro, template: .popPunk)
+        ]
+    )
+
+    static let rockFullSong = SongStructureTemplate(
+        id: "rock_full_song",
+        name: "Rock エナジックフル構成",
+        description: "激しいIntroから小室Aメロ、疾走サビ、泣きのギターソロCメロへと駆け抜ける28小節構成",
+        iconName: "bolt.fill",
+        genreTag: "フル構成・28小節",
+        category: .fullSong,
+        recommendedGenre: .rock,
+        recommendedBpm: 155.0,
+        sections: [
+            SongStructureSection(type: .intro, template: .popPunk),
+            SongStructureSection(type: .verseA, template: .komuro),
+            SongStructureSection(type: .verseB, template: .fourFiveSix),
+            SongStructureSection(type: .chorus, template: .royalRoad),
+            SongStructureSection(type: .bridge, template: .popPunk),
             SongStructureSection(type: .chorus, template: .fourFiveSix),
             SongStructureSection(type: .outro, template: .popPunk)
         ]
@@ -129,6 +227,7 @@ struct SongStructureTemplate: Identifiable, Equatable {
         description: "スタンド・バイ・ミー進行を軸にした、時代を超えて愛されるレトロで心温まる16小節構成",
         iconName: "guitars.fill",
         genreTag: "バラード・16小節",
+        category: .oneChorus,
         recommendedGenre: .pop,
         recommendedBpm: 116.0,
         sections: [
@@ -143,7 +242,152 @@ struct SongStructureTemplate: Identifiable, Equatable {
         .jpopOneChorus,
         .jpopFullSong,
         .neoSoulGroove,
+        .neoSoulFullSong,
         .rockAnthem,
+        .rockFullSong,
         .classicBallad
     ]
+
+    // MARK: - ランダム楽曲構成生成 (Smart Random Generator)
+
+    /*
+    指定されたカテゴリ（1コーラス または 1曲丸ごと）および基準ジャンルに基づき、
+    音楽理論的に調和するコード進行テンプレートをランダムに組み合わせて楽曲構成を自動生成する。
+
+    Arguments:
+    category
+      生成する規模感（1コーラス: 16小節、または 1曲丸ごと: 28小節）。
+    baseGenre
+      生成の基準とするジャンル。指定された場合はそのジャンルを尊重する。
+
+    Usage:
+    楽曲構成生成シートの「おまかせランダム生成」カードをタップした際に呼び出される。
+    */
+
+    static func generateRandom(category: SongStructureCategory, baseGenre: MusicGenre? = nil) -> SongStructureTemplate {
+        let genre = baseGenre ?? MusicGenre.allCases.randomElement() ?? .pop
+        let bpm = randomBpm(for: genre)
+
+        let sections: [SongStructureSection]
+        let totalBars: Int
+        let title: String
+        let desc: String
+
+        switch category {
+        case .oneChorus:
+            sections = generateSectionsForOneChorus()
+            totalBars = 16
+            title = "\(genre.rawValue) ランダム 1コーラス"
+            desc = "Introからサビまで、\(genre.rawValue)スタイルに調和するコード進行をランダムに組み立てた16小節"
+        case .fullSong:
+            sections = generateSectionsForFullSong()
+            totalBars = 28
+            title = "\(genre.rawValue) ランダム フル構成"
+            desc = "A/BメロからCメロ・ラスサビまで、\(genre.rawValue)の起承転結をドラマチックに紡ぐ28小節構成"
+        }
+
+        return SongStructureTemplate(
+            id: "random_\(UUID().uuidString.prefix(8))",
+            name: title,
+            description: desc,
+            iconName: "dice.fill",
+            genreTag: "ランダム・\(totalBars)小節",
+            category: category,
+            recommendedGenre: genre,
+            recommendedBpm: bpm,
+            sections: sections
+        )
+    }
+
+    /*
+    1コーラス（16小節）向けのセクション構成を音楽理論プールからランダム生成する。
+
+    Arguments:
+    なし
+
+    Usage:
+    generateRandom(category: .oneChorus) 内から呼び出される。
+    */
+
+    private static func generateSectionsForOneChorus() -> [SongStructureSection] {
+        let introPool: [ProgressionTemplate] = [.royalRoad, .canonShort, .popPunk, .justTheTwoOfUs]
+        let verseAPool: [ProgressionTemplate] = [.popPunk, .standByMe, .komuro, .canonShort]
+        let verseBPool: [ProgressionTemplate] = [.justTheTwoOfUs, .fourFiveSix, .twoFiveOne]
+        let chorusPool: [ProgressionTemplate] = [.fourFiveSix, .royalRoad, .komuro]
+
+        let intro = introPool.randomElement() ?? .royalRoad
+        let verseA = verseAPool.randomElement() ?? .popPunk
+        let verseB = verseBPool.randomElement() ?? .justTheTwoOfUs
+        let chorus = chorusPool.randomElement() ?? .fourFiveSix
+
+        return [
+            SongStructureSection(type: .intro, template: intro),
+            SongStructureSection(type: .verseA, template: verseA),
+            SongStructureSection(type: .verseB, template: verseB),
+            SongStructureSection(type: .chorus, template: chorus)
+        ]
+    }
+
+    /*
+    1曲丸ごと（28小節）向けのセクション構成を音楽理論プールからランダム生成する。
+
+    Arguments:
+    なし
+
+    Usage:
+    generateRandom(category: .fullSong) 内から呼び出される。
+    */
+
+    private static func generateSectionsForFullSong() -> [SongStructureSection] {
+        let introPool: [ProgressionTemplate] = [.canonShort, .royalRoad, .popPunk, .justTheTwoOfUs]
+        let verseAPool: [ProgressionTemplate] = [.komuro, .popPunk, .standByMe, .canonShort]
+        let verseBPool: [ProgressionTemplate] = [.justTheTwoOfUs, .fourFiveSix, .twoFiveOne]
+        let chorusPool: [ProgressionTemplate] = [.royalRoad, .fourFiveSix, .komuro]
+        let bridgePool: [ProgressionTemplate] = [.twoFiveOne, .justTheTwoOfUs, .andalusia, .royalRoad]
+        let outroPool: [ProgressionTemplate] = [.canonShort, .royalRoad, .popPunk]
+
+        let intro = introPool.randomElement() ?? .canonShort
+        let verseA = verseAPool.randomElement() ?? .komuro
+        let verseB = verseBPool.randomElement() ?? .justTheTwoOfUs
+        let chorus1 = chorusPool.randomElement() ?? .royalRoad
+        let bridge = bridgePool.randomElement() ?? .twoFiveOne
+        let chorus2 = (chorusPool.filter { $0 != chorus1 }.randomElement()) ?? chorus1
+        let outro = outroPool.randomElement() ?? .canonShort
+
+        return [
+            SongStructureSection(type: .intro, template: intro),
+            SongStructureSection(type: .verseA, template: verseA),
+            SongStructureSection(type: .verseB, template: verseB),
+            SongStructureSection(type: .chorus, template: chorus1),
+            SongStructureSection(type: .bridge, template: bridge),
+            SongStructureSection(type: .chorus, template: chorus2),
+            SongStructureSection(type: .outro, template: outro)
+        ]
+    }
+
+    /*
+    ジャンルに応じた心地よい推奨BPMをランダムに算出する。
+
+    Arguments:
+    genre
+      対象の音楽ジャンル。
+
+    Usage:
+    generateRandom() 内でBPMを決定する際に使用される。
+    */
+
+    private static func randomBpm(for genre: MusicGenre) -> Double {
+        switch genre {
+        case .pop:
+            return Double(Int.random(in: 118...132))
+        case .rock:
+            return Double(Int.random(in: 145...165))
+        case .dance:
+            return Double(Int.random(in: 122...128))
+        case .lofi:
+            return Double(Int.random(in: 78...88))
+        case .rAndB:
+            return Double(Int.random(in: 88...102))
+        }
+    }
 }

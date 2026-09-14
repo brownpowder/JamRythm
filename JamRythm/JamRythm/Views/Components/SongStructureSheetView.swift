@@ -17,13 +17,21 @@ struct SongStructureSheetView: View {
     @ObservedObject var viewModel: PlayEditorViewModel
     @Environment(\.dismiss) private var dismiss
 
+    @State private var selectedCategory: SongStructureCategory = .oneChorus
+
+    private var filteredStructures: [SongStructureTemplate] {
+        SongStructureTemplate.allStructures.filter { $0.category == selectedCategory }
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 14) {
+                    categoryPicker
                     headerDescription
+                    randomGenerationCard
 
-                    ForEach(SongStructureTemplate.allStructures) { structure in
+                    ForEach(filteredStructures) { structure in
                         structureCard(structure)
                     }
                 }
@@ -45,16 +53,37 @@ struct SongStructureSheetView: View {
         }
     }
 
-    // MARK: - ヘッダー説明文
+    // MARK: - カテゴリ切り替えセグメント
 
     /*
-    シート最上部に表示するガイド説明文。
+    1コーラスと1曲丸ごとの表示カテゴリを切り替えるセグメントピッカー。
 
     Arguments:
     なし
 
     Usage:
-    ScrollView内の最上段に配置される。
+    シートの最上段に配置され、一覧をフィルタリングする。
+    */
+
+    private var categoryPicker: some View {
+        Picker("規模", selection: $selectedCategory) {
+            ForEach(SongStructureCategory.allCases) { cat in
+                Text(cat.rawValue).tag(cat)
+            }
+        }
+        .pickerStyle(.segmented)
+    }
+
+    // MARK: - ヘッダー説明文
+
+    /*
+    シート上部に表示するガイド説明文。選択中カテゴリの解説を表示する。
+
+    Arguments:
+    なし
+
+    Usage:
+    ScrollView内の上段に配置される。
     */
 
     private var headerDescription: some View {
@@ -63,7 +92,7 @@ struct SongStructureSheetView: View {
                 .font(.title3)
                 .foregroundColor(.accentColor)
 
-            Text("プリセットを選ぶと、イントロからサビ・アウトロまでのセクションとコード進行が一括で生成されます。")
+            Text(selectedCategory.description)
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .lineLimit(2)
@@ -72,6 +101,89 @@ struct SongStructureSheetView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.accentColor.opacity(0.08))
         .cornerRadius(10)
+    }
+
+    // MARK: - ランダム自動生成カード
+
+    /*
+    音楽理論に基づき、セクションとコード進行をランダムに組み合わせて楽曲を一括自動生成するカード。
+
+    Arguments:
+    なし
+
+    Usage:
+    プリセット一覧の先頭に配置され、ワンタップで新鮮な構成を生成する。
+    */
+
+    private var randomGenerationCard: some View {
+        Button(action: {
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            viewModel.generateAndApplyRandomSongStructure(category: selectedCategory)
+            dismiss()
+        }) {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [.orange, .pink],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 42, height: 42)
+
+                    Image(systemName: "dice.fill")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(.white)
+                }
+
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 6) {
+                        Text("おまかせランダム生成")
+                            .font(.subheadline.bold())
+                            .foregroundColor(.primary)
+
+                        Text("🎲 ランダム")
+                            .font(.system(size: 9, weight: .heavy))
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 2)
+                            .background(Color.orange.opacity(0.2))
+                            .foregroundColor(.orange)
+                            .cornerRadius(4)
+                    }
+
+                    Text("\(selectedCategory.rawValue)のセクションとコード進行を理論に基づいて毎回新しく自動生成")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                }
+
+                Spacer()
+
+                Image(systemName: "wand.and.stars")
+                    .font(.subheadline.bold())
+                    .foregroundColor(.orange)
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(Color(uiColor: .secondarySystemGroupedBackground))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(
+                        LinearGradient(
+                            colors: [.orange.opacity(0.6), .pink.opacity(0.4)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1.5
+                    )
+            )
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - 楽曲構成カード

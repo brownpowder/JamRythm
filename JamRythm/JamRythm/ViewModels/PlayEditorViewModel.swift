@@ -722,6 +722,26 @@ final class PlayEditorViewModel: ObservableObject {
     }
 
     /*
+    指定されたカテゴリ（1コーラス または 1曲丸ごと）に基づいてランダムな楽曲構成を生成し、プロジェクトに適用する。
+
+    Arguments:
+    category
+      生成する構成カテゴリ（.oneChorus または .fullSong）。
+      楽曲構成生成シートのランダム生成カードから渡される。
+
+    Usage:
+    楽曲構成生成シートで「おまかせランダム生成」をタップした際に呼び出される。
+    */
+
+    func generateAndApplyRandomSongStructure(category: SongStructureCategory) {
+        let randomStructure = SongStructureTemplate.generateRandom(
+            category: category,
+            baseGenre: selectedGenre
+        )
+        applySongStructure(randomStructure)
+    }
+
+    /*
     伴奏ジャンルを変更し、再生エンジンおよびプロジェクトに反映する。
 
     Arguments:

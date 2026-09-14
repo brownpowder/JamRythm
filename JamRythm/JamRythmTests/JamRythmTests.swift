@@ -753,17 +753,38 @@ struct JamRythmTests {
     }
 
     /*
-    楽曲構成テンプレート（1コーラス・フル構成など）の一括自動生成とViewModelへの適用を検証する。
+    楽曲構成テンプレート（1コーラス・フル構成など）のカテゴリ分類、ランダム生成、およびViewModelへの適用を検証する。
     */
     @Test @MainActor func testSongStructureTemplatesAndApplication() async throws {
-        #expect(SongStructureTemplate.allStructures.count == 5)
+        #expect(SongStructureTemplate.allStructures.count == 7)
+
+        // カテゴリ別のフィルタリング検証
+        let oneChorusList = SongStructureTemplate.allStructures.filter { $0.category == .oneChorus }
+        let fullSongList = SongStructureTemplate.allStructures.filter { $0.category == .fullSong }
+        #expect(oneChorusList.count == 4)
+        #expect(fullSongList.count == 3)
 
         // 小節数計算の検証
         #expect(SongStructureTemplate.jpopOneChorus.totalMeasures == 16)
         #expect(SongStructureTemplate.jpopFullSong.totalMeasures == 28)
         #expect(SongStructureTemplate.neoSoulGroove.totalMeasures == 16)
+        #expect(SongStructureTemplate.neoSoulFullSong.totalMeasures == 28)
         #expect(SongStructureTemplate.rockAnthem.totalMeasures == 16)
+        #expect(SongStructureTemplate.rockFullSong.totalMeasures == 28)
         #expect(SongStructureTemplate.classicBallad.totalMeasures == 16)
+
+        // ランダム生成ロジックの検証
+        let randomOneChorus = SongStructureTemplate.generateRandom(category: .oneChorus, baseGenre: .pop)
+        #expect(randomOneChorus.category == .oneChorus)
+        #expect(randomOneChorus.totalMeasures == 16)
+        #expect(randomOneChorus.sections.count == 4)
+        #expect(randomOneChorus.recommendedGenre == .pop)
+
+        let randomFullSong = SongStructureTemplate.generateRandom(category: .fullSong, baseGenre: .rock)
+        #expect(randomFullSong.category == .fullSong)
+        #expect(randomFullSong.totalMeasures == 28)
+        #expect(randomFullSong.sections.count == 7)
+        #expect(randomFullSong.recommendedGenre == .rock)
 
         let audioService = AudioService()
         let theoryService = MusicTheoryService()
@@ -806,6 +827,15 @@ struct JamRythmTests {
         #expect(viewModel.project.sections.map { $0.type } == [.intro, .verseA, .verseB, .chorus, .bridge, .chorus, .outro])
         #expect(viewModel.project.bpm == 125.0)
         #expect(audioService.bpm == 125.0)
+
+        // ランダム楽曲生成のViewModel適用検証
+        viewModel.generateAndApplyRandomSongStructure(category: .oneChorus)
+        #expect(viewModel.project.sections.count == 4)
+        #expect(viewModel.project.sections.reduce(0) { $0 + $1.measures.count } == 16)
+
+        viewModel.generateAndApplyRandomSongStructure(category: .fullSong)
+        #expect(viewModel.project.sections.count == 7)
+        #expect(viewModel.project.sections.reduce(0) { $0 + $1.measures.count } == 28)
 
         // Lo-Fiジャムを適用（ジャンル & テンポ連動検証）
         viewModel.applySongStructure(.neoSoulGroove)
