@@ -1208,7 +1208,8 @@ final class AudioService: AudioServiceProtocol {
             guard pianoAudible && pianoVolume > 0.01 else { return }
 
             let chord = measures[measureIndex].activeChord
-            let midiNotes = theoryService.chordMidiNotes(for: chord)
+            let previousNotes = activePlaybackPianoNotes.isEmpty ? nil : activePlaybackPianoNotes
+            let midiNotes = theoryService.voiceLedMidiNotes(for: chord, previousNotes: previousNotes)
 
             guard !midiNotes.isEmpty else { return }
 

@@ -1297,6 +1297,68 @@ struct JamRythmTests {
         let localizedPenta = aMinorPenta.map { NoteNameNotation.localizedNoteName($0, notation: .japanese) }
         #expect(localizedPenta == ["ラ", "ド", "レ", "ミ", "ソ"])
     }
+
+    /*
+    ギターボイシングの複数ポジション生成およびbaseFret算出を検証する。
+    Cmaj7に対してローコード、5弦ルート、6弦ルートが返ることを確認する。
+    */
+    @Test func testGuitarVoicingsMultiplePositions() async throws {
+        let service = MusicTheoryService()
+        let cmaj7 = Chord(rootNote: "C", type: "maj7", bassNote: nil)
+        let voicings = service.guitarVoicings(for: cmaj7)
+
+        #expect(voicings.count >= 2)
+
+        // 1. ローコード
+        let openVoicing = voicings.first { $0.positionName == "ローコード" }
+        #expect(openVoicing != nil)
+        #expect(openVoicing?.baseFret == 1)
+        #expect(openVoicing?.frets == [nil, 3, 2, 0, 0, 0])
+
+        // 2. 5弦ルート (3フレットセーハ)
+        let string5Voicing = voicings.first { $0.positionName.contains("5弦ルート") }
+        #expect(string5Voicing != nil)
+        #expect(string5Voicing?.baseFret == 3)
+        #expect(string5Voicing?.frets == [nil, 3, 5, 4, 5, 3])
+
+        // 3. 6弦ルート (8フレットセーハ)
+        let string6Voicing = voicings.first { $0.positionName.contains("6弦ルート") }
+        #expect(string6Voicing != nil)
+        #expect(string6Voicing?.baseFret == 8)
+        #expect(string6Voicing?.frets == [8, 10, 9, 9, 8, 8])
+    }
+
+    /*
+    ピアノ伴奏におけるスムーズなボイスリーディング（転回形自動選択）を検証する。
+    Cmaj7の後にFmaj7を発音した際、共通音（C, E）が保持され、最小移動量で滑らかに繋がることを確認する。
+    */
+    @Test func testPianoVoiceLeadingIntegration() async throws {
+        let service = MusicTheoryService()
+        let cmaj7 = Chord(rootNote: "C", type: "maj7", bassNote: nil)
+        let fmaj7 = Chord(rootNote: "F", type: "maj7", bassNote: nil)
+
+        // 1. 初回コード（Cmaj7）: 中心帯域のボイシングが返ること
+        let cmaj7Notes = service.voiceLedMidiNotes(for: cmaj7, previousNotes: nil)
+        #expect(cmaj7Notes.contains(36)) // C2 ベース音
+        let cmaj7Upper = cmaj7Notes.filter { $0 >= 50 }
+        #expect(!cmaj7Upper.isEmpty)
+
+        // 2. 次のコード（Fmaj7）: 前のCmaj7の音を引き継ぎ、スムーズに連結すること
+        let fmaj7Notes = service.voiceLedMidiNotes(for: fmaj7, previousNotes: cmaj7Notes)
+        #expect(fmaj7Notes.contains(41)) // F2 ベース音
+
+        let fmaj7Upper = fmaj7Notes.filter { $0 >= 50 }
+        #expect(!fmaj7Upper.isEmpty)
+
+        // 共通音 C(60) または E(64) が保持されていること
+        let commonNotes = Set(cmaj7Upper).intersection(Set(fmaj7Upper))
+        #expect(!commonNotes.isEmpty)
+
+        // 上声部の平均音高が急激にオクターブ跳躍していないこと（平均ピッチ差が5半音以内）
+        let cAvg = Double(cmaj7Upper.reduce(0) { $0 + Int($1) }) / Double(cmaj7Upper.count)
+        let fAvg = Double(fmaj7Upper.reduce(0) { $0 + Int($1) }) / Double(fmaj7Upper.count)
+        #expect(abs(cAvg - fAvg) <= 5.0)
+    }
 }
 
 

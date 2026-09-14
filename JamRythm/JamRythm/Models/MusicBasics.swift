@@ -201,6 +201,16 @@ nilはミュート（弾かない）、0は開放弦、1以上はフレット番
 struct GuitarVoicing: Equatable, Hashable {
     /// 6弦, 5弦, 4弦, 3弦, 2弦, 1弦の順のフレット指定
     let frets: [Int?]
+    /// 表示開始フレット（1なら通常ナット、3以上ならハイポジション）
+    var baseFret: Int = 1
+    /// ボイシング名称（例: "ローコード", "5弦ルート", "6弦ルート"）
+    var positionName: String = "基本"
+
+    init(frets: [Int?], baseFret: Int = 1, positionName: String = "基本") {
+        self.frets = frets
+        self.baseFret = baseFret
+        self.positionName = positionName
+    }
 
     /*
     指定された弦（6〜1弦）のフレット情報を取得する。

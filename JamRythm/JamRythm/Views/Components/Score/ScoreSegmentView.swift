@@ -48,7 +48,8 @@ struct ScoreSegmentView: View {
             Group {
                 switch displayMode {
                 case .tab:
-                    GuitarTabView(voicing: voicing, chordName: chordName, notes: notes)
+                    let voicings = theoryService.guitarVoicings(for: chord)
+                    GuitarTabView(voicings: voicings.isEmpty ? [voicing] : voicings, chordName: chordName, notes: notes)
                 case .scale:
                     ScaleFretboardView(key: key, chord: chord, theoryService: theoryService)
                 case .staff:
