@@ -318,10 +318,10 @@ protocol MusicTheoryServiceProtocol {
 
 extension MusicTheoryServiceProtocol {
     /*
-    referenceModeを省略した場合にChord基準（コードスケール追従）を渡す互換デフォルト実装。
+    referenceModeを省略した場合にKey基準（マイナーペンタ基本＋不適合時コード追従）を渡す互換デフォルト実装。
     */
     func scaleInfo(for key: Key, chord: Chord, scaleType: ScaleType) -> ScaleInfo {
-        return scaleInfo(for: key, chord: chord, scaleType: scaleType, referenceMode: .chord)
+        return scaleInfo(for: key, chord: chord, scaleType: scaleType, referenceMode: .key)
     }
     /*
     excludingChords を省略した場合に空配列を渡すデフォルト実装。
@@ -1409,9 +1409,23 @@ final class MusicTheoryService: MusicTheoryServiceProtocol {
             semitones = result.semitones
             scaleName = result.name
         case .key:
-            let result = calculateKeyScaleSemitonesAndName(key: key, scaleType: scaleType)
-            semitones = result.semitones
-            scaleName = result.name
+            if scaleType == .pentatonic {
+                if isChordCompatibleWithMinorPenta(chord: chord, key: key) {
+                    // マイナーペンタで調和する場合: キーの平行調マイナーペンタを基本表示
+                    let minorPenta = relativeMinorPentatonic(for: key)
+                    semitones = minorPenta.semitones
+                    scaleName = minorPenta.name
+                } else {
+                    // 合わないコード（E7, Fm等）: コードに合わせたスケール（コードスケール）を自動表示
+                    let result = calculateChordScaleSemitonesAndName(chord: chord, scaleType: .diatonic)
+                    semitones = result.semitones
+                    scaleName = result.name
+                }
+            } else {
+                let result = calculateKeyScaleSemitonesAndName(key: key, scaleType: .diatonic)
+                semitones = result.semitones
+                scaleName = result.name
+            }
         }
 
         let scaleNotes = semitones.map { Key.noteName(forSemitone: $0) }
@@ -1427,6 +1441,55 @@ final class MusicTheoryService: MusicTheoryServiceProtocol {
             scaleNotes: scaleNotes,
             positions: positions
         )
+    }
+
+    /*
+    Keyに対応する平行調（Relative Minor）のマイナーペンタトニック半音配列と名称を算出する。
+
+    Arguments:
+    key
+      曲の基準調（Key.CならAマイナーペンタ、Key.GならEマイナーペンタ）。
+
+    Usage:
+    ペンタトニック演奏時の基本スケールとして使用される。
+    */
+
+    func relativeMinorPentatonic(for key: Key) -> (semitones: [Int], name: String) {
+        let minorRootSemitone = (key.semitoneOffset + 9) % 12
+        let minorRootName = Key.noteName(forSemitone: minorRootSemitone)
+        let pentaOffsets = [0, 3, 5, 7, 10]
+        let semitones = pentaOffsets.map { (minorRootSemitone + $0) % 12 }
+        return (semitones, "\(minorRootName) マイナーペンタ")
+    }
+
+    /*
+    現在のコードがKeyのマイナーペンタトニック（およびダイアトニック調性）と調和するかを判定する。
+
+    Arguments:
+    chord
+      小節のコード。
+    key
+      曲の基準調。
+
+    Usage:
+    マイナーペンタのままで通せるか、コードスケールへ切り替えるかの分岐判定に使用される。
+    */
+
+    func isChordCompatibleWithMinorPenta(chord: Chord, key: Key) -> Bool {
+        let diatonicOffsets = [0, 2, 4, 5, 7, 9, 11]
+        let diatonicSemitones = diatonicOffsets.map { (key.semitoneOffset + $0) % 12 }
+
+        let chordRootSemi = Key.semitone(forNoteName: chord.rootNote)
+        let formulas = chordToneFormulas(for: chord.type)
+        let chordToneSemitones = formulas.map { (chordRootSemi + $0.semitoneOffset) % 12 }
+
+        // コードトーンの中にダイアトニック音階に含まれない音（例: E7のG#、FmのAb等）がある場合は不適合
+        for ct in chordToneSemitones {
+            if !diatonicSemitones.contains(ct) {
+                return false
+            }
+        }
+        return true
     }
 
     /*

@@ -815,17 +815,23 @@ struct JamRythmTests {
         let theoryService = MusicTheoryService()
         let chordC = Chord(rootNote: "C", type: "", bassNote: nil)
 
-        // Key C メジャーペンタトニック (C, D, E, G, A)
+        // Key C ペンタトニック（デフォルトは平行調 A マイナーペンタトニック: A, C, D, E, G）
         let pentaInfo = theoryService.scaleInfo(for: .C, chord: chordC, scaleType: .pentatonic)
         #expect(pentaInfo.keyName == "C")
-        #expect(pentaInfo.scaleNotes == ["C", "D", "E", "G", "A"])
+        #expect(pentaInfo.scaleName == "A マイナーペンタ")
+        #expect(pentaInfo.scaleNotes == ["A", "C", "D", "E", "G"])
         #expect(!pentaInfo.positions.isEmpty)
 
-        // 5弦3フレットがルート音 "C"（.root）であること
+        // 5弦3フレットが "C"（現在コードCのルート音のため role は .root）であること
         let cOn5thString = pentaInfo.positions.first { $0.stringNumber == 5 && $0.fret == 3 }
         #expect(cOn5thString != nil)
         #expect(cOn5thString?.noteName == "C")
         #expect(cOn5thString?.role == .root)
+
+        // コード基準 (.chord) で取得した場合は C メジャーペンタトニック (C, D, E, G, A) となること
+        let chordPentaInfo = theoryService.scaleInfo(for: .C, chord: chordC, scaleType: .pentatonic, referenceMode: .chord)
+        #expect(chordPentaInfo.scaleName == "C メジャーペンタ")
+        #expect(chordPentaInfo.scaleNotes == ["C", "D", "E", "G", "A"])
 
         // Key C メジャースケール (C, D, E, F, G, A, B)
         let diatonicInfo = theoryService.scaleInfo(for: .C, chord: chordC, scaleType: .diatonic)
@@ -1195,6 +1201,62 @@ struct JamRythmTests {
         #expect(audioService.pianoVolume == 0.0)
 
         audioService.stop()
+    }
+
+    /*
+    ペンタトニック表示時のマイナーペンタトニック基本表示および
+    ノンダイアトニックコード（E7, Fm等）遭遇時のコードスケール自動フォールバックを検証する。
+    */
+    @Test func testMinorPentatonicSmartFallback() async throws {
+        let theoryService = MusicTheoryService()
+
+        // 1. 平行調マイナーペンタトニックの計算確認 (Key C -> A minor penta: A, C, D, E, G)
+        let cMinorPenta = theoryService.relativeMinorPentatonic(for: .C)
+        #expect(cMinorPenta.name == "A マイナーペンタ")
+        #expect(cMinorPenta.semitones == [9, 0, 2, 4, 7])
+
+        // Key G -> E minor penta: E, G, A, B, D (semitones: [4, 7, 9, 11, 2])
+        let gMinorPenta = theoryService.relativeMinorPentatonic(for: .G)
+        #expect(gMinorPenta.name == "E マイナーペンタ")
+        #expect(gMinorPenta.semitones == [4, 7, 9, 11, 2])
+
+        // 2. ダイアトニックコード（C, Am, F, G）でのマイナーペンタ適合判定
+        let chordC = Chord(rootNote: "C", type: "", bassNote: nil)
+        let chordAm = Chord(rootNote: "A", type: "m", bassNote: nil)
+        let chordF = Chord(rootNote: "F", type: "", bassNote: nil)
+        let chordG = Chord(rootNote: "G", type: "", bassNote: nil)
+
+        #expect(theoryService.isChordCompatibleWithMinorPenta(chord: chordC, key: .C) == true)
+        #expect(theoryService.isChordCompatibleWithMinorPenta(chord: chordAm, key: .C) == true)
+        #expect(theoryService.isChordCompatibleWithMinorPenta(chord: chordF, key: .C) == true)
+        #expect(theoryService.isChordCompatibleWithMinorPenta(chord: chordG, key: .C) == true)
+
+        // Key基準ペンタトニック選択時、ダイアトニックコードではすべて A マイナーペンタ となること
+        let scaleC = theoryService.scaleInfo(for: .C, chord: chordC, scaleType: .pentatonic, referenceMode: .key)
+        #expect(scaleC.scaleName == "A マイナーペンタ")
+
+        let scaleAm = theoryService.scaleInfo(for: .C, chord: chordAm, scaleType: .pentatonic, referenceMode: .key)
+        #expect(scaleAm.scaleName == "A マイナーペンタ")
+
+        let scaleF = theoryService.scaleInfo(for: .C, chord: chordF, scaleType: .pentatonic, referenceMode: .key)
+        #expect(scaleF.scaleName == "A マイナーペンタ")
+
+        // 3. ノンダイアトニックコード（E7: G#含有、Fm: Ab含有）での不適合＆スマート追従判定
+        let chordE7 = Chord(rootNote: "E", type: "7", bassNote: nil)
+        let chordFm = Chord(rootNote: "F", type: "m", bassNote: nil)
+
+        #expect(theoryService.isChordCompatibleWithMinorPenta(chord: chordE7, key: .C) == false)
+        #expect(theoryService.isChordCompatibleWithMinorPenta(chord: chordFm, key: .C) == false)
+
+        // E7では Aマイナーペンタ ではなく、コードに合わせた E HMP5thビロウ（またはEマイナーペンタ）に自動追従すること
+        let scaleE7 = theoryService.scaleInfo(for: .C, chord: chordE7, scaleType: .pentatonic, referenceMode: .key)
+        #expect(scaleE7.scaleName != "A マイナーペンタ")
+        #expect(scaleE7.scaleName.contains("E"))
+
+        // Fmでも Aマイナーペンタ ではなく、Fコードに合わせたスケールに自動追従すること
+        let scaleFm = theoryService.scaleInfo(for: .C, chord: chordFm, scaleType: .pentatonic, referenceMode: .key)
+        #expect(scaleFm.scaleName != "A マイナーペンタ")
+        #expect(scaleFm.scaleName.contains("F"))
     }
 }
 

@@ -19,7 +19,7 @@ struct GuitarTabView: View {
 
     var body: some View {
         fretboardCanvas
-            .frame(height: 175)
+            .frame(height: 190)
             .background(
                 RoundedRectangle(cornerRadius: 12)
                     .fill(Color(uiColor: .tertiarySystemBackground))

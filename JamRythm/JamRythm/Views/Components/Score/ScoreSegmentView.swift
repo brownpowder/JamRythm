@@ -44,7 +44,7 @@ struct ScoreSegmentView: View {
             .pickerStyle(.segmented)
             .padding(.horizontal, 4)
 
-            // 選択された譜面ビューの表示（高さを175ptに完全固定）
+            // 選択された譜面ビューの表示（高さを190ptに完全固定）
             Group {
                 switch displayMode {
                 case .tab:
@@ -55,7 +55,7 @@ struct ScoreSegmentView: View {
                     StaffScoreView(notes: notes, chordName: chordName)
                 }
             }
-            .frame(height: 175)
+            .frame(height: 190)
         }
         .padding()
         .background(

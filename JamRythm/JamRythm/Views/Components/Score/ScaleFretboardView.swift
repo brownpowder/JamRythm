@@ -21,7 +21,7 @@ struct ScaleFretboardView: View {
 
     @State private var instrument: FretboardInstrument = .guitar
     @State private var scaleType: ScaleType = .pentatonic
-    @State private var referenceMode: ScaleReferenceMode = .chord
+    @State private var referenceMode: ScaleReferenceMode = .key
 
     private var scaleInfo: ScaleInfo {
         theoryService.scaleInfo(for: key, chord: chord, scaleType: scaleType, referenceMode: referenceMode)
@@ -32,7 +32,7 @@ struct ScaleFretboardView: View {
             topControlBar
             fretboardCanvas
         }
-        .frame(height: 175)
+        .frame(height: 190)
         .padding(.vertical, 4)
         .background(
             RoundedRectangle(cornerRadius: 12)

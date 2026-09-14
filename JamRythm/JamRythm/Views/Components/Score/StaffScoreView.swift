@@ -23,7 +23,7 @@ struct StaffScoreView: View {
             noteNamesRow
                 .padding(.bottom, 8)
         }
-        .frame(height: 175)
+        .frame(height: 190)
         .background(
             RoundedRectangle(cornerRadius: 12)
                 .fill(Color(uiColor: .tertiarySystemBackground))
@@ -40,23 +40,19 @@ struct StaffScoreView: View {
     
     Usage:
     StaffScoreViewのメインコンテンツとして描画される。
+    五線譜の位置は固定され、音符の音域によって上下に揺れることなく安定して表示される。
     */
     
     private var staffCanvas: some View {
         Canvas { context, size in
             let paddingLeft: CGFloat = 52.0
             let paddingRight: CGFloat = 20.0
-            // 1ステップ（線と間の距離）を7.2ptに設定。五線譜の線間隔は2ステップ＝14.4pt
-            let stepSpacing: CGFloat = 7.2
+            // 1ステップ（線と間の距離）を7.0ptに設定。五線譜の線間隔は2ステップ＝14.0pt
+            let stepSpacing: CGFloat = 7.0
             let lineDistance = stepSpacing * 2.0
 
-            // 音域（最高音・最低音）に応じて五線譜の中心位置を上下に微調整し、はみ出しを完全防止
-            let minStep = notes.map(\.step).min() ?? 0
-            let maxStep = notes.map(\.step).max() ?? 8
-            let avgStep = CGFloat(minStep + maxStep) / 2.0
-            let verticalBias = min(max((avgStep - 4.0) * 1.8, -16.0), 16.0)
-
-            let staffCenterY: CGFloat = (size.height * 0.50) + verticalBias
+            // 五線譜（第3線: B4）を画面中央やや上部に完全固定
+            let staffCenterY: CGFloat = size.height * 0.48
             let b4Y = staffCenterY
             // 第1線（E4, step 0）のY座標
             let e4Y = b4Y + (lineDistance * 2.0)
