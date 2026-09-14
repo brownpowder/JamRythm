@@ -23,6 +23,8 @@ struct ScaleFretboardView: View {
     @State private var scaleType: ScaleType = .pentatonic
     @State private var referenceMode: ScaleReferenceMode = .key
 
+    @AppStorage("useJapaneseNoteNames") private var useJapaneseNoteNames: Bool = false
+
     private var scaleInfo: ScaleInfo {
         theoryService.scaleInfo(for: key, chord: chord, scaleType: scaleType, referenceMode: referenceMode)
     }
@@ -120,27 +122,45 @@ struct ScaleFretboardView: View {
                 .buttonStyle(.plain)
             }
 
-            // 下段: スケール構成音バッジ列
-            HStack(spacing: 4) {
-                Text("Notes:")
-                    .font(.system(size: 9, weight: .bold))
-                    .foregroundColor(.secondary)
-
-                ForEach(scaleInfo.scaleNotes, id: \.self) { note in
-                    let isRoot = (note == chord.rootNote)
-                    Text(note)
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundColor(isRoot ? .white : .primary)
-                        .padding(.horizontal, 5)
-                        .padding(.vertical, 1.5)
-                        .background(
-                            isRoot ? Color.orange : Color(uiColor: .quaternarySystemFill)
-                        )
-                        .cornerRadius(3)
+            // 下段: スケール構成音バッジ列（タップで英語/日本語切替）
+            Button(action: {
+                guard NoteNameNotation.isJapaneseLanguage else { return }
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    useJapaneseNoteNames.toggle()
                 }
+            }) {
+                HStack(spacing: 4) {
+                    HStack(spacing: 2) {
+                        Text("Notes:")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundColor(.secondary)
+                        if NoteNameNotation.isJapaneseLanguage {
+                            Image(systemName: "arrow.triangle.2.circlepath")
+                                .font(.system(size: 7, weight: .bold))
+                                .foregroundColor(.secondary.opacity(0.7))
+                        }
+                    }
 
-                Spacer()
+                    let notation: NoteNameNotation = (NoteNameNotation.isJapaneseLanguage && useJapaneseNoteNames) ? .japanese : .english
+                    ForEach(scaleInfo.scaleNotes, id: \.self) { note in
+                        let isRoot = (note == chord.rootNote)
+                        Text(NoteNameNotation.localizedNoteName(note, notation: notation))
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundColor(isRoot ? .white : .primary)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 1.5)
+                            .background(
+                                isRoot ? Color.orange : Color(uiColor: .quaternarySystemFill)
+                            )
+                            .cornerRadius(3)
+                    }
+
+                    Spacer()
+                }
             }
+            .buttonStyle(.plain)
+            .disabled(!NoteNameNotation.isJapaneseLanguage)
         }
         .padding(.horizontal, 10)
         .padding(.top, 4)

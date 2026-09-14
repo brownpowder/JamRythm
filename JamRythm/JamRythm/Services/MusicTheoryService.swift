@@ -155,6 +155,75 @@ enum HarmonicCompatibility: Int, Comparable, CaseIterable, Identifiable {
     }
 }
 
+// MARK: - 音名表記モード（英語 CDE ⇔ 日本語 ドレミ）
+
+/*
+譜面やバッジ等で音名を表示する際の表記体系。
+英語圏では C, D, E が標準であり、日本語環境でのみ親しみやすい「ド, レ, ミ」への切替をサポートする。
+*/
+enum NoteNameNotation: String, CaseIterable, Identifiable {
+    case english = "CDE"
+    case japanese = "ドレミ"
+
+    var id: String { rawValue }
+}
+
+extension NoteNameNotation {
+    /*
+    音名文字列（例: "C", "G♭", "F♯"）を指定された表記法（英語/日本語）に変換する。
+
+    Arguments:
+    noteName
+      変換元の音名文字列（"C", "G♭", "A" など）。
+    notation
+      変換先の表記法（.english または .japanese）。
+
+    Usage:
+    五線譜、Tab譜、スケール指板の音名バッジ表示で呼び出される。
+    */
+
+    static func localizedNoteName(_ noteName: String, notation: NoteNameNotation) -> String {
+        guard notation == .japanese else { return noteName }
+
+        let mapping: [Character: String] = [
+            "C": "ド",
+            "D": "レ",
+            "E": "ミ",
+            "F": "ファ",
+            "G": "ソ",
+            "A": "ラ",
+            "B": "シ"
+        ]
+
+        var result = ""
+        for char in noteName {
+            if let jp = mapping[char] {
+                result += jp
+            } else {
+                result.append(char)
+            }
+        }
+        return result
+    }
+
+    /*
+    現在の端末言語設定が日本語であるかを判定する。
+
+    Arguments:
+    なし
+
+    Usage:
+    音名の「ドレミ」切替タップを日本語環境限定で有効化するために使用される。
+    */
+
+    static var isJapaneseLanguage: Bool {
+        if let preferred = Locale.preferredLanguages.first {
+            return preferred.hasPrefix("ja")
+        }
+        return Locale.current.language.languageCode?.identifier == "ja"
+    }
+}
+
 // MARK: - スケール情報モデル
 
 /*

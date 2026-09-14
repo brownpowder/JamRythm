@@ -17,6 +17,8 @@ struct StaffScoreView: View {
     let notes: [StaffNote]
     let chordName: String
 
+    @AppStorage("useJapaneseNoteNames") private var useJapaneseNoteNames: Bool = false
+
     var body: some View {
         VStack(spacing: 6) {
             staffCanvas
@@ -107,20 +109,39 @@ struct StaffScoreView: View {
     */
     
     private var noteNamesRow: some View {
-        HStack(spacing: 6) {
-            Text("Notes:")
-                .font(.caption2.bold())
-                .foregroundColor(.secondary)
-            ForEach(notes) { note in
-                Text(note.name)
-                    .font(.caption2.bold())
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Color.accentColor.opacity(0.15))
-                    .foregroundColor(.accentColor)
-                    .cornerRadius(4)
+        Button(action: {
+            guard NoteNameNotation.isJapaneseLanguage else { return }
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            withAnimation(.easeInOut(duration: 0.2)) {
+                useJapaneseNoteNames.toggle()
+            }
+        }) {
+            HStack(spacing: 6) {
+                HStack(spacing: 3) {
+                    Text("Notes:")
+                        .font(.caption2.bold())
+                        .foregroundColor(.secondary)
+                    if NoteNameNotation.isJapaneseLanguage {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                            .font(.system(size: 8, weight: .bold))
+                            .foregroundColor(.secondary.opacity(0.7))
+                    }
+                }
+
+                let notation: NoteNameNotation = (NoteNameNotation.isJapaneseLanguage && useJapaneseNoteNames) ? .japanese : .english
+                ForEach(notes) { note in
+                    Text(NoteNameNotation.localizedNoteName(note.name, notation: notation))
+                        .font(.caption2.bold())
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.accentColor.opacity(0.15))
+                        .foregroundColor(.accentColor)
+                        .cornerRadius(4)
+                }
             }
         }
+        .buttonStyle(.plain)
+        .disabled(!NoteNameNotation.isJapaneseLanguage)
     }
 
     // MARK: - 描画ヘルパー

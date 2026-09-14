@@ -16,14 +16,61 @@ import SwiftUI
 struct GuitarTabView: View {
     let voicing: GuitarVoicing
     let chordName: String
+    var notes: [StaffNote] = []
+
+    @AppStorage("useJapaneseNoteNames") private var useJapaneseNoteNames: Bool = false
 
     var body: some View {
-        fretboardCanvas
-            .frame(height: 190)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(uiColor: .tertiarySystemBackground))
-            )
+        VStack(spacing: 4) {
+            fretboardCanvas
+            if !notes.isEmpty {
+                noteNamesRow
+                    .padding(.bottom, 6)
+            }
+        }
+        .frame(height: 190)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color(uiColor: .tertiarySystemBackground))
+        )
+    }
+
+    // MARK: - 音名行
+
+    private var noteNamesRow: some View {
+        Button(action: {
+            guard NoteNameNotation.isJapaneseLanguage else { return }
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            withAnimation(.easeInOut(duration: 0.2)) {
+                useJapaneseNoteNames.toggle()
+            }
+        }) {
+            HStack(spacing: 6) {
+                HStack(spacing: 3) {
+                    Text("Notes:")
+                        .font(.caption2.bold())
+                        .foregroundColor(.secondary)
+                    if NoteNameNotation.isJapaneseLanguage {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                            .font(.system(size: 8, weight: .bold))
+                            .foregroundColor(.secondary.opacity(0.7))
+                    }
+                }
+
+                let notation: NoteNameNotation = (NoteNameNotation.isJapaneseLanguage && useJapaneseNoteNames) ? .japanese : .english
+                ForEach(notes) { note in
+                    Text(NoteNameNotation.localizedNoteName(note.name, notation: notation))
+                        .font(.caption2.bold())
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.accentColor.opacity(0.15))
+                        .foregroundColor(.accentColor)
+                        .cornerRadius(4)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .disabled(!NoteNameNotation.isJapaneseLanguage)
     }
 
     // MARK: - キャンバス描画

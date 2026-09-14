@@ -48,7 +48,7 @@ struct ScoreSegmentView: View {
             Group {
                 switch displayMode {
                 case .tab:
-                    GuitarTabView(voicing: voicing, chordName: chordName)
+                    GuitarTabView(voicing: voicing, chordName: chordName, notes: notes)
                 case .scale:
                     ScaleFretboardView(key: key, chord: chord, theoryService: theoryService)
                 case .staff:

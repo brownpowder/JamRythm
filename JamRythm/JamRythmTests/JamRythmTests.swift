@@ -1267,6 +1267,36 @@ struct JamRythmTests {
         #expect(scaleFm.scaleName != "A マイナーペンタ")
         #expect(scaleFm.scaleName.contains("F"))
     }
+
+    /*
+    音名変換（英語 CDE ⇔ 日本語 ドレミ）が正確に動作するかを検証する。
+    自然音および変化記号（♭, ♯）が正しくローカライズされることを確認する。
+    */
+    @Test func testLocalizedNoteNameConversion() async throws {
+        // 1. 英語表記（そのまま返ること）
+        #expect(NoteNameNotation.localizedNoteName("C", notation: .english) == "C")
+        #expect(NoteNameNotation.localizedNoteName("G♭", notation: .english) == "G♭")
+        #expect(NoteNameNotation.localizedNoteName("F♯", notation: .english) == "F♯")
+
+        // 2. 日本語（ドレミ）変換
+        #expect(NoteNameNotation.localizedNoteName("C", notation: .japanese) == "ド")
+        #expect(NoteNameNotation.localizedNoteName("D", notation: .japanese) == "レ")
+        #expect(NoteNameNotation.localizedNoteName("E", notation: .japanese) == "ミ")
+        #expect(NoteNameNotation.localizedNoteName("F", notation: .japanese) == "ファ")
+        #expect(NoteNameNotation.localizedNoteName("G", notation: .japanese) == "ソ")
+        #expect(NoteNameNotation.localizedNoteName("A", notation: .japanese) == "ラ")
+        #expect(NoteNameNotation.localizedNoteName("B", notation: .japanese) == "シ")
+
+        // 3. 変化記号付きの変換
+        #expect(NoteNameNotation.localizedNoteName("G♭", notation: .japanese) == "ソ♭")
+        #expect(NoteNameNotation.localizedNoteName("F♯", notation: .japanese) == "ファ♯")
+        #expect(NoteNameNotation.localizedNoteName("D♭", notation: .japanese) == "レ♭")
+
+        // 4. スケール構成音の変換（A マイナーペンタ: A, C, D, E, G -> ラ, ド, レ, ミ, ソ）
+        let aMinorPenta = ["A", "C", "D", "E", "G"]
+        let localizedPenta = aMinorPenta.map { NoteNameNotation.localizedNoteName($0, notation: .japanese) }
+        #expect(localizedPenta == ["ラ", "ド", "レ", "ミ", "ソ"])
+    }
 }
 
 
