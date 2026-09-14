@@ -248,7 +248,7 @@ final class AudioService: AudioServiceProtocol {
     private let theoryService: MusicTheoryServiceProtocol = MusicTheoryService()
 
     private(set) var playbackMode: PlaybackMode = .entireSong
-    private(set) var bassProgram: UInt8 = 0
+    private(set) var bassProgram: UInt8 = BassInstrument.dub.rawValue
     private(set) var drumProgram: UInt8 = 0
     private(set) var volume: Float = 0.8
     private(set) var drumVolume: Float = 0.8

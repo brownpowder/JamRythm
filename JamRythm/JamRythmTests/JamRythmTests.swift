@@ -591,10 +591,13 @@ struct JamRythmTests {
         let theoryService = MusicTheoryService()
         let viewModel = PlayEditorViewModel(audioService: audioService, theoryService: theoryService)
 
-        // 初期値はPop
+        // 初期値はPop（ドラム: Acoustic, ベース: Dub Sub）
         #expect(viewModel.selectedGenre == .pop)
         #expect(viewModel.project.genre == .pop)
         #expect(audioService.genre == .pop)
+        #expect(viewModel.selectedDrumInstrument == .acoustic)
+        #expect(viewModel.selectedBassInstrument == .dub)
+        #expect(audioService.bassProgram == BassInstrument.dub.rawValue)
 
         // Danceへ変更（ドラム: Electronic, ベース: Synth Saw）
         viewModel.changeGenre(.dance)
@@ -632,13 +635,14 @@ struct JamRythmTests {
         #expect(viewModel.selectedDrumInstrument == .acoustic)
         #expect(viewModel.selectedBassInstrument == .acoustic)
 
-        // Popへ変更（ドラム: Acoustic, ベース: Acoustic）
+        // Popへ変更（ドラム: Acoustic, ベース: Dub Sub）
         viewModel.changeGenre(.pop)
         #expect(viewModel.selectedGenre == .pop)
         #expect(viewModel.project.genre == .pop)
         #expect(audioService.genre == .pop)
         #expect(viewModel.selectedDrumInstrument == .acoustic)
-        #expect(viewModel.selectedBassInstrument == .acoustic)
+        #expect(viewModel.selectedBassInstrument == .dub)
+        #expect(audioService.bassProgram == BassInstrument.dub.rawValue)
     }
 
     /*

@@ -35,7 +35,7 @@ final class PlayEditorViewModel: ObservableObject {
     @Published var currentCandidates: [ChordCandidate] = []
     @Published var currentSubstituteCandidates: [SubstituteCandidate] = []
     @Published var selectedTemplate: ProgressionTemplate = .royalRoad
-    @Published var bassProgram: UInt8 = 0
+    @Published var bassProgram: UInt8 = BassInstrument.dub.rawValue
     @Published var drumProgram: UInt8 = 0
     @Published var volume: Float = 0.8
     @Published var drumVolume: Float = 0.8
@@ -48,7 +48,7 @@ final class PlayEditorViewModel: ObservableObject {
     @Published var isBassSolo: Bool = false
     @Published var isPianoSolo: Bool = false
     @Published var selectedDrumInstrument: DrumInstrument = .acoustic
-    @Published var selectedBassInstrument: BassInstrument = .acoustic
+    @Published var selectedBassInstrument: BassInstrument = .dub
     @Published var selectedGenre: MusicGenre = .pop
     @Published var isShowingMixer: Bool = false
     @Published var isShowingAddSectionSheet: Bool = false
@@ -95,7 +95,7 @@ final class PlayEditorViewModel: ObservableObject {
         self.isBassSolo = audio.bassIsSolo
         self.isPianoSolo = audio.pianoIsSolo
         self.selectedDrumInstrument = DrumInstrument(rawValue: audio.drumProgram) ?? .acoustic
-        self.selectedBassInstrument = BassInstrument(rawValue: audio.bassProgram) ?? .acoustic
+        self.selectedBassInstrument = BassInstrument(rawValue: audio.bassProgram) ?? .dub
 
         setupAudioEngine()
         bindAudioPosition()

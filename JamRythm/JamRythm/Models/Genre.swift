@@ -144,12 +144,12 @@ enum MusicGenre: String, CaseIterable, Identifiable, Codable {
 
     var defaultBassInstrument: BassInstrument {
         switch self {
-        case .pop, .rock:
+        case .pop, .lofi:
+            return .dub
+        case .rock:
             return .acoustic
         case .dance:
             return .synthSaw
-        case .lofi:
-            return .dub
         case .rAndB:
             return .synthSine
         }
