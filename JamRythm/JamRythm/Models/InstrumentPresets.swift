@@ -14,7 +14,7 @@ JamRythm.sf2（Bank 128）に収録されているドラム音色プリセット
 プログラム番号に対応し、表示名を提供する。
 */
 enum DrumInstrument: UInt8, CaseIterable, Identifiable {
-    case acoustic = 0
+    case acoustic = 33
     case electronic = 1
     case dub = 2
 
@@ -70,13 +70,14 @@ JamRythm.sf2（Bank 000）に収録されているベース音色プリセット
 プログラム番号に対応し、表示名を提供する。
 */
 enum BassInstrument: UInt8, CaseIterable, Identifiable {
-    case acoustic = 0
-    case dub = 1
-    case synthSaw = 2
-    case synthSine = 3
-    case synthSquare = 4
-    case synthTriangle = 5
-    case pizzicato = 6
+    case acoustic = 33
+    case pizzicato = 34
+    case dub = 35
+    case synthSaw = 36
+    case synthSine = 37
+    case synthSquare = 38
+    case synthTriangle = 39
+    
 
     var id: UInt8 { rawValue }
 
@@ -125,6 +126,54 @@ enum BassInstrument: UInt8, CaseIterable, Identifiable {
             return "guitars.fill"
         case .dub, .synthSaw, .synthSine, .synthSquare, .synthTriangle:
             return "waveform.path"
+        }
+    }
+}
+
+
+// MARK: - ピアノ・バッキング音色プリセット
+
+enum PianoInstrument: UInt8, CaseIterable, Identifiable {
+    case piano = 0
+    case ePiano1 = 1
+    case ePiano2 = 2
+    
+    var id: UInt8 { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .piano: return "Grand Piano"
+        case .ePiano1: return "E-Piano 1"
+        case .ePiano2: return "E-Piano 2"
+                }
+    }
+
+    var iconName: String {
+        switch self {
+        case .piano, .ePiano1, .ePiano2: return "pianokeys"
+                }
+    }
+}
+
+// MARK: - Lead音色プリセット
+
+enum LeadInstrument: UInt8, CaseIterable, Identifiable {
+    case guitar = 25
+    case piano = 0
+    
+    var id: UInt8 { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .guitar: return "Guitar"
+        case .piano: return "Grand Piano"
+            }
+    }
+
+    var iconName: String {
+        switch self {
+        case .guitar: return "guitars.fill"
+        case .piano: return "pianokeys"
         }
     }
 }

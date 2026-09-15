@@ -15,13 +15,19 @@ import Foundation
 enum ScaleType: String, Codable, CaseIterable, Identifiable {
     case pentatonic = "ペンタトニック"
     case diatonic = "ダイアトニック"
+    case blues = "ブルース"
+    case harmonicMinor = "ハーモニックマイナー"
+    case melodicMinor = "メロディックマイナー"
 
     var id: String { rawValue }
 
     var shortName: String {
         switch self {
         case .pentatonic: return "Penta (5音)"
-        case .diatonic: return "7音スケール"
+        case .diatonic: return "Diatonic (7音)"
+        case .blues: return "Blues (6音)"
+        case .harmonicMinor: return "Harmonic Minor"
+        case .melodicMinor: return "Melodic Minor"
         }
     }
 }
@@ -50,9 +56,10 @@ enum ScaleReferenceMode: String, Codable, CaseIterable, Identifiable {
 /*
 指板ダイアグラムで表示する弦の本数（6弦ギターまたは4弦ベース）。
 */
-enum FretboardInstrument: String, Codable, CaseIterable, Identifiable {
+enum ScaleInstrument: String, Codable, CaseIterable, Identifiable {
     case guitar = "6弦 (Guitar)"
     case bass = "4弦 (Bass)"
+    case piano = "鍵盤 (Piano)"
 
     var id: String { rawValue }
 
@@ -60,6 +67,7 @@ enum FretboardInstrument: String, Codable, CaseIterable, Identifiable {
         switch self {
         case .guitar: return "6弦 Guitar"
         case .bass: return "4弦 Bass"
+        case .piano: return "鍵盤 Piano"
         }
     }
 }
@@ -1723,18 +1731,28 @@ final class MusicTheoryService: MusicTheoryServiceProtocol {
         case .key:
             if scaleType == .pentatonic {
                 if isChordCompatibleWithMinorPenta(chord: chord, key: key) {
-                    // マイナーペンタで調和する場合: キーの平行調マイナーペンタを基本表示
                     let minorPenta = relativeMinorPentatonic(for: key)
                     semitones = minorPenta.semitones
                     scaleName = minorPenta.name
                 } else {
-                    // 合わないコード（E7, Fm等）: コードに合わせたスケール（コードスケール）を自動表示
                     let result = calculateChordScaleSemitonesAndName(chord: chord, scaleType: .diatonic)
                     semitones = result.semitones
                     scaleName = result.name
                 }
+            } else if scaleType == .blues {
+                if isChordCompatibleWithMinorPenta(chord: chord, key: key) {
+                    // Keyのマイナーブルース
+                    let relMinor = relativeMinorPentatonic(for: key)
+                    let rootSemitone = relMinor.semitones[0]
+                    semitones = [0, 3, 5, 6, 7, 10].map { (rootSemitone + $0) % 12 }
+                    scaleName = "\(Key.noteName(forSemitone: rootSemitone)) マイナーブルース"
+                } else {
+                    let result = calculateChordScaleSemitonesAndName(chord: chord, scaleType: .blues)
+                    semitones = result.semitones
+                    scaleName = result.name
+                }
             } else {
-                let result = calculateKeyScaleSemitonesAndName(key: key, scaleType: .diatonic)
+                let result = calculateKeyScaleSemitonesAndName(key: key, scaleType: scaleType)
                 semitones = result.semitones
                 scaleName = result.name
             }
@@ -1831,6 +1849,15 @@ final class MusicTheoryService: MusicTheoryServiceProtocol {
         case .diatonic:
             offsets = [0, 2, 4, 5, 7, 9, 11]
             typeName = "メジャースケール"
+        case .blues:
+            offsets = [0, 3, 4, 7, 9, 10]
+            typeName = "メジャーブルース"
+        case .harmonicMinor:
+            offsets = [0, 2, 3, 5, 7, 8, 11]
+            typeName = "ハーモニックマイナー"
+        case .melodicMinor:
+            offsets = [0, 2, 3, 5, 7, 9, 11]
+            typeName = "メロディックマイナー"
         }
 
         let semitones = offsets.map { (key.semitoneOffset + $0) % 12 }
@@ -1855,12 +1882,29 @@ final class MusicTheoryService: MusicTheoryServiceProtocol {
         scaleType: ScaleType
     ) -> (semitones: [Int], name: String) {
         let rootSemitone = Key.semitone(forNoteName: chord.rootNote)
-        let mode = chordScaleMode(for: chord.type)
-        let offsets = (scaleType == .pentatonic) ? mode.pentaOffsets : mode.diatonicOffsets
-        let modeName = (scaleType == .pentatonic) ? mode.pentaName : mode.diatonicName
-        let semitones = offsets.map { (rootSemitone + $0) % 12 }
-
-        return (semitones, "\(chord.rootNote) \(modeName)")
+        
+        switch scaleType {
+        case .blues:
+            let isMinor = chord.type.hasPrefix("m") && !chord.type.hasPrefix("maj")
+            let offsets = isMinor ? [0, 3, 5, 6, 7, 10] : [0, 3, 4, 7, 9, 10]
+            let modeName = isMinor ? "マイナーブルース" : "メジャーブルース"
+            let semitones = offsets.map { (rootSemitone + $0) % 12 }
+            return (semitones, "\(chord.rootNote) \(modeName)")
+        case .harmonicMinor:
+            let offsets = [0, 2, 3, 5, 7, 8, 11]
+            let semitones = offsets.map { (rootSemitone + $0) % 12 }
+            return (semitones, "\(chord.rootNote) ハーモニックマイナー")
+        case .melodicMinor:
+            let offsets = [0, 2, 3, 5, 7, 9, 11]
+            let semitones = offsets.map { (rootSemitone + $0) % 12 }
+            return (semitones, "\(chord.rootNote) メロディックマイナー")
+        default:
+            let mode = chordScaleMode(for: chord.type)
+            let offsets = (scaleType == .pentatonic) ? mode.pentaOffsets : mode.diatonicOffsets
+            let modeName = (scaleType == .pentatonic) ? mode.pentaName : mode.diatonicName
+            let semitones = offsets.map { (rootSemitone + $0) % 12 }
+            return (semitones, "\(chord.rootNote) \(modeName)")
+        }
     }
 
     /*
@@ -1932,7 +1976,7 @@ final class MusicTheoryService: MusicTheoryServiceProtocol {
         var result: [ScaleFretPosition] = []
 
         for (stringNum, openSemi) in openStrings {
-            for fret in 0...5 {
+            for fret in 0...15 {
                 let fretSemitone = (openSemi + fret) % 12
                 let isChordTone = chordToneSemitones.contains(fretSemitone)
                 let isRoot = (fretSemitone == chordRootSemitone)

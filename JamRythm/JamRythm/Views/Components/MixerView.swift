@@ -22,12 +22,13 @@ struct MixerView: View {
         NavigationStack {
             VStack(spacing: 16) {
                 // 3チャンネル・ストリップ（ドラム / ベース / ピアノ）
-                HStack(spacing: 10) {
+                HStack(spacing: 6) {
                     drumChannelStrip
                     bassChannelStrip
                     pianoChannelStrip
+                    leadChannelStrip
                 }
-                .padding(.horizontal, 12)
+                .padding(.horizontal, 8)
                 .padding(.top, 12)
 
                 Spacer(minLength: 8)
@@ -91,7 +92,7 @@ struct MixerView: View {
                 onToggleSolo: { viewModel.toggleDrumSolo() }
             )
         }
-        .padding(12)
+        .padding(8)
         .background(
             RoundedRectangle(cornerRadius: 18)
                 .fill(Color(uiColor: .secondarySystemGroupedBackground))
@@ -143,7 +144,7 @@ struct MixerView: View {
                 onToggleSolo: { viewModel.toggleBassSolo() }
             )
         }
-        .padding(12)
+        .padding(8)
         .background(
             RoundedRectangle(cornerRadius: 18)
                 .fill(Color(uiColor: .secondarySystemGroupedBackground))
@@ -170,7 +171,7 @@ struct MixerView: View {
                     .font(.headline)
                     .foregroundColor(.teal)
 
-                Text("PIANO")
+                Text("CHORD")
                     .font(.headline.bold())
                     .foregroundColor(.primary)
             }
@@ -195,7 +196,7 @@ struct MixerView: View {
                 onToggleSolo: { viewModel.togglePianoSolo() }
             )
         }
-        .padding(12)
+        .padding(8)
         .background(
             RoundedRectangle(cornerRadius: 18)
                 .fill(Color(uiColor: .secondarySystemGroupedBackground))
@@ -306,6 +307,53 @@ struct MixerView: View {
         .frame(maxWidth: .infinity)
         .background(Color(uiColor: .tertiarySystemFill))
         .cornerRadius(8)
+    }
+
+    // MARK: - リードチャンネル・ストリップ
+    private var leadChannelStrip: some View {
+        VStack(spacing: 12) {
+            HStack(spacing: 6) {
+                Image(systemName: "music.note")
+                    .font(.headline)
+                    .foregroundColor(.orange)
+                Text("LEAD")
+                    .font(.headline.bold())
+                    .foregroundColor(.primary)
+            }
+            .padding(.bottom, 36)
+
+            HStack(spacing: 4) {
+                Text(viewModel.selectedLeadInstrument.displayName)
+                    .font(.caption.bold())
+                    .lineLimit(1)
+                    .foregroundColor(.primary)
+            }
+            .padding(.horizontal, 6)
+            .padding(.vertical, 6)
+            .frame(maxWidth: .infinity)
+            .background(Color(uiColor: .tertiarySystemFill))
+            .cornerRadius(8)
+
+            MixerFaderView(
+                valueText: "\(Int(viewModel.leadVolume * 100))%",
+                progress: Double(viewModel.leadVolume),
+                onProgressChange: { newProgress in
+                    viewModel.changeLeadVolume(Float(newProgress))
+                }
+            )
+
+            muteAndSoloButtons(
+                isMuted: viewModel.isLeadMuted,
+                isSolo: viewModel.isLeadSolo,
+                onToggleMute: { viewModel.toggleLeadMute() },
+                onToggleSolo: { viewModel.toggleLeadSolo() }
+            )
+        }
+        .padding(8)
+        .background(
+            RoundedRectangle(cornerRadius: 18)
+                .fill(Color(uiColor: .secondarySystemGroupedBackground))
+        )
     }
 
     // MARK: - MUTE & SOLO ボタン

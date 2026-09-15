@@ -154,4 +154,50 @@ enum MusicGenre: String, CaseIterable, Identifiable, Codable {
             return .synthSine
         }
     }
+    
+    // MARK: - 推奨プレイヤー
+    
+    var recommendedDrumPlayer: DrumPlayer {
+        switch self {
+        case .pop, .dance: return .standard
+        case .rock: return .mark
+        case .lofi, .rAndB: return .leo
+        }
+    }
+    
+    var recommendedBassPlayer: BassPlayer {
+        switch self {
+        case .pop, .dance: return .standard
+        case .rock: return .kr
+        case .lofi, .rAndB: return .akiko
+        }
+    }
+    
+    var recommendedPianoPlayer: PianoPlayer {
+        switch self {
+        case .pop, .rock, .dance: return .emi
+        case .lofi, .rAndB: return .jazzCat
+        }
+    }
+    
+
+    var defaultPianoInstrument: PianoInstrument {
+        switch self {
+        case .pop: return .piano
+        case .rock: return .piano
+        case .dance: return .ePiano1
+        case .lofi: return .ePiano2
+        case .rAndB: return .ePiano1
+        }
+    }
+
+    var defaultTempo: Double {
+        switch self {
+        case .pop: return 120.0
+        case .rock: return 140.0
+        case .dance: return 128.0
+        case .lofi: return 85.0
+        case .rAndB: return 95.0
+        }
+    }
 }

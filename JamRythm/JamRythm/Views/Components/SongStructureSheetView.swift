@@ -17,7 +17,7 @@ struct SongStructureSheetView: View {
     @ObservedObject var viewModel: PlayEditorViewModel
     @Environment(\.dismiss) private var dismiss
 
-    @State private var selectedCategory: SongStructureCategory = .oneChorus
+    @State private var selectedCategory: SongStructureCategory = .fullSong
 
     private var filteredStructures: [SongStructureTemplate] {
         SongStructureTemplate.allStructures.filter { $0.category == selectedCategory }

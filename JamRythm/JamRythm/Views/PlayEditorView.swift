@@ -18,6 +18,7 @@ import SwiftUI
 @MainActor
 struct PlayEditorView: View {
     @StateObject private var viewModel: PlayEditorViewModel
+    @State private var isShowingSettings = false
 
     init(viewModel: PlayEditorViewModel? = nil) {
         _viewModel = StateObject(wrappedValue: viewModel ?? PlayEditorViewModel())
@@ -67,7 +68,8 @@ struct PlayEditorView: View {
                         chordName: viewModel.currentChord.displayString,
                         key: viewModel.project.key,
                         chord: viewModel.currentChord,
-                        theoryService: viewModel.theoryService
+                        theoryService: viewModel.theoryService,
+                        audioService: viewModel.audioService
                     )
 
                     // 3. 進行・セクション＆小節コード一覧（セクション追加・編集・全曲構成）
@@ -144,6 +146,9 @@ struct PlayEditorView: View {
                 Text(viewModel.errorMessage ?? "")
             }
         }
+        .sheet(isPresented: $isShowingSettings) {
+            SettingsView()
+        }
     }
 
     // MARK: - 固定ヘッダーサブビュー
@@ -167,6 +172,15 @@ struct PlayEditorView: View {
 
             // ジャンル選択ボタン（Genre名 + アイコン + 下矢印）
             genreMenuButton
+            
+            // 設定ボタン
+            Button(action: {
+                isShowingSettings = true
+            }) {
+                Image(systemName: "gearshape.fill")
+                    .font(.title3)
+                    .foregroundColor(.secondary)
+            }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)

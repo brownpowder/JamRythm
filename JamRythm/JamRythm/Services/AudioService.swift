@@ -46,6 +46,29 @@ struct PlaybackPosition: Equatable {
     }
 }
 
+
+// MARK: - プレイヤー文脈データ
+
+/*
+セクションや小節の進行状況を各Playerに伝えるためのコンテキスト。
+*/
+struct PlayerContext {
+    let sectionType: SectionType
+    let measureIndex: Int
+    let totalMeasures: Int
+    let isFirstMeasure: Bool
+    let isLastMeasure: Bool
+    let songLoopCount: Int
+    
+    var phraseIndex: Int {
+        return measureIndex / 4
+    }
+    
+    var isFillTiming: Bool {
+        return isLastMeasure || (measureIndex > 0 && (measureIndex + 1) % 4 == 0)
+    }
+}
+
 // MARK: - オーディオサービス・プロトコル
 
 /*
@@ -211,6 +234,15 @@ protocol AudioServiceProtocol: AnyObject {
     */
 
     func playChordNotes(_ notes: [UInt8])
+
+    func setLeadInstrument(_ instrument: LeadInstrument)
+    var leadVolume: Float { get }
+    func setLeadVolume(_ volume: Float)
+    var leadIsMuted: Bool { get }
+    func setLeadMuted(_ isMuted: Bool)
+    var leadIsSolo: Bool { get }
+    func setLeadSolo(_ isSolo: Bool)
+    func playPreviewNote(_ midiNote: UInt8, instrument: ScaleInstrument)
 }
 
 // MARK: - オーディオサービス・実装クラス
@@ -261,6 +293,13 @@ final class AudioService: AudioServiceProtocol {
     private(set) var bassIsSolo: Bool = false
     private(set) var pianoIsSolo: Bool = false
 
+    private let leadSampler = AVAudioUnitSampler()
+    private let leadMixer = AVAudioMixerNode()
+    private(set) var leadProgram: UInt8 = 25
+    private(set) var leadVolume: Float = 0.8
+    private(set) var leadIsMuted: Bool = false
+    private(set) var leadIsSolo: Bool = false
+
     private(set) var genre: MusicGenre = .pop
 
     private var activeBassNote: UInt8?
@@ -302,9 +341,11 @@ final class AudioService: AudioServiceProtocol {
         audioEngine.attach(drumSampler)
         audioEngine.attach(bassSampler)
         audioEngine.attach(pianoSampler)
+        audioEngine.attach(leadSampler)
         audioEngine.attach(drumMixer)
         audioEngine.attach(bassMixer)
         audioEngine.attach(pianoMixer)
+        audioEngine.attach(leadMixer)
         audioEngine.attach(rhythmMixer)
         audioEngine.attach(equalizer)
 
@@ -330,9 +371,11 @@ final class AudioService: AudioServiceProtocol {
         audioEngine.connect(drumSampler, to: drumMixer, format: nil)
         audioEngine.connect(bassSampler, to: bassMixer, format: nil)
         audioEngine.connect(pianoSampler, to: pianoMixer, format: nil)
+        audioEngine.connect(leadSampler, to: leadMixer, format: nil)
         audioEngine.connect(drumMixer, to: rhythmMixer, format: nil)
         audioEngine.connect(bassMixer, to: rhythmMixer, format: nil)
         audioEngine.connect(pianoMixer, to: mainMixer, format: nil)
+        audioEngine.connect(leadMixer, to: mainMixer, format: nil)
         audioEngine.connect(rhythmMixer, to: equalizer, format: nil)
         audioEngine.connect(equalizer, to: mainMixer, format: nil)
     }
@@ -386,6 +429,7 @@ final class AudioService: AudioServiceProtocol {
         loadBassInstrument(sf2Url: sf2Url)
         loadDrumInstrument(sf2Url: sf2Url)
         loadPianoInstrument(sf2Url: sf2Url)
+            loadLeadInstrument(sf2Url: sf2Url)
     }
 
     /*
@@ -398,6 +442,18 @@ final class AudioService: AudioServiceProtocol {
     Usage:
     loadSoundFontIfAvailableから呼び出される。
     */
+
+
+    private func loadLeadInstrument(sf2Url: URL) {
+        do {
+            try leadSampler.loadSoundBankInstrument(
+                at: sf2Url,
+                program: leadProgram,
+                bankMSB: UInt8(kAUSampler_DefaultMelodicBankMSB),
+                bankLSB: 0
+            )
+        } catch {}
+    }
 
     private func loadPianoInstrument(sf2Url: URL) {
         do {
@@ -588,19 +644,22 @@ final class AudioService: AudioServiceProtocol {
     */
 
     private func updateEffectiveVolumes() {
-        let hasAnySolo = drumIsSolo || bassIsSolo || pianoIsSolo
+        let hasAnySolo = drumIsSolo || bassIsSolo || pianoIsSolo || leadIsSolo
 
         let drumAudible = hasAnySolo ? (drumIsSolo && !drumIsMuted) : !drumIsMuted
         let bassAudible = hasAnySolo ? (bassIsSolo && !bassIsMuted) : !bassIsMuted
         let pianoAudible = hasAnySolo ? (pianoIsSolo && !pianoIsMuted) : !pianoIsMuted
+        let leadAudible = hasAnySolo ? (leadIsSolo && !leadIsMuted) : !leadIsMuted
 
         let effDrumVol = drumAudible ? drumVolume : 0.0
         let effBassVol = bassAudible ? bassVolume : 0.0
         let effPianoVol = pianoAudible ? pianoVolume : 0.0
+        let effLeadVol = leadAudible ? leadVolume : 0.0
 
         drumMixer.outputVolume = effDrumVol
         bassMixer.outputVolume = effBassVol
         pianoMixer.outputVolume = effPianoVol
+        leadMixer.outputVolume = effLeadVol
 
         // サンプラーノード自体のボリュームも直接同期
         drumSampler.volume = effDrumVol
@@ -621,6 +680,7 @@ final class AudioService: AudioServiceProtocol {
             stopActivePlaybackPianoNotes()
             for note in activePianoNotes {
                 pianoSampler.stopNote(note, onChannel: 0)
+                leadSampler.stopNote(note, onChannel: 0)
             }
             activePianoNotes.removeAll()
             pianoReleaseTask?.cancel()
@@ -1205,8 +1265,9 @@ final class AudioService: AudioServiceProtocol {
         if step == 0 {
             stopActivePlaybackPianoNotes()
 
-            let hasAnySolo = drumIsSolo || bassIsSolo || pianoIsSolo
+            let hasAnySolo = drumIsSolo || bassIsSolo || pianoIsSolo || leadIsSolo
             let pianoAudible = hasAnySolo ? (pianoIsSolo && !pianoIsMuted) : !pianoIsMuted
+        let leadAudible = hasAnySolo ? (leadIsSolo && !leadIsMuted) : !leadIsMuted
             guard pianoAudible && pianoVolume > 0.01 else { return }
 
             let chord = measures[measureIndex].activeChord
@@ -1238,6 +1299,7 @@ final class AudioService: AudioServiceProtocol {
     private func stopActivePlaybackPianoNotes() {
         for note in activePlaybackPianoNotes {
             pianoSampler.stopNote(note, onChannel: 0)
+                leadSampler.stopNote(note, onChannel: 0)
         }
         activePlaybackPianoNotes.removeAll()
     }
@@ -1261,6 +1323,7 @@ final class AudioService: AudioServiceProtocol {
         pianoReleaseTask?.cancel()
         for note in activePianoNotes {
             pianoSampler.stopNote(note, onChannel: 0)
+                leadSampler.stopNote(note, onChannel: 0)
         }
         activePianoNotes.removeAll()
     }
@@ -1276,17 +1339,50 @@ final class AudioService: AudioServiceProtocol {
     ユーザーがコードカードや候補をタップした際の試聴再生で使用される。
     */
 
+
+    func setLeadInstrument(_ instrument: LeadInstrument) {
+        self.leadProgram = instrument.rawValue
+        if let sf2Url = soundFontURL { loadLeadInstrument(sf2Url: sf2Url) }
+    }
+    
+    func setLeadVolume(_ volume: Float) {
+        let clamped = max(0.0, min(1.0, volume))
+        self.leadVolume = clamped
+        updateEffectiveVolumes()
+    }
+    
+    func setLeadMuted(_ isMuted: Bool) {
+        self.leadIsMuted = isMuted
+        updateEffectiveVolumes()
+    }
+    
+    func setLeadSolo(_ isSolo: Bool) {
+        self.leadIsSolo = isSolo
+        updateEffectiveVolumes()
+    }
+    
+    func playPreviewNote(_ midiNote: UInt8, instrument: ScaleInstrument) {
+        if !audioEngine.isRunning { try? audioEngine.start() }
+        let sampler = instrument == .piano ? leadSampler : (instrument == .bass ? bassSampler : leadSampler)
+        sampler.startNote(midiNote, withVelocity: 105, onChannel: 0)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak sampler] in
+            sampler?.stopNote(midiNote, onChannel: 0)
+        }
+    }
+
     func playChordNotes(_ notes: [UInt8]) {
         pianoReleaseTask?.cancel()
         for note in activePianoNotes {
             pianoSampler.stopNote(note, onChannel: 0)
+                leadSampler.stopNote(note, onChannel: 0)
         }
         activePianoNotes = notes
 
         guard !notes.isEmpty else { return }
 
-        let hasAnySolo = drumIsSolo || bassIsSolo || pianoIsSolo
+        let hasAnySolo = drumIsSolo || bassIsSolo || pianoIsSolo || leadIsSolo
         let pianoAudible = hasAnySolo ? (pianoIsSolo && !pianoIsMuted) : !pianoIsMuted
+        let leadAudible = hasAnySolo ? (leadIsSolo && !leadIsMuted) : !leadIsMuted
         guard pianoAudible && pianoVolume > 0.01 else { return }
 
         if !audioEngine.isRunning {
@@ -1306,6 +1402,7 @@ final class AudioService: AudioServiceProtocol {
             guard let self = self, !Task.isCancelled else { return }
             for note in currentNotes {
                 self.pianoSampler.stopNote(note, onChannel: 0)
+                leadSampler.stopNote(note, onChannel: 0)
             }
             if self.activePianoNotes == currentNotes {
                 self.activePianoNotes.removeAll()

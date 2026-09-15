@@ -30,6 +30,7 @@ struct ScoreSegmentView: View {
     var key: Key = .C
     var chord: Chord = Chord(rootNote: "C", type: "", bassNote: nil)
     var theoryService: MusicTheoryServiceProtocol = MusicTheoryService()
+    var audioService: AudioServiceProtocol? = nil
 
     @State private var displayMode: ScoreDisplayMode = .tab
 
@@ -51,7 +52,7 @@ struct ScoreSegmentView: View {
                     let voicings = theoryService.guitarVoicings(for: chord)
                     GuitarTabView(voicings: voicings.isEmpty ? [voicing] : voicings, chordName: chordName, notes: notes)
                 case .scale:
-                    ScaleFretboardView(key: key, chord: chord, theoryService: theoryService)
+                    ScaleFretboardView(key: key, chord: chord, theoryService: theoryService, audioService: audioService)
                 case .staff:
                     StaffScoreView(notes: notes, chordName: chordName)
                 }

@@ -16,11 +16,13 @@ struct SongStructureSection: Identifiable, Equatable {
     let id: UUID
     let type: SectionType
     let template: ProgressionTemplate
+    let repeatCount: Int
 
-    init(id: UUID = UUID(), type: SectionType, template: ProgressionTemplate) {
+    init(id: UUID = UUID(), type: SectionType, template: ProgressionTemplate, repeatCount: Int = 1) {
         self.id = id
         self.type = type
         self.template = template
+        self.repeatCount = repeatCount
     }
 }
 
@@ -48,9 +50,9 @@ enum SongStructureCategory: String, CaseIterable, Identifiable {
     var description: String {
         switch self {
         case .oneChorus:
-            return "Introからサビまで、アイデアスケッチやループに最適な16小節構成"
+            return "Introからサビまで、アイデアスケッチやループに最適な48小節構成"
         case .fullSong:
-            return "Intro〜A/B〜サビ〜間奏〜ラスサビ〜Outroまで展開する24〜28小節構成"
+            return "Intro〜A/B〜サビ〜間奏〜ラスサビ〜Outroまで展開する24〜48小節構成"
         }
     }
 }
@@ -105,7 +107,7 @@ struct SongStructureTemplate: Identifiable, Equatable {
     */
 
     var totalMeasures: Int {
-        sections.reduce(0) { $0 + $1.template.degrees.count }
+        sections.reduce(0) { $0 + ($1.template.degrees.count * $1.repeatCount) }
     }
 
     // MARK: - プリセット一覧
@@ -113,17 +115,17 @@ struct SongStructureTemplate: Identifiable, Equatable {
     static let jpopOneChorus = SongStructureTemplate(
         id: "jpop_one_chorus",
         name: "J-POP 王道1コーラス",
-        description: "Introからサビまで駆け抜ける、日本のポップス・アニソン定番の16小節構成",
+        description: "Introからサビまで駆け抜ける、日本のポップス・アニソン定番の48小節構成",
         iconName: "crown.fill",
         genreTag: "1コーラス・16小節",
         category: .oneChorus,
         recommendedGenre: .pop,
         recommendedBpm: 128.0,
         sections: [
-            SongStructureSection(type: .intro, template: .royalRoad),
-            SongStructureSection(type: .verseA, template: .popPunk),
-            SongStructureSection(type: .verseB, template: .justTheTwoOfUs),
-            SongStructureSection(type: .chorus, template: .fourFiveSix)
+            SongStructureSection(type: .intro, template: .royalRoad, repeatCount: 1),
+            SongStructureSection(type: .verseA, template: .popPunk, repeatCount: 2),
+            SongStructureSection(type: .verseB, template: .justTheTwoOfUs, repeatCount: 2),
+            SongStructureSection(type: .chorus, template: .fourFiveSix, repeatCount: 2)
         ]
     )
 
@@ -137,13 +139,13 @@ struct SongStructureTemplate: Identifiable, Equatable {
         recommendedGenre: .pop,
         recommendedBpm: 125.0,
         sections: [
-            SongStructureSection(type: .intro, template: .canonShort),
-            SongStructureSection(type: .verseA, template: .komuro),
-            SongStructureSection(type: .verseB, template: .justTheTwoOfUs),
-            SongStructureSection(type: .chorus, template: .royalRoad),
-            SongStructureSection(type: .bridge, template: .twoFiveOne),
-            SongStructureSection(type: .chorus, template: .fourFiveSix),
-            SongStructureSection(type: .outro, template: .canonShort)
+            SongStructureSection(type: .intro, template: .canonShort, repeatCount: 1),
+            SongStructureSection(type: .verseA, template: .komuro, repeatCount: 2),
+            SongStructureSection(type: .verseB, template: .justTheTwoOfUs, repeatCount: 2),
+            SongStructureSection(type: .chorus, template: .royalRoad, repeatCount: 2),
+            SongStructureSection(type: .bridge, template: .twoFiveOne, repeatCount: 2),
+            SongStructureSection(type: .chorus, template: .fourFiveSix, repeatCount: 2),
+            SongStructureSection(type: .outro, template: .canonShort, repeatCount: 1)
         ]
     )
 
@@ -157,84 +159,84 @@ struct SongStructureTemplate: Identifiable, Equatable {
         recommendedGenre: .lofi,
         recommendedBpm: 84.0,
         sections: [
-            SongStructureSection(type: .intro, template: .justTheTwoOfUs),
-            SongStructureSection(type: .verseA, template: .justTheTwoOfUs),
-            SongStructureSection(type: .bridge, template: .twoFiveOne),
-            SongStructureSection(type: .outro, template: .justTheTwoOfUs)
+            SongStructureSection(type: .intro, template: .justTheTwoOfUs, repeatCount: 1),
+            SongStructureSection(type: .verseA, template: .justTheTwoOfUs, repeatCount: 2),
+            SongStructureSection(type: .bridge, template: .twoFiveOne, repeatCount: 2),
+            SongStructureSection(type: .outro, template: .justTheTwoOfUs, repeatCount: 1)
         ]
     )
 
     static let neoSoulFullSong = SongStructureTemplate(
         id: "neo_soul_full_song",
         name: "Neo-Soul / Lo-Fi フルジャーニー",
-        description: "チルなIntroから丸サのA/Bメロ、ジャジーなCメロを経て心地よく展開する28小節構成",
+        description: "チルなIntroから丸サのA/Bメロ、ジャジーなCメロを経て心地よく展開する48小節構成",
         iconName: "headphones",
         genreTag: "フル構成・28小節",
         category: .fullSong,
         recommendedGenre: .lofi,
         recommendedBpm: 82.0,
         sections: [
-            SongStructureSection(type: .intro, template: .justTheTwoOfUs),
-            SongStructureSection(type: .verseA, template: .justTheTwoOfUs),
-            SongStructureSection(type: .verseB, template: .twoFiveOne),
-            SongStructureSection(type: .chorus, template: .justTheTwoOfUs),
-            SongStructureSection(type: .bridge, template: .andalusia),
-            SongStructureSection(type: .chorus, template: .twoFiveOne),
-            SongStructureSection(type: .outro, template: .justTheTwoOfUs)
+            SongStructureSection(type: .intro, template: .justTheTwoOfUs, repeatCount: 1),
+            SongStructureSection(type: .verseA, template: .justTheTwoOfUs, repeatCount: 2),
+            SongStructureSection(type: .verseB, template: .twoFiveOne, repeatCount: 2),
+            SongStructureSection(type: .chorus, template: .justTheTwoOfUs, repeatCount: 2),
+            SongStructureSection(type: .bridge, template: .andalusia, repeatCount: 2),
+            SongStructureSection(type: .chorus, template: .twoFiveOne, repeatCount: 2),
+            SongStructureSection(type: .outro, template: .justTheTwoOfUs, repeatCount: 1)
         ]
     )
 
     static let rockAnthem = SongStructureTemplate(
         id: "rock_anthem",
         name: "Rock / Pop-Punk アンセム",
-        description: "力強い疾走感とサビの爆発力を持つ、ロックやパンクに最適な16小節構成",
+        description: "力強い疾走感とサビの爆発力を持つ、ロックやパンクに最適な48小節構成",
         iconName: "flame.fill",
         genreTag: "Rock・16小節",
         category: .oneChorus,
         recommendedGenre: .rock,
         recommendedBpm: 160.0,
         sections: [
-            SongStructureSection(type: .intro, template: .popPunk),
-            SongStructureSection(type: .verseA, template: .popPunk),
-            SongStructureSection(type: .chorus, template: .fourFiveSix),
-            SongStructureSection(type: .outro, template: .popPunk)
+            SongStructureSection(type: .intro, template: .popPunk, repeatCount: 1),
+            SongStructureSection(type: .verseA, template: .popPunk, repeatCount: 2),
+            SongStructureSection(type: .chorus, template: .fourFiveSix, repeatCount: 2),
+            SongStructureSection(type: .outro, template: .popPunk, repeatCount: 1)
         ]
     )
 
     static let rockFullSong = SongStructureTemplate(
         id: "rock_full_song",
         name: "Rock エナジックフル構成",
-        description: "激しいIntroから小室Aメロ、疾走サビ、泣きのギターソロCメロへと駆け抜ける28小節構成",
+        description: "激しいIntroから小室Aメロ、疾走サビ、泣きのギターソロCメロへと駆け抜ける48小節構成",
         iconName: "bolt.fill",
         genreTag: "フル構成・28小節",
         category: .fullSong,
         recommendedGenre: .rock,
         recommendedBpm: 155.0,
         sections: [
-            SongStructureSection(type: .intro, template: .popPunk),
-            SongStructureSection(type: .verseA, template: .komuro),
-            SongStructureSection(type: .verseB, template: .fourFiveSix),
-            SongStructureSection(type: .chorus, template: .royalRoad),
-            SongStructureSection(type: .bridge, template: .popPunk),
-            SongStructureSection(type: .chorus, template: .fourFiveSix),
-            SongStructureSection(type: .outro, template: .popPunk)
+            SongStructureSection(type: .intro, template: .popPunk, repeatCount: 1),
+            SongStructureSection(type: .verseA, template: .komuro, repeatCount: 2),
+            SongStructureSection(type: .verseB, template: .fourFiveSix, repeatCount: 2),
+            SongStructureSection(type: .chorus, template: .royalRoad, repeatCount: 2),
+            SongStructureSection(type: .bridge, template: .popPunk, repeatCount: 2),
+            SongStructureSection(type: .chorus, template: .fourFiveSix, repeatCount: 2),
+            SongStructureSection(type: .outro, template: .popPunk, repeatCount: 1)
         ]
     )
 
     static let classicBallad = SongStructureTemplate(
         id: "classic_ballad",
         name: "50s オールディーズ / バラード",
-        description: "スタンド・バイ・ミー進行を軸にした、時代を超えて愛されるレトロで心温まる16小節構成",
+        description: "スタンド・バイ・ミー進行を軸にした、時代を超えて愛されるレトロで心温まる48小節構成",
         iconName: "guitars.fill",
         genreTag: "バラード・16小節",
         category: .oneChorus,
         recommendedGenre: .pop,
         recommendedBpm: 116.0,
         sections: [
-            SongStructureSection(type: .verseA, template: .standByMe),
-            SongStructureSection(type: .verseB, template: .standByMe),
-            SongStructureSection(type: .bridge, template: .royalRoad),
-            SongStructureSection(type: .outro, template: .standByMe)
+            SongStructureSection(type: .verseA, template: .standByMe, repeatCount: 2),
+            SongStructureSection(type: .verseB, template: .standByMe, repeatCount: 2),
+            SongStructureSection(type: .bridge, template: .royalRoad, repeatCount: 2),
+            SongStructureSection(type: .outro, template: .standByMe, repeatCount: 1)
         ]
     )
 
@@ -283,7 +285,7 @@ struct SongStructureTemplate: Identifiable, Equatable {
             sections = generateSectionsForFullSong()
             totalBars = 28
             title = "\(genre.rawValue) ランダム フル構成"
-            desc = "A/BメロからCメロ・ラスサビまで、\(genre.rawValue)の起承転結をドラマチックに紡ぐ28小節構成"
+            desc = "A/BメロからCメロ・ラスサビまで、\(genre.rawValue)の起承転結をドラマチックに紡ぐ48小節構成"
         }
 
         return SongStructureTemplate(
@@ -321,10 +323,10 @@ struct SongStructureTemplate: Identifiable, Equatable {
         let chorus = chorusPool.randomElement() ?? .fourFiveSix
 
         return [
-            SongStructureSection(type: .intro, template: intro),
-            SongStructureSection(type: .verseA, template: verseA),
-            SongStructureSection(type: .verseB, template: verseB),
-            SongStructureSection(type: .chorus, template: chorus)
+            SongStructureSection(type: .intro, template: intro, repeatCount: 1),
+            SongStructureSection(type: .verseA, template: verseA, repeatCount: 2),
+            SongStructureSection(type: .verseB, template: verseB, repeatCount: 2),
+            SongStructureSection(type: .chorus, template: chorus, repeatCount: 2)
         ]
     }
 
@@ -355,13 +357,13 @@ struct SongStructureTemplate: Identifiable, Equatable {
         let outro = outroPool.randomElement() ?? .canonShort
 
         return [
-            SongStructureSection(type: .intro, template: intro),
-            SongStructureSection(type: .verseA, template: verseA),
-            SongStructureSection(type: .verseB, template: verseB),
-            SongStructureSection(type: .chorus, template: chorus1),
-            SongStructureSection(type: .bridge, template: bridge),
-            SongStructureSection(type: .chorus, template: chorus2),
-            SongStructureSection(type: .outro, template: outro)
+            SongStructureSection(type: .intro, template: intro, repeatCount: 1),
+            SongStructureSection(type: .verseA, template: verseA, repeatCount: 2),
+            SongStructureSection(type: .verseB, template: verseB, repeatCount: 2),
+            SongStructureSection(type: .chorus, template: chorus1, repeatCount: 2),
+            SongStructureSection(type: .bridge, template: bridge, repeatCount: 2), // Cメロ
+            SongStructureSection(type: .chorus, template: chorus2, repeatCount: 2),
+            SongStructureSection(type: .outro, template: outro, repeatCount: 1)
         ]
     }
 

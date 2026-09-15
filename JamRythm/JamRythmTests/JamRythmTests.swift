@@ -646,6 +646,57 @@ struct JamRythmTests {
     }
 
     /*
+    Player（ドラム・ベース・ピアノ）の各モデルがFree/Premiumフラグを正しく持っているか検証する。
+    */
+    @Test func testJamPlayerModelsAttributes() async throws {
+        // Drum
+        #expect(DrumPlayer.rhythmMachine.isPremium == false)
+        #expect(DrumPlayer.mark.isPremium == true)
+        
+        // Bass
+        #expect(BassPlayer.rhythmMachine.isPremium == false)
+        #expect(BassPlayer.akiko.isPremium == true)
+        
+        // Piano
+        #expect(PianoPlayer.rhythmMachine.isPremium == false)
+        #expect(PianoPlayer.emi.isPremium == true)
+        
+        for player in DrumPlayer.allCases {
+            #expect(!player.displayName.isEmpty)
+            #expect(!player.description.isEmpty)
+        }
+    }
+
+    /*
+    ViewModelでPlayerを変更した際に、ViewModel内部状態およびAudioServiceへ即時反映されることを検証する。
+    */
+    @Test @MainActor func testPlayerSelectionAndAudioServiceSync() async throws {
+        let audioService = AudioService()
+        let theoryService = MusicTheoryService()
+        let viewModel = PlayEditorViewModel(audioService: audioService, theoryService: theoryService)
+
+        // 初期値
+        #expect(viewModel.selectedDrumPlayer == .rhythmMachine)
+        #expect(audioService.selectedDrumPlayer == .rhythmMachine)
+        #expect(viewModel.selectedBassPlayer == .rhythmMachine)
+        #expect(audioService.selectedBassPlayer == .rhythmMachine)
+
+        // 変更
+        viewModel.changeDrumPlayer(.mark)
+        viewModel.changeBassPlayer(.akiko)
+        viewModel.changePianoPlayer(.emi)
+
+        #expect(viewModel.selectedDrumPlayer == .mark)
+        #expect(audioService.selectedDrumPlayer == .mark)
+        
+        #expect(viewModel.selectedBassPlayer == .akiko)
+        #expect(audioService.selectedBassPlayer == .akiko)
+        
+        #expect(viewModel.selectedPianoPlayer == .emi)
+        #expect(audioService.selectedPianoPlayer == .emi)
+    }
+
+    /*
     拡張されたコード進行テンプレート（王道、丸サ、小室、カノン、ポップパンク、2-5-1、4-5-6、スタンドバイミー、アンダルシア、カノン短縮の全10種類）の属性とローマ数字変換を検証する。
     */
     @Test func testProgressionTemplatesAttributes() async throws {
@@ -663,7 +714,7 @@ struct JamRythmTests {
         }
 
         // ポップパンク (1-5-6-4)
-        #expect(ProgressionTemplate.popPunk.degrees == [1, 5, 6, 4])
+        #expect(ProgressionTemplate.popPunk.degrees == [1, 5, 6, 4, 1, 5, 6, 4])
         #expect(ProgressionTemplate.popPunk.romanDegrees == ["I", "V", "VI", "IV"])
 
         // 2-5-1 (2-5-1-6)
@@ -671,7 +722,7 @@ struct JamRythmTests {
         #expect(ProgressionTemplate.twoFiveOne.romanDegrees == ["II", "V", "I", "VI"])
 
         // 4-5-6 (4-5-6-6)
-        #expect(ProgressionTemplate.fourFiveSix.degrees == [4, 5, 6, 6])
+        #expect(ProgressionTemplate.fourFiveSix.degrees == [4, 5, 6, 6, 4, 5, 6, 6])
         #expect(ProgressionTemplate.fourFiveSix.romanDegrees == ["IV", "V", "VI", "VI"])
     }
 
@@ -694,7 +745,7 @@ struct JamRythmTests {
         viewModel.addSection(template: .popPunk)
         #expect(viewModel.project.sections.count == 2)
         #expect(viewModel.project.sections[1].measures.count == 4)
-        #expect(viewModel.project.sections[1].measures.map { $0.baseDegree } == [1, 5, 6, 4])
+        #expect(viewModel.project.sections[1].measures.map { $0.baseDegree } == [1, 5, 6, 4, 1, 5, 6, 4])
 
         // 2-5-1進行でセクション追加
         viewModel.addSection(template: .twoFiveOne)
@@ -729,7 +780,7 @@ struct JamRythmTests {
         viewModel.sectionIndexForProgressionChange = nil
 
         // セクション0の進行が丸サ進行に更新されていること
-        #expect(viewModel.project.sections[0].measures.map { $0.baseDegree } == [4, 3, 6, 1])
+        #expect(viewModel.project.sections[0].measures.map { $0.baseDegree } == [4, 3, 6, 1, 4, 3, 6, 1])
         #expect(viewModel.sectionIndexForProgressionChange == nil)
     }
 
@@ -765,24 +816,24 @@ struct JamRythmTests {
         #expect(fullSongList.count == 3)
 
         // 小節数計算の検証
-        #expect(SongStructureTemplate.jpopOneChorus.totalMeasures == 16)
-        #expect(SongStructureTemplate.jpopFullSong.totalMeasures == 28)
-        #expect(SongStructureTemplate.neoSoulGroove.totalMeasures == 16)
-        #expect(SongStructureTemplate.neoSoulFullSong.totalMeasures == 28)
-        #expect(SongStructureTemplate.rockAnthem.totalMeasures == 16)
-        #expect(SongStructureTemplate.rockFullSong.totalMeasures == 28)
-        #expect(SongStructureTemplate.classicBallad.totalMeasures == 16)
+        #expect(SongStructureTemplate.jpopOneChorus.totalMeasures == 48)
+        #expect(SongStructureTemplate.jpopFullSong.totalMeasures == 48)
+        #expect(SongStructureTemplate.neoSoulGroove.totalMeasures == 24)
+        #expect(SongStructureTemplate.neoSoulFullSong.totalMeasures == 48)
+        #expect(SongStructureTemplate.rockAnthem.totalMeasures == 24)
+        #expect(SongStructureTemplate.rockFullSong.totalMeasures == 48)
+        #expect(SongStructureTemplate.classicBallad.totalMeasures == 48)
 
         // ランダム生成ロジックの検証
         let randomOneChorus = SongStructureTemplate.generateRandom(category: .oneChorus, baseGenre: .pop)
         #expect(randomOneChorus.category == .oneChorus)
-        #expect(randomOneChorus.totalMeasures == 16)
+        #expect(randomOneChorus.totalMeasures == 48)
         #expect(randomOneChorus.sections.count == 4)
         #expect(randomOneChorus.recommendedGenre == .pop)
 
         let randomFullSong = SongStructureTemplate.generateRandom(category: .fullSong, baseGenre: .rock)
         #expect(randomFullSong.category == .fullSong)
-        #expect(randomFullSong.totalMeasures == 28)
+        #expect(randomFullSong.totalMeasures == 48)
         #expect(randomFullSong.sections.count == 7)
         #expect(randomFullSong.recommendedGenre == .rock)
 
@@ -813,17 +864,17 @@ struct JamRythmTests {
         // Intro: 王道 (4-5-3-6)
         #expect(viewModel.project.sections[0].measures.map { $0.baseDegree } == [4, 5, 3, 6])
         // Aメロ: ポップパンク (1-5-6-4)
-        #expect(viewModel.project.sections[1].measures.map { $0.baseDegree } == [1, 5, 6, 4])
+        #expect(viewModel.project.sections[1].measures.map { $0.baseDegree } == [1, 5, 6, 4, 1, 5, 6, 4])
         // Bメロ: 丸サ (4-3-6-1)
-        #expect(viewModel.project.sections[2].measures.map { $0.baseDegree } == [4, 3, 6, 1])
+        #expect(viewModel.project.sections[2].measures.map { $0.baseDegree } == [4, 3, 6, 1, 4, 3, 6, 1])
         // サビ: 4-5-6 (4-5-6-6)
-        #expect(viewModel.project.sections[3].measures.map { $0.baseDegree } == [4, 5, 6, 6])
+        #expect(viewModel.project.sections[3].measures.map { $0.baseDegree } == [4, 5, 6, 6, 4, 5, 6, 6])
 
         // J-POP フル構成を適用 (28小節・7セクション)
         viewModel.applySongStructure(.jpopFullSong)
         #expect(viewModel.project.sections.count == 7)
         let totalMeasures = viewModel.project.sections.reduce(0) { $0 + $1.measures.count }
-        #expect(totalMeasures == 28)
+        #expect(totalMeasures == 48)
         #expect(viewModel.project.sections.map { $0.type } == [.intro, .verseA, .verseB, .chorus, .bridge, .chorus, .outro])
         #expect(viewModel.project.bpm == 125.0)
         #expect(audioService.bpm == 125.0)
@@ -831,11 +882,11 @@ struct JamRythmTests {
         // ランダム楽曲生成のViewModel適用検証
         viewModel.generateAndApplyRandomSongStructure(category: .oneChorus)
         #expect(viewModel.project.sections.count == 4)
-        #expect(viewModel.project.sections.reduce(0) { $0 + $1.measures.count } == 16)
+        #expect(viewModel.project.sections.reduce(0) { $0 + $1.measures.count } == 28)
 
         viewModel.generateAndApplyRandomSongStructure(category: .fullSong)
         #expect(viewModel.project.sections.count == 7)
-        #expect(viewModel.project.sections.reduce(0) { $0 + $1.measures.count } == 28)
+        #expect(viewModel.project.sections.reduce(0) { $0 + $1.measures.count } == 48)
 
         // Lo-Fiジャムを適用（ジャンル & テンポ連動検証）
         viewModel.applySongStructure(.neoSoulGroove)

@@ -21,7 +21,7 @@ final class PlayEditorViewModel: ObservableObject {
     private let logger = Logger(subsystem: "com.budou-design.JamRythm", category: "PlayEditorViewModel")
 
     // MARK: - 依存サービス
-    private let audioService: AudioServiceProtocol
+    let audioService: AudioServiceProtocol
     let theoryService: MusicTheoryServiceProtocol
     private var cancellables = Set<AnyCancellable>()
 
@@ -47,6 +47,12 @@ final class PlayEditorViewModel: ObservableObject {
     @Published var isDrumSolo: Bool = false
     @Published var isBassSolo: Bool = false
     @Published var isPianoSolo: Bool = false
+
+    @Published var leadVolume: Float = 0.8
+    @Published var isLeadMuted: Bool = false
+    @Published var isLeadSolo: Bool = false
+    @Published var selectedLeadInstrument: LeadInstrument = .guitar
+
     @Published var selectedDrumInstrument: DrumInstrument = .acoustic
     @Published var selectedBassInstrument: BassInstrument = .dub
     @Published var selectedGenre: MusicGenre = .pop
@@ -94,6 +100,11 @@ final class PlayEditorViewModel: ObservableObject {
         self.isDrumSolo = audio.drumIsSolo
         self.isBassSolo = audio.bassIsSolo
         self.isPianoSolo = audio.pianoIsSolo
+
+        self.leadVolume = audio.leadVolume
+        self.isLeadMuted = audio.leadIsMuted
+        self.isLeadSolo = audio.leadIsSolo
+
         self.selectedDrumInstrument = DrumInstrument(rawValue: audio.drumProgram) ?? .acoustic
         self.selectedBassInstrument = BassInstrument(rawValue: audio.bassProgram) ?? .dub
 
@@ -1097,4 +1108,28 @@ final class PlayEditorViewModel: ObservableObject {
             sections: [section]
         )
     }
+
+    func changeLeadVolume(_ newVolume: Float) {
+        let clamped = max(0.0, min(1.0, newVolume))
+        self.leadVolume = clamped
+        audioService.setLeadVolume(clamped)
+    }
+
+    func toggleLeadMute() {
+        let next = !isLeadMuted
+        self.isLeadMuted = next
+        audioService.setLeadMuted(next)
+    }
+
+    func toggleLeadSolo() {
+        let next = !isLeadSolo
+        self.isLeadSolo = next
+        audioService.setLeadSolo(next)
+    }
+
+    func selectLeadInstrument(_ instrument: LeadInstrument) {
+        self.selectedLeadInstrument = instrument
+        audioService.setLeadInstrument(instrument)
+    }
+
 }
