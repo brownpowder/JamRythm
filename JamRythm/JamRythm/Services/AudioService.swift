@@ -665,15 +665,18 @@ final class AudioService: AudioServiceProtocol {
         drumSampler.volume = effDrumVol
         bassSampler.volume = effBassVol
         pianoSampler.volume = effPianoVol
+        leadSampler.volume = effLeadVol
 
         // MIDI CC 7 (Volume) も送信してSoundFont音源内部ゲインを確実に反映
         let drumMidiVol = UInt8(max(0, min(127, Int(effDrumVol * 127))))
         let bassMidiVol = UInt8(max(0, min(127, Int(effBassVol * 127))))
         let pianoMidiVol = UInt8(max(0, min(127, Int(effPianoVol * 127))))
+        let leadMidiVol = UInt8(max(0, min(127, Int(effLeadVol * 127))))
 
         drumSampler.sendController(7, withValue: drumMidiVol, onChannel: 0)
         bassSampler.sendController(7, withValue: bassMidiVol, onChannel: 0)
         pianoSampler.sendController(7, withValue: pianoMidiVol, onChannel: 0)
+        leadSampler.sendController(7, withValue: leadMidiVol, onChannel: 0)
 
         // ピアノが非可聴または音量ゼロの場合、発音中のピアノ音を即時消音
         if effPianoVol < 0.01 {

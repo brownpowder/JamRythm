@@ -21,12 +21,40 @@ struct MixerView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 16) {
-                // 3チャンネル・ストリップ（ドラム / ベース / ピアノ）
+                                // 4チャンネル・ストリップ
                 HStack(spacing: 6) {
-                    drumChannelStrip
-                    bassChannelStrip
-                    pianoChannelStrip
-                    leadChannelStrip
+                    channelStrip(
+                        title: "DRUM", iconName: "music.note", iconColor: .accentColor,
+                        volume: viewModel.drumVolume, isMuted: viewModel.isDrumMuted, isSolo: viewModel.isDrumSolo,
+                        onVolumeChange: { v in viewModel.changeDrumVolume(v) },
+                        onToggleMute: viewModel.toggleDrumMute,
+                        onToggleSolo: viewModel.toggleDrumSolo,
+                        instrumentMenu: { drumInstrumentMenu }
+                    )
+                    channelStrip(
+                        title: "BASS", iconName: "guitars", iconColor: .purple,
+                        volume: viewModel.bassVolume, isMuted: viewModel.isBassMuted, isSolo: viewModel.isBassSolo,
+                        onVolumeChange: { v in viewModel.changeBassVolume(v) },
+                        onToggleMute: viewModel.toggleBassMute,
+                        onToggleSolo: viewModel.toggleBassSolo,
+                        instrumentMenu: { bassInstrumentMenu }
+                    )
+                    channelStrip(
+                        title: "CHORD", iconName: "pianokeys", iconColor: .teal,
+                        volume: viewModel.pianoVolume, isMuted: viewModel.isPianoMuted, isSolo: viewModel.isPianoSolo,
+                        onVolumeChange: { v in viewModel.changePianoVolume(v) },
+                        onToggleMute: viewModel.togglePianoMute,
+                        onToggleSolo: viewModel.togglePianoSolo,
+                        instrumentMenu: { pianoInstrumentBadge }
+                    )
+                    channelStrip(
+                        title: "LEAD", iconName: "music.note", iconColor: .orange,
+                        volume: viewModel.leadVolume, isMuted: viewModel.isLeadMuted, isSolo: viewModel.isLeadSolo,
+                        onVolumeChange: { v in viewModel.changeLeadVolume(v) },
+                        onToggleMute: viewModel.toggleLeadMute,
+                        onToggleSolo: viewModel.toggleLeadSolo,
+                        instrumentMenu: { leadInstrumentMenu }
+                    )
                 }
                 .padding(.horizontal, 8)
                 .padding(.top, 12)
@@ -47,49 +75,42 @@ struct MixerView: View {
         }
     }
 
-    // MARK: - ドラムチャンネル・ストリップ
-
-    /*
-    ドラム専用のチャンネルストリップ（音色選択、縦フェーダー、MUTE/SOLO）を描画する。
-
-    Arguments:
-    なし
-
-    Usage:
-    ミキサー画面の左列に配置される。
-    */
-
-    private var drumChannelStrip: some View {
+    
+    private func channelStrip<InstrumentMenu: View>(
+        title: String,
+        iconName: String,
+        iconColor: Color,
+        volume: Float,
+        isMuted: Bool,
+        isSolo: Bool,
+        onVolumeChange: @escaping (Float) -> Void,
+        onToggleMute: @escaping () -> Void,
+        onToggleSolo: @escaping () -> Void,
+        @ViewBuilder instrumentMenu: () -> InstrumentMenu
+    ) -> some View {
         VStack(spacing: 12) {
-            // トラックヘッダー
             HStack(spacing: 6) {
-                Image(systemName: "music.note")
+                Image(systemName: iconName)
                     .font(.headline)
-                    .foregroundColor(.accentColor)
-
-                Text("DRUM")
+                    .foregroundColor(iconColor)
+                Text(title)
                     .font(.headline.bold())
                     .foregroundColor(.primary)
             }
-
-            // 音色プリセット選択メニュー
-            drumInstrumentMenu
-
-            // 縦フェーダー
+            
+            instrumentMenu()
+            
             MixerFaderView(
-                valueText: "\(Int(viewModel.drumVolume * 100))%",
-                progress: Double(viewModel.drumVolume),
-                onProgressChange: { newProgress in
-                    viewModel.changeDrumVolume(Float(newProgress))
-                }
+                valueText: "\(Int(volume * 100))%",
+                progress: Double(volume),
+                onProgressChange: { newProgress in onVolumeChange(Float(newProgress)) }
             )
-
-            // MUTE & SOLO ボタン
+            
             muteAndSoloButtons(
-                isMuted: viewModel.isDrumMuted,
-                isSolo: viewModel.isDrumSolo,
-                onToggleMute: { viewModel.toggleDrumMute() },
-                onToggleSolo: { viewModel.toggleDrumSolo() }
+                isMuted: isMuted,
+                isSolo: isSolo,
+                onToggleMute: onToggleMute,
+                onToggleSolo: onToggleSolo
             )
         }
         .padding(8)
@@ -99,109 +120,6 @@ struct MixerView: View {
         )
     }
 
-    // MARK: - ベースチャンネル・ストリップ
-
-    /*
-    ベース専用のチャンネルストリップ（音色選択、縦フェーダー、MUTE/SOLO）を描画する。
-
-    Arguments:
-    なし
-
-    Usage:
-    ミキサー画面の中央列に配置される。
-    */
-
-    private var bassChannelStrip: some View {
-        VStack(spacing: 12) {
-            // トラックヘッダー
-            HStack(spacing: 6) {
-                Image(systemName: "guitars.fill")
-                    .font(.headline)
-                    .foregroundColor(.orange)
-
-                Text("BASS")
-                    .font(.headline.bold())
-                    .foregroundColor(.primary)
-            }
-
-            // 音色プリセット選択メニュー
-            bassInstrumentMenu
-
-            // 縦フェーダー
-            MixerFaderView(
-                valueText: "\(Int(viewModel.bassVolume * 100))%",
-                progress: Double(viewModel.bassVolume),
-                onProgressChange: { newProgress in
-                    viewModel.changeBassVolume(Float(newProgress))
-                }
-            )
-
-            // MUTE & SOLO ボタン
-            muteAndSoloButtons(
-                isMuted: viewModel.isBassMuted,
-                isSolo: viewModel.isBassSolo,
-                onToggleMute: { viewModel.toggleBassMute() },
-                onToggleSolo: { viewModel.toggleBassSolo() }
-            )
-        }
-        .padding(8)
-        .background(
-            RoundedRectangle(cornerRadius: 18)
-                .fill(Color(uiColor: .secondarySystemGroupedBackground))
-        )
-    }
-
-    // MARK: - ピアノチャンネル・ストリップ
-
-    /*
-    ピアノ専用のチャンネルストリップ（音色表示、縦フェーダー、MUTE/SOLO）を描画する。
-
-    Arguments:
-    なし
-
-    Usage:
-    ミキサー画面の右列に配置される。
-    */
-
-    private var pianoChannelStrip: some View {
-        VStack(spacing: 12) {
-            // トラックヘッダー
-            HStack(spacing: 6) {
-                Image(systemName: "pianokeys")
-                    .font(.headline)
-                    .foregroundColor(.teal)
-
-                Text("CHORD")
-                    .font(.headline.bold())
-                    .foregroundColor(.primary)
-            }
-
-            // 音色バッジ表示
-            pianoInstrumentBadge
-
-            // 縦フェーダー
-            MixerFaderView(
-                valueText: "\(Int(viewModel.pianoVolume * 100))%",
-                progress: Double(viewModel.pianoVolume),
-                onProgressChange: { newProgress in
-                    viewModel.changePianoVolume(Float(newProgress))
-                }
-            )
-
-            // MUTE & SOLO ボタン
-            muteAndSoloButtons(
-                isMuted: viewModel.isPianoMuted,
-                isSolo: viewModel.isPianoSolo,
-                onToggleMute: { viewModel.togglePianoMute() },
-                onToggleSolo: { viewModel.togglePianoSolo() }
-            )
-        }
-        .padding(8)
-        .background(
-            RoundedRectangle(cornerRadius: 18)
-                .fill(Color(uiColor: .secondarySystemGroupedBackground))
-        )
-    }
 
     // MARK: - 音色選択メニュー & バッジ
 
@@ -309,52 +227,37 @@ struct MixerView: View {
         .cornerRadius(8)
     }
 
-    // MARK: - リードチャンネル・ストリップ
-    private var leadChannelStrip: some View {
-        VStack(spacing: 12) {
-            HStack(spacing: 6) {
-                Image(systemName: "music.note")
-                    .font(.headline)
-                    .foregroundColor(.orange)
-                Text("LEAD")
-                    .font(.headline.bold())
-                    .foregroundColor(.primary)
+    
+    private var leadInstrumentMenu: some View {
+        Menu {
+            ForEach(LeadInstrument.allCases) { instrument in
+                Button(action: { viewModel.selectLeadInstrument(instrument) }) {
+                    if instrument == viewModel.selectedLeadInstrument {
+                        Label(instrument.displayName, systemImage: "checkmark")
+                    } else {
+                        Text(instrument.displayName)
+                    }
+                }
             }
-            .padding(.bottom, 36)
-
+        } label: {
             HStack(spacing: 4) {
                 Text(viewModel.selectedLeadInstrument.displayName)
                     .font(.caption.bold())
                     .lineLimit(1)
                     .foregroundColor(.primary)
+
+                Image(systemName: "chevron.down")
+                    .font(.caption2.bold())
+                    .foregroundColor(.secondary)
             }
             .padding(.horizontal, 6)
             .padding(.vertical, 6)
             .frame(maxWidth: .infinity)
             .background(Color(uiColor: .tertiarySystemFill))
             .cornerRadius(8)
-
-            MixerFaderView(
-                valueText: "\(Int(viewModel.leadVolume * 100))%",
-                progress: Double(viewModel.leadVolume),
-                onProgressChange: { newProgress in
-                    viewModel.changeLeadVolume(Float(newProgress))
-                }
-            )
-
-            muteAndSoloButtons(
-                isMuted: viewModel.isLeadMuted,
-                isSolo: viewModel.isLeadSolo,
-                onToggleMute: { viewModel.toggleLeadMute() },
-                onToggleSolo: { viewModel.toggleLeadSolo() }
-            )
         }
-        .padding(8)
-        .background(
-            RoundedRectangle(cornerRadius: 18)
-                .fill(Color(uiColor: .secondarySystemGroupedBackground))
-        )
     }
+
 
     // MARK: - MUTE & SOLO ボタン
 
