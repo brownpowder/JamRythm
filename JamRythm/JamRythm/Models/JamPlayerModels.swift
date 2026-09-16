@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 
 // MARK: - Protocols
 
@@ -359,5 +360,23 @@ struct PlayerChemistry: Identifiable, Equatable {
             return allChemistries.first(where: { $0.id == "royal_pop" })
         }
         return nil
+    }
+}
+
+import SwiftUI
+
+class StoreManager: ObservableObject {
+    @Published var isPremium: Bool = false
+    
+    // シミュレーターでのテスト用にトグルするためのメソッド
+    func togglePremium() {
+        isPremium.toggle()
+    }
+    
+    // 将来的にStoreKitを実装する想定
+    func purchasePremium() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            self.isPremium = true
+        }
     }
 }
