@@ -89,124 +89,98 @@ class StandardDrummer: DrumPlayerEngine {
     }
 }
 
-class MarkDrummer: DrumPlayerEngine {
-    func evaluate(step: Int, context: PlayerContext, genre: MusicGenre) -> [NoteEvent] {
-        var notes = [NoteEvent]()
+class MarkDrummer: BaseDrumPlayerEngine {
+    override var velocityHumanizeRange: Int { return 10 }
+    
+    override func pattern(for genre: MusicGenre, variation: Int, step: Int, context: PlayerContext) -> [NoteEvent] {
+        var events = [NoteEvent]()
         
-        if context.sectionType == .intro {
-            if context.isLastMeasure && step >= 4 {
-                notes.append(NoteEvent(note: 38, velocity: UInt8(80 + (step - 4) * 10)))
-            }
-            return notes
-        }
-
-        let isFill = context.isFillTiming
-        if isFill && step >= 4 {
-            let seed = context.songLoopCount + context.phraseIndex
-            let fillType = seed % 3
-            if fillType == 0 {
-                switch step {
-                case 4: notes.append(NoteEvent(note: 48, velocity: 110))
-                case 5: notes.append(NoteEvent(note: 47, velocity: 110))
-                case 6: notes.append(NoteEvent(note: 45, velocity: 110))
-                case 7: notes.append(NoteEvent(note: 43, velocity: 115))
-                default: break
-                }
-            } else if fillType == 1 {
-                notes.append(NoteEvent(note: 38, velocity: UInt8(80 + (step - 4) * 10)))
+        // Mark (Standard Rock/Pop)
+        switch genre {
+        case .rock:
+            if variation == 0 {
+                if step % 2 == 0 { events.append(NoteEvent(note: 42, velocity: 90)) } // 8th hat
+                if step == 0 || step == 4 { events.append(NoteEvent(note: 36, velocity: 100)) }
+                if step == 2 || step == 6 { events.append(NoteEvent(note: 38, velocity: 110)) }
+            } else if variation == 1 {
+                if step % 2 == 0 { events.append(NoteEvent(note: 42, velocity: 90)) }
+                if step == 0 || step == 3 || step == 4 { events.append(NoteEvent(note: 36, velocity: 100)) }
+                if step == 2 || step == 6 { events.append(NoteEvent(note: 38, velocity: 110)) }
             } else {
-                if step == 4 || step == 7 {
-                    notes.append(NoteEvent(note: 36, velocity: 115))
-                    notes.append(NoteEvent(note: 49, velocity: 110))
-                } else if step == 6 {
-                    notes.append(NoteEvent(note: 38, velocity: 120))
-                }
+                if step % 4 == 0 { events.append(NoteEvent(note: 51, velocity: 95)) } // Ride
+                if step == 0 || step == 5 { events.append(NoteEvent(note: 36, velocity: 100)) }
+                if step == 2 || step == 6 { events.append(NoteEvent(note: 38, velocity: 110)) }
             }
-            return notes
-        }
-        
-        if step == 0 && (context.isFirstMeasure || context.sectionType == .chorus) {
-            notes.append(NoteEvent(note: 49, velocity: 120))
-            notes.append(NoteEvent(note: 36, velocity: 120))
-            return notes
-        }
-        
-        // Groove Variation based on loopCount
-        let grooveSeed = context.songLoopCount % 2
-        
-        let hiHatVelocity: UInt8 = (step % 2 == 0) ? 110 : 90
-        let hatNote: UInt8 = context.sectionType == .chorus ? 51 : 42
-        
-        if grooveSeed == 1 && context.sectionType == .chorus && step == 3 {
-            // ブレイク（休符）のバリエーション
-            return notes
-        }
-        
-        notes.append(NoteEvent(note: hatNote, velocity: hiHatVelocity))
-
-        switch step {
-        case 0, 4:
-            notes.append(NoteEvent(note: 36, velocity: 115))
-        case 2, 6:
-            notes.append(NoteEvent(note: 38, velocity: 120))
-        case 3:
-            notes.append(NoteEvent(note: 38, velocity: 70))
         default:
-            break
+            // 他のジャンルでも比較的パワフルに叩く
+            if variation == 0 {
+                if step % 2 == 0 { events.append(NoteEvent(note: 42, velocity: 85)) }
+                if step == 0 { events.append(NoteEvent(note: 36, velocity: 95)) }
+                if step == 4 { events.append(NoteEvent(note: 38, velocity: 105)) }
+            } else {
+                if step % 2 == 0 { events.append(NoteEvent(note: 42, velocity: 85)) }
+                if step == 0 || step == 3 { events.append(NoteEvent(note: 36, velocity: 95)) }
+                if step == 4 { events.append(NoteEvent(note: 38, velocity: 105)) }
+            }
         }
-        
-        return notes
+        return events
+    }
+    
+    override func signatureFill(genre: MusicGenre, variation: Int, step: Int, context: PlayerContext) -> [NoteEvent]? {
+        var events = [NoteEvent]()
+        if step == 4 { events.append(NoteEvent(note: 38, velocity: 110)) }
+        if step == 5 { events.append(NoteEvent(note: 38, velocity: 100)) }
+        if step == 6 { events.append(NoteEvent(note: 47, velocity: 105)) }
+        if step == 7 { events.append(NoteEvent(note: 43, velocity: 110)) }
+        return events
     }
 }
 
-class LeoDrummer: DrumPlayerEngine {
-    func evaluate(step: Int, context: PlayerContext, genre: MusicGenre) -> [NoteEvent] {
-        var notes = [NoteEvent]()
+class LeoDrummer: BaseDrumPlayerEngine {
+    override var velocityHumanizeRange: Int { return 12 } // ゴーストノート多めのためブレ幅大
+    
+    override func pattern(for genre: MusicGenre, variation: Int, step: Int, context: PlayerContext) -> [NoteEvent] {
+        var events = [NoteEvent]()
         
-        if context.sectionType == .intro {
-            if step % 2 == 0 {
-                notes.append(NoteEvent(note: 42, velocity: 60))
-            }
-            if context.isLastMeasure && step >= 6 {
-                notes.append(NoteEvent(note: 38, velocity: 95))
-            }
-            return notes
-        }
-
-        let isFill = context.isFillTiming
-        if isFill && step >= 6 {
-            let seed = context.songLoopCount + context.phraseIndex
-            let fillType = seed % 2
-            if fillType == 0 {
-                let vel: UInt8 = (step == 6) ? 70 : 110
-                notes.append(NoteEvent(note: 38, velocity: vel))
+        switch genre {
+        case .dance, .pop:
+            // ファンク/R&BドラマーのLeoは、裏拍やゴーストノートを多用する
+            if variation == 0 {
+                events.append(NoteEvent(note: 42, velocity: step % 2 == 0 ? 95 : 60)) // 16th feel
+                if step == 0 { events.append(NoteEvent(note: 36, velocity: 100)) }
+                if step == 4 { events.append(NoteEvent(note: 38, velocity: 110)) }
+                if step == 3 || step == 7 { events.append(NoteEvent(note: 36, velocity: 70)) }
+            } else if variation == 1 {
+                events.append(NoteEvent(note: 42, velocity: step % 2 == 0 ? 95 : 60))
+                if step == 0 || step == 3 { events.append(NoteEvent(note: 36, velocity: 100)) }
+                if step == 4 { events.append(NoteEvent(note: 38, velocity: 110)) }
+                if step == 6 { events.append(NoteEvent(note: 38, velocity: 65)) } // ゴーストスネア
             } else {
-                if step == 6 {
-                    notes.append(NoteEvent(note: 38, velocity: 105))
-                } else if step == 7 {
-                    notes.append(NoteEvent(note: 46, velocity: 95))
-                }
+                if step % 4 == 0 { events.append(NoteEvent(note: 46, velocity: 85)) } // オープンハット
+                if step == 0 || step == 5 { events.append(NoteEvent(note: 36, velocity: 100)) }
+                if step == 4 { events.append(NoteEvent(note: 38, velocity: 110)) }
             }
-            return notes
-        }
-
-        let hiHatVelocity: UInt8 = [95, 60, 105, 50, 95, 60, 105, 50][step]
-        notes.append(NoteEvent(note: 42, velocity: hiHatVelocity))
-
-        switch step {
-        case 0:
-            notes.append(NoteEvent(note: 36, velocity: 110))
-        case 2, 6:
-            notes.append(NoteEvent(note: 38, velocity: 105))
-        case 3:
-            notes.append(NoteEvent(note: 36, velocity: 95))
-        case 5, 7:
-            notes.append(NoteEvent(note: 38, velocity: 65))
         default:
-            break
+            if variation == 0 {
+                events.append(NoteEvent(note: 42, velocity: 85))
+                if step == 0 { events.append(NoteEvent(note: 36, velocity: 90)) }
+                if step == 4 { events.append(NoteEvent(note: 38, velocity: 100)) }
+                if step == 5 || step == 7 { events.append(NoteEvent(note: 38, velocity: 50)) } // スネアゴースト
+            } else {
+                events.append(NoteEvent(note: 42, velocity: 85))
+                if step == 0 || step == 3 { events.append(NoteEvent(note: 36, velocity: 90)) }
+                if step == 4 { events.append(NoteEvent(note: 38, velocity: 100)) }
+            }
         }
-        
-        return notes
+        return events
+    }
+    
+    override func signatureFill(genre: MusicGenre, variation: Int, step: Int, context: PlayerContext) -> [NoteEvent]? {
+        var events = [NoteEvent]()
+        if step == 4 || step == 5 { events.append(NoteEvent(note: 38, velocity: 95)) }
+        if step == 6 { events.append(NoteEvent(note: 36, velocity: 100)) } // キックを混ぜるフィル
+        if step == 7 { events.append(NoteEvent(note: 46, velocity: 90)) } // オープンハット
+        return events
     }
 }
 

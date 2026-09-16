@@ -5,6 +5,48 @@
 
 import Foundation
 
+class BasePianoPlayerEngine: PianoPlayerEngine {
+    var velocityHumanizeRange: Int { return 5 }
+    
+    func evaluate(step: Int, chordNotes: [UInt8], context: PlayerContext, genre: MusicGenre) -> [NoteEvent] {
+        guard !chordNotes.isEmpty else { return [] }
+        let variation = (context.songLoopCount + context.phraseIndex) % 3
+        
+        // フィルイン
+        if context.isFillTiming && step >= 6 {
+            if let fill = signatureFill(chordNotes: chordNotes, genre: genre, variation: variation, step: step, context: context) {
+                return applyHumanize(events: fill)
+            }
+        }
+        
+        let baseEvents = pattern(for: genre, variation: variation, step: step, chordNotes: chordNotes, context: context)
+        return applyHumanize(events: baseEvents)
+    }
+    
+    func pattern(for genre: MusicGenre, variation: Int, step: Int, chordNotes: [UInt8], context: PlayerContext) -> [NoteEvent] {
+        // デフォルトパターン（スタンダードピアノと同じ）
+        var notes = [NoteEvent]()
+        if step == 0 {
+            for note in chordNotes { notes.append(NoteEvent(note: note, velocity: 85)) }
+        }
+        return notes
+    }
+    
+    func signatureFill(chordNotes: [UInt8], genre: MusicGenre, variation: Int, step: Int, context: PlayerContext) -> [NoteEvent]? {
+        return nil
+    }
+    
+    private func applyHumanize(events: [NoteEvent]) -> [NoteEvent] {
+        guard velocityHumanizeRange > 0 else { return events }
+        return events.map { event in
+            let drift = Int.random(in: -velocityHumanizeRange...velocityHumanizeRange)
+            let newVel = UInt8(max(1, min(127, Int(event.velocity) + drift)))
+            return NoteEvent(note: event.note, velocity: newVel)
+        }
+    }
+}
+
+
 class RhythmMachinePianist: PianoPlayerEngine {
     func evaluate(step: Int, chordNotes: [UInt8], context: PlayerContext, genre: MusicGenre) -> [NoteEvent] {
         if step == 0 {
@@ -32,120 +74,122 @@ class StandardPianist: PianoPlayerEngine {
     }
 }
 
-class EmiPianist: PianoPlayerEngine {
-    func evaluate(step: Int, chordNotes: [UInt8], context: PlayerContext, genre: MusicGenre) -> [NoteEvent] {
-        var notes = [NoteEvent]()
-        
-        if context.sectionType == .intro {
-            if step == 0 { notes = chordNotes.map { NoteEvent(note: $0, velocity: 75) } }
-            return notes
-        }
-        
-        let seed = context.songLoopCount + context.phraseIndex
-        let variation = seed % 2
-
-        switch context.sectionType {
-        case .verseA:
-            if step == 0 { notes = chordNotes.map { NoteEvent(note: $0, velocity: 80) } }
-        case .verseB:
-            if variation == 0 {
-                if step == 2 || step == 6 { notes = chordNotes.map { NoteEvent(note: $0, velocity: 85, isShortRelease: true) } }
-            } else {
-                if step == 3 || step == 6 { notes = chordNotes.map { NoteEvent(note: $0, velocity: 85, isShortRelease: true) } }
-            }
-        case .chorus:
-            if variation == 0 {
-                if step == 0 { notes = chordNotes.map { NoteEvent(note: $0, velocity: 100) } }
-                if step == 3 || step == 6 { notes = chordNotes.map { NoteEvent(note: $0, velocity: 90, isShortRelease: true) } }
-            } else {
-                if step == 0 { notes = chordNotes.map { NoteEvent(note: $0, velocity: 100) } }
-                if step == 4 { notes = chordNotes.map { NoteEvent(note: $0, velocity: 95) } }
-                if step == 7 { notes = chordNotes.map { NoteEvent(note: $0, velocity: 85, isShortRelease: true) } }
-            }
-        default:
-            if step == 0 { notes = chordNotes.map { NoteEvent(note: $0, velocity: 85) } }
-        }
-        return notes
-    }
-}
-
-class JazzCatPianist: PianoPlayerEngine {
-    func evaluate(step: Int, chordNotes: [UInt8], context: PlayerContext, genre: MusicGenre) -> [NoteEvent] {
-        var notes = [NoteEvent]()
-        
-        if context.sectionType == .intro {
-            if step == 0 { notes = chordNotes.map { NoteEvent(note: $0, velocity: 70) } }
-            return notes
-        }
-
-        let seed = context.songLoopCount + context.phraseIndex
-        let syncopation = seed % 3
-        
-        if step == 0 {
-            if syncopation != 0 {
-                notes = chordNotes.map { NoteEvent(note: $0, velocity: 85) }
-            }
-        } else if step == 3 {
-            if syncopation == 0 {
-                notes = chordNotes.map { NoteEvent(note: $0, velocity: 90, isShortRelease: true) }
-            }
-        } else if step == 5 {
-            notes = chordNotes.map { NoteEvent(note: $0, velocity: 80, isShortRelease: true) }
-        } else if step == 7 {
-            if context.isLastMeasure {
-                notes = chordNotes.map { NoteEvent(note: $0, velocity: 95) }
-            }
-        }
-        
-        return notes
-    }
-}
-
-
-class RayPianist: PianoPlayerEngine {
-    func evaluate(step: Int, chordNotes: [UInt8], context: PlayerContext, genre: MusicGenre) -> [NoteEvent] {
+class EmiPianist: BasePianoPlayerEngine {
+    override var velocityHumanizeRange: Int { return 6 }
+    
+    override func pattern(for genre: MusicGenre, variation: Int, step: Int, chordNotes: [UInt8], context: PlayerContext) -> [NoteEvent] {
         var events = [NoteEvent]()
-        let variation = (context.songLoopCount + context.phraseIndex) % 2
-        
-        if variation == 0 {
-            if step == 2 || step == 6 { // Offbeats (Reggae chop)
-                for note in chordNotes {
-                    events.append(NoteEvent(note: note, velocity: 90))
+        switch genre {
+        case .pop, .dance:
+            if variation == 0 {
+                if step % 4 == 0 {
+                    for note in chordNotes { events.append(NoteEvent(note: note, velocity: 85)) }
+                }
+            } else if variation == 1 {
+                if step == 0 || step == 3 {
+                    for note in chordNotes { events.append(NoteEvent(note: note, velocity: 85)) }
+                }
+            } else {
+                if step == 2 || step == 6 {
+                    for note in chordNotes { events.append(NoteEvent(note: note, velocity: 80)) } // 裏打ち
                 }
             }
-        } else {
-            if step == 2 {
-                for note in chordNotes { events.append(NoteEvent(note: note, velocity: 90)) }
-            } else if step == 5 || step == 6 {
-                // syncopated
-                for note in chordNotes { events.append(NoteEvent(note: note, velocity: 85)) }
+        default:
+            if variation == 0 {
+                if step % 4 == 0 {
+                    for note in chordNotes { events.append(NoteEvent(note: note, velocity: 80)) }
+                }
+            } else {
+                if step == 0 {
+                    for note in chordNotes { events.append(NoteEvent(note: note, velocity: 85)) }
+                }
             }
         }
         return events
     }
 }
 
-class ClaraPianist: PianoPlayerEngine {
-    func evaluate(step: Int, chordNotes: [UInt8], context: PlayerContext, genre: MusicGenre) -> [NoteEvent] {
+class JazzCatPianist: BasePianoPlayerEngine {
+    override var velocityHumanizeRange: Int { return 12 } // ジャズ特有の強弱
+    
+    override func pattern(for genre: MusicGenre, variation: Int, step: Int, chordNotes: [UInt8], context: PlayerContext) -> [NoteEvent] {
         var events = [NoteEvent]()
-        guard !chordNotes.isEmpty else { return [] }
-        let variation = (context.songLoopCount + context.phraseIndex) % 3
-        
+        // コンピング（シンコペーション）主体
         if variation == 0 {
-            // Ascending arpeggio
+            if step == 3 || step == 6 {
+                for note in chordNotes { events.append(NoteEvent(note: note, velocity: 85)) }
+            }
+        } else if variation == 1 {
+            if step == 2 || step == 5 {
+                for note in chordNotes { events.append(NoteEvent(note: note, velocity: 80)) }
+            }
+        } else {
+            if step == 0 {
+                for note in chordNotes { events.append(NoteEvent(note: note, velocity: 90)) }
+            }
+            if step == 4 {
+                for note in chordNotes { events.append(NoteEvent(note: note, velocity: 70)) }
+            }
+        }
+        return events
+    }
+}
+
+
+class RayPianist: BasePianoPlayerEngine {
+    override var velocityHumanizeRange: Int { return 10 }
+    
+    override func pattern(for genre: MusicGenre, variation: Int, step: Int, chordNotes: [UInt8], context: PlayerContext) -> [NoteEvent] {
+        var events = [NoteEvent]()
+        switch genre {
+        case .lofi, .rAndB:
+            if variation == 0 {
+                if step == 2 || step == 6 { // 裏打ちチョップ
+                    for note in chordNotes { events.append(NoteEvent(note: note, velocity: 90)) }
+                }
+            } else if variation == 1 {
+                if step == 2 {
+                    for note in chordNotes { events.append(NoteEvent(note: note, velocity: 90)) }
+                } else if step == 5 || step == 6 {
+                    for note in chordNotes { events.append(NoteEvent(note: note, velocity: 85)) }
+                }
+            } else {
+                if step == 0 || step == 3 {
+                    for note in chordNotes { events.append(NoteEvent(note: note, velocity: 85)) }
+                }
+            }
+        default:
+            if variation == 0 {
+                if step == 2 || step == 6 {
+                    for note in chordNotes { events.append(NoteEvent(note: note, velocity: 90)) }
+                }
+            } else {
+                if step % 4 == 0 {
+                    for note in chordNotes { events.append(NoteEvent(note: note, velocity: 80)) }
+                }
+            }
+        }
+        return events
+    }
+}
+
+class ClaraPianist: BasePianoPlayerEngine {
+    override var velocityHumanizeRange: Int { return 6 }
+    
+    override func pattern(for genre: MusicGenre, variation: Int, step: Int, chordNotes: [UInt8], context: PlayerContext) -> [NoteEvent] {
+        var events = [NoteEvent]()
+        // クラシック的な分散和音（アルペジオ）
+        if variation == 0 {
             let idx = step % chordNotes.count
             events.append(NoteEvent(note: chordNotes[idx], velocity: 85))
         } else if variation == 1 {
-            // Descending arpeggio
             let idx = (chordNotes.count - 1) - (step % chordNotes.count)
             events.append(NoteEvent(note: chordNotes[max(0, idx)], velocity: 85))
         } else {
-            // Alberti-like
             let pattern = [0, 2, 1, 2, 0, 2, 1, 2]
             let nIdx = pattern[step % 8] % chordNotes.count
             events.append(NoteEvent(note: chordNotes[nIdx], velocity: 80))
         }
-        
         return events
     }
 }

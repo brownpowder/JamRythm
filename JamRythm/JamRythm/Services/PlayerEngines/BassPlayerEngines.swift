@@ -5,6 +5,43 @@
 
 import Foundation
 
+class BaseBassPlayerEngine: BassPlayerEngine {
+    var velocityHumanizeRange: Int { return 5 }
+    
+    func evaluate(step: Int, rootNote: UInt8?, context: PlayerContext, genre: MusicGenre) -> [NoteEvent] {
+        guard let root = rootNote else { return [] }
+        let variation = (context.songLoopCount + context.phraseIndex) % 3
+        
+        // フィルイン
+        if context.isFillTiming && step >= 4 {
+            if let fill = signatureFill(root: root, genre: genre, variation: variation, step: step, context: context) {
+                return applyHumanize(events: fill)
+            }
+        }
+        
+        let baseEvents = pattern(for: genre, variation: variation, step: step, root: root, context: context)
+        return applyHumanize(events: baseEvents)
+    }
+    
+    func pattern(for genre: MusicGenre, variation: Int, step: Int, root: UInt8, context: PlayerContext) -> [NoteEvent] {
+        return basicBassPattern(genre: genre, step: step, root: root)
+    }
+    
+    func signatureFill(root: UInt8, genre: MusicGenre, variation: Int, step: Int, context: PlayerContext) -> [NoteEvent]? {
+        return nil
+    }
+    
+    private func applyHumanize(events: [NoteEvent]) -> [NoteEvent] {
+        guard velocityHumanizeRange > 0 else { return events }
+        return events.map { event in
+            let drift = Int.random(in: -velocityHumanizeRange...velocityHumanizeRange)
+            let newVel = UInt8(max(1, min(127, Int(event.velocity) + drift)))
+            return NoteEvent(note: event.note, velocity: newVel)
+        }
+    }
+}
+
+
 class RhythmMachineBassist: BassPlayerEngine {
     func evaluate(step: Int, rootNote: UInt8?, context: PlayerContext, genre: MusicGenre) -> [NoteEvent] {
         return basicBassPattern(genre: genre, step: step, root: rootNote)
@@ -31,125 +68,78 @@ class StandardBassist: BassPlayerEngine {
     }
 }
 
-class KRBassist: BassPlayerEngine {
-    func evaluate(step: Int, rootNote: UInt8?, context: PlayerContext, genre: MusicGenre) -> [NoteEvent] {
-        guard let root = rootNote else { return [] }
-        var notes = [NoteEvent]()
-        
-        if context.sectionType == .intro {
-            if context.isLastMeasure && step == 7 {
-                notes.append(NoteEvent(note: root + 12, velocity: 110))
-            }
-            return notes
-        }
-
-        if context.isFillTiming && step >= 4 {
-            let seed = context.songLoopCount + context.phraseIndex
-            let fillType = seed % 2
-            if fillType == 0 {
-                let slideOffset: UInt8 = (step == 7) ? 12 : 0
-                notes.append(NoteEvent(note: root + slideOffset, velocity: 110))
+class KRBassist: BaseBassPlayerEngine {
+    override var velocityHumanizeRange: Int { return 10 }
+    
+    override func pattern(for genre: MusicGenre, variation: Int, step: Int, root: UInt8, context: PlayerContext) -> [NoteEvent] {
+        var events = [NoteEvent]()
+        switch genre {
+        case .rock, .pop:
+            // ルート弾き主体のパンクスタイル
+            if variation == 0 {
+                events.append(NoteEvent(note: root, velocity: 110)) // 全ステップ弾く
+            } else if variation == 1 {
+                events.append(NoteEvent(note: root, velocity: step % 2 == 0 ? 115 : 90))
             } else {
-                let offset: UInt8 = UInt8(step - 4)
-                notes.append(NoteEvent(note: root + offset, velocity: 110))
+                if step % 2 == 0 { events.append(NoteEvent(note: root, velocity: 115)) }
+                if step == 3 || step == 7 { events.append(NoteEvent(note: root + 12, velocity: 100)) } // オクターブ上
             }
-            return notes
-        }
-        
-        // Phrase Variation
-        if step >= 6 && (context.measureIndex + 1) % 2 == 0 {
-            let seed = context.songLoopCount + context.phraseIndex
-            let variationType = seed % 3
-            if variationType == 0 && step == 7 {
-                notes.append(NoteEvent(note: root + 7, velocity: 100))
-                return notes
-            } else if variationType == 1 && step == 6 {
-                notes.append(NoteEvent(note: root + 12, velocity: 105))
-                return notes
-            } else if variationType == 2 && step == 7 {
-                notes.append(NoteEvent(note: root + 4, velocity: 95))
-                return notes
-            }
-        }
-        
-        // Syncopation Groove Variation based on LoopCount
-        let grooveSeed = context.songLoopCount % 2
-        if grooveSeed == 1 && context.sectionType == .chorus {
-            // シンコペーションバリエーション
-            if step == 3 || step == 6 {
-                notes.append(NoteEvent(note: root, velocity: 115))
-                return notes
-            } else if step == 0 || step == 4 {
-                notes.append(NoteEvent(note: root, velocity: 110))
-                return notes
+        default:
+            if variation == 0 {
+                if step % 2 == 0 { events.append(NoteEvent(note: root, velocity: 105)) }
             } else {
-                return notes // 休符
+                events.append(NoteEvent(note: root, velocity: step % 2 == 0 ? 110 : 85))
             }
         }
-        
-        let vel: UInt8 = (step % 2 == 0) ? 110 : 95
-        notes.append(NoteEvent(note: root, velocity: vel))
-        return notes
+        return events
+    }
+    
+    override func signatureFill(root: UInt8, genre: MusicGenre, variation: Int, step: Int, context: PlayerContext) -> [NoteEvent]? {
+        // グリスダウンや激しいアプローチ
+        if step == 4 { return [NoteEvent(note: root + 12, velocity: 120)] }
+        if step == 5 { return [NoteEvent(note: root + 10, velocity: 110)] }
+        if step == 6 { return [NoteEvent(note: root + 7, velocity: 110)] }
+        if step == 7 { return [NoteEvent(note: root + 5, velocity: 110)] }
+        return nil
     }
 }
 
-class AkikoBassist: BassPlayerEngine {
-    func evaluate(step: Int, rootNote: UInt8?, context: PlayerContext, genre: MusicGenre) -> [NoteEvent] {
-        guard let root = rootNote else { return [] }
-        var notes = [NoteEvent]()
-        
-        let seed = context.songLoopCount + context.phraseIndex
-        let variation = seed % 4
-        
-        // イントロやAメロは少し大人しめに
-        if context.sectionType == .verseA || context.sectionType == .intro {
-            let verseVariation = seed % 3
-            if step == 0 {
-                notes.append(NoteEvent(note: root, velocity: 100))
-            } else if verseVariation == 0 && step == 4 {
-                notes.append(NoteEvent(note: root + 7, velocity: 90)) // 5th
-            } else if verseVariation == 1 && step == 5 {
-                // シンコペーション（裏拍）
-                notes.append(NoteEvent(note: root + 12, velocity: 90)) // Octave
-            } else if verseVariation == 2 && step == 6 {
-                notes.append(NoteEvent(note: root, velocity: 90))
+class AkikoBassist: BaseBassPlayerEngine {
+    override var velocityHumanizeRange: Int { return 8 }
+    
+    override func pattern(for genre: MusicGenre, variation: Int, step: Int, root: UInt8, context: PlayerContext) -> [NoteEvent] {
+        var events = [NoteEvent]()
+        switch genre {
+        case .lofi, .rAndB:
+            // ネオソウル的なアプローチ
+            if variation == 0 {
+                if step == 0 { events.append(NoteEvent(note: root, velocity: 95)) }
+                if step == 6 { events.append(NoteEvent(note: root + 7, velocity: 85)) } // 5度
+            } else if variation == 1 {
+                if step == 0 { events.append(NoteEvent(note: root, velocity: 95)) }
+                if step == 3 { events.append(NoteEvent(note: root + 10, velocity: 80)) } // m7
+                if step == 5 { events.append(NoteEvent(note: root + 7, velocity: 85)) }
+            } else {
+                if step == 0 { events.append(NoteEvent(note: root, velocity: 90)) }
+                if step == 2 || step == 6 { events.append(NoteEvent(note: root + 12, velocity: 75)) } // オクターブ上
             }
-            return notes
-        }
-        
-        // それ以外（Bメロ、サビなど）のアクティブなベースライン
-        
-        // 1拍目は基本ルート
-        if step == 0 {
-            notes.append(NoteEvent(note: root, velocity: 105))
-            return notes
-        }
-        
-        switch variation {
-        case 0:
-            // ルートとオクターブ、5度を交えた王道ライン
-            if step == 3 { notes.append(NoteEvent(note: root, velocity: 80)) }
-            if step == 4 { notes.append(NoteEvent(note: root + 12, velocity: 95)) }
-            if step == 6 { notes.append(NoteEvent(note: root + 7, velocity: 90)) } // 5度
-        case 1:
-            // シンコペーション（裏拍アクセント）を強調
-            if step == 2 { notes.append(NoteEvent(note: root, velocity: 90)) }
-            if step == 5 { notes.append(NoteEvent(note: root + 12, velocity: 100)) } // 裏拍
-            if step == 7 { notes.append(NoteEvent(note: root + 7, velocity: 95)) } // 5度
-        case 2:
-            // 休符を活かしたファンキーなアプローチ
-            if step == 4 { notes.append(NoteEvent(note: root + 7, velocity: 95)) }
-            if step == 5 { notes.append(NoteEvent(note: root + 12, velocity: 100)) }
-        case 3:
-            // 5度とオクターブのオルタネイトな動き
-            if step == 2 { notes.append(NoteEvent(note: root + 7, velocity: 90)) }
-            if step == 4 { notes.append(NoteEvent(note: root, velocity: 95)) }
-            if step == 6 { notes.append(NoteEvent(note: root + 12, velocity: 100)) }
         default:
-            break
+            if variation == 0 {
+                if step == 0 { events.append(NoteEvent(note: root, velocity: 95)) }
+                if step == 4 { events.append(NoteEvent(note: root + 7, velocity: 85)) }
+            } else {
+                if step == 0 || step == 3 { events.append(NoteEvent(note: root, velocity: 95)) }
+                if step == 6 { events.append(NoteEvent(note: root + 5, velocity: 85)) }
+            }
         }
-        
-        return notes
+        return events
+    }
+    
+    override func signatureFill(root: UInt8, genre: MusicGenre, variation: Int, step: Int, context: PlayerContext) -> [NoteEvent]? {
+        // メロディアスなフィル
+        if step == 6 { return [NoteEvent(note: root + 10, velocity: 90)] }
+        if step == 7 { return [NoteEvent(note: root + 14, velocity: 90)] } // 9th
+        return []
     }
 }
 
@@ -177,38 +167,58 @@ private func basicBassPattern(genre: MusicGenre, step: Int, root: UInt8?) -> [No
 }
 
 
-class MarcusBassist: BassPlayerEngine {
-    func evaluate(step: Int, rootNote: UInt8?, context: PlayerContext, genre: MusicGenre) -> [NoteEvent] {
-        guard let r = rootNote else { return [] }
+class MarcusBassist: BaseBassPlayerEngine {
+    override var velocityHumanizeRange: Int { return 15 }
+    
+    override func pattern(for genre: MusicGenre, variation: Int, step: Int, root: UInt8, context: PlayerContext) -> [NoteEvent] {
         var events = [NoteEvent]()
-        let variation = (context.songLoopCount + context.phraseIndex) % 2
-        
-        if variation == 0 {
-            if step == 0 || step == 4 { events.append(NoteEvent(note: r, velocity: 120)) } // Slap
-            if step == 3 || step == 7 { events.append(NoteEvent(note: r + 12, velocity: 110)) } // Pop
-        } else {
-            if step == 0 { events.append(NoteEvent(note: r, velocity: 120)) }
-            if step == 2 { events.append(NoteEvent(note: r, velocity: 60)) } // Ghost
-            if step == 3 { events.append(NoteEvent(note: r + 12, velocity: 115)) }
-            if step == 5 { events.append(NoteEvent(note: r, velocity: 60)) }
-            if step == 6 { events.append(NoteEvent(note: r + 10, velocity: 100)) } // b7
+        switch genre {
+        case .dance, .pop:
+            // スラップ全開
+            if variation == 0 {
+                if step == 0 || step == 4 { events.append(NoteEvent(note: root, velocity: 120)) } // Slap
+                if step == 3 || step == 7 { events.append(NoteEvent(note: root + 12, velocity: 115)) } // Pop
+            } else if variation == 1 {
+                if step == 0 { events.append(NoteEvent(note: root, velocity: 120)) }
+                if step == 2 { events.append(NoteEvent(note: root, velocity: 60)) } // Ghost
+                if step == 3 { events.append(NoteEvent(note: root + 12, velocity: 115)) }
+                if step == 5 { events.append(NoteEvent(note: root, velocity: 60)) }
+                if step == 6 { events.append(NoteEvent(note: root + 10, velocity: 100)) } // b7
+            } else {
+                if step == 0 { events.append(NoteEvent(note: root, velocity: 120)) }
+                if step == 2 || step == 4 { events.append(NoteEvent(note: root + 12, velocity: 115)) }
+                if step == 6 { events.append(NoteEvent(note: root + 7, velocity: 100)) }
+            }
+        default:
+            if variation == 0 {
+                if step == 0 || step == 3 { events.append(NoteEvent(note: root, velocity: 115)) }
+                if step == 6 { events.append(NoteEvent(note: root + 12, velocity: 110)) }
+            } else {
+                if step == 0 || step == 4 { events.append(NoteEvent(note: root, velocity: 115)) }
+                if step == 7 { events.append(NoteEvent(note: root + 12, velocity: 110)) }
+            }
         }
         return events
     }
 }
 
-class HarutoBassist: BassPlayerEngine {
-    func evaluate(step: Int, rootNote: UInt8?, context: PlayerContext, genre: MusicGenre) -> [NoteEvent] {
-        guard let r = rootNote else { return [] }
+class HarutoBassist: BaseBassPlayerEngine {
+    override var velocityHumanizeRange: Int { return 5 } // 正確なプレイ
+    
+    override func pattern(for genre: MusicGenre, variation: Int, step: Int, root: UInt8, context: PlayerContext) -> [NoteEvent] {
         var events = [NoteEvent]()
-        let variation = (context.songLoopCount + context.phraseIndex) % 2
-        
+        // 正確でメロディックなルート弾き
         if variation == 0 {
-            if step == 0 { events.append(NoteEvent(note: r, velocity: 95)) }
-            if step == 4 { events.append(NoteEvent(note: r + 7, velocity: 85)) } // 5th
+            if step == 0 { events.append(NoteEvent(note: root, velocity: 95)) }
+            if step == 4 { events.append(NoteEvent(note: root + 7, velocity: 85)) } // 5th
+        } else if variation == 1 {
+            if step == 0 || step == 3 { events.append(NoteEvent(note: root, velocity: 95)) }
+            if step == 6 { events.append(NoteEvent(note: root, velocity: 80)) }
         } else {
-            if step == 0 || step == 3 { events.append(NoteEvent(note: r, velocity: 95)) }
-            if step == 6 { events.append(NoteEvent(note: r, velocity: 80)) }
+            if step == 0 { events.append(NoteEvent(note: root, velocity: 95)) }
+            if step == 2 { events.append(NoteEvent(note: root, velocity: 85)) }
+            if step == 4 { events.append(NoteEvent(note: root + 7, velocity: 90)) }
+            if step == 6 { events.append(NoteEvent(note: root + 5, velocity: 85)) } // 4th
         }
         return events
     }
