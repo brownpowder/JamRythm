@@ -161,72 +161,95 @@ struct MixerView: View {
 
 
     private var drumPlayerMenu: some View {
-        Menu {
-            ForEach(DrumPlayer.allCases) { player in
-                Button(action: { viewModel.selectDrumPlayer(player) }) {
-                    if player == viewModel.selectedDrumPlayer {
-                        Label(player.displayName, systemImage: "checkmark")
-                    } else {
-                        Text(player.displayName)
-                    }
+        CustomPickerButton(
+            options: Array(DrumPlayer.allCases),
+            selection: Binding(
+                get: { viewModel.selectedDrumPlayer },
+                set: { viewModel.selectDrumPlayer($0) }
+            ),
+            sheetTitle: "Drum Player"
+        ) {
+            playerAvatar(imageName: viewModel.selectedDrumPlayer.imageName)
+        } optionRow: { player in
+            HStack(spacing: 16) {
+                playerAvatar(imageName: player.imageName)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(player.displayName)
+                        .font(.headline)
+                    Text(player.description)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .lineLimit(2)
                 }
             }
-        } label: {
-            playerAvatar(imageName: viewModel.selectedDrumPlayer.imageName)
         }
     }
 
     private var bassPlayerMenu: some View {
-        Menu {
-            ForEach(BassPlayer.allCases) { player in
-                Button(action: { viewModel.selectBassPlayer(player) }) {
-                    if player == viewModel.selectedBassPlayer {
-                        Label(player.displayName, systemImage: "checkmark")
-                    } else {
-                        Text(player.displayName)
-                    }
+        CustomPickerButton(
+            options: Array(BassPlayer.allCases),
+            selection: Binding(
+                get: { viewModel.selectedBassPlayer },
+                set: { viewModel.selectBassPlayer($0) }
+            ),
+            sheetTitle: "Bass Player"
+        ) {
+            playerAvatar(imageName: viewModel.selectedBassPlayer.imageName)
+        } optionRow: { player in
+            HStack(spacing: 16) {
+                playerAvatar(imageName: player.imageName)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(player.displayName)
+                        .font(.headline)
+                    Text(player.description)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .lineLimit(2)
                 }
             }
-        } label: {
-            playerAvatar(imageName: viewModel.selectedBassPlayer.imageName)
         }
     }
 
     private var pianoPlayerMenu: some View {
-        Menu {
-            ForEach(PianoPlayer.allCases) { player in
-                Button(action: { viewModel.selectPianoPlayer(player) }) {
-                    if player == viewModel.selectedPianoPlayer {
-                        Label(player.displayName, systemImage: "checkmark")
-                    } else {
-                        Text(player.displayName)
-                    }
+        CustomPickerButton(
+            options: Array(PianoPlayer.allCases),
+            selection: Binding(
+                get: { viewModel.selectedPianoPlayer },
+                set: { viewModel.selectPianoPlayer($0) }
+            ),
+            sheetTitle: "Chord Player"
+        ) {
+            playerAvatar(imageName: viewModel.selectedPianoPlayer.imageName)
+        } optionRow: { player in
+            HStack(spacing: 16) {
+                playerAvatar(imageName: player.imageName)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(player.displayName)
+                        .font(.headline)
+                    Text(player.description)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .lineLimit(2)
                 }
             }
-        } label: {
-            playerAvatar(imageName: viewModel.selectedPianoPlayer.imageName)
         }
     }
 
 
     private var pianoInstrumentMenu: some View {
-        Menu {
-            ForEach(PianoInstrument.allCases) { instrument in
-                Button(action: { viewModel.selectPianoInstrument(instrument) }) {
-                    if instrument == viewModel.selectedPianoInstrument {
-                        Label(instrument.displayName, systemImage: "checkmark")
-                    } else {
-                        Text(instrument.displayName)
-                    }
-                }
-            }
-        } label: {
+        CustomPickerButton(
+            options: Array(PianoInstrument.allCases),
+            selection: Binding(
+                get: { viewModel.selectedPianoInstrument },
+                set: { viewModel.selectPianoInstrument($0) }
+            ),
+            sheetTitle: "Chord Sound"
+        ) {
             HStack(spacing: 4) {
                 Text(viewModel.selectedPianoInstrument.displayName)
                     .font(.caption.bold())
                     .lineLimit(1)
                     .foregroundColor(.primary)
-
                 Image(systemName: "chevron.down")
                     .font(.caption2.bold())
                     .foregroundColor(.secondary)
@@ -236,6 +259,15 @@ struct MixerView: View {
             .frame(maxWidth: .infinity)
             .background(Color(uiColor: .tertiarySystemFill))
             .cornerRadius(8)
+        } optionRow: { instrument in
+            HStack(spacing: 16) {
+                Image(systemName: instrument.iconName)
+                    .font(.title2)
+                    .foregroundColor(.accentColor)
+                    .frame(width: 32)
+                Text(instrument.displayName)
+                    .font(.headline)
+            }
         }
     }
 
@@ -250,23 +282,19 @@ struct MixerView: View {
     */
 
     private var drumInstrumentMenu: some View {
-        Menu {
-            ForEach(DrumInstrument.allCases) { instrument in
-                Button(action: { viewModel.selectDrumInstrument(instrument) }) {
-                    if instrument == viewModel.selectedDrumInstrument {
-                        Label(instrument.displayName, systemImage: "checkmark")
-                    } else {
-                        Text(instrument.displayName)
-                    }
-                }
-            }
-        } label: {
+        CustomPickerButton(
+            options: Array(DrumInstrument.allCases),
+            selection: Binding(
+                get: { viewModel.selectedDrumInstrument },
+                set: { viewModel.selectDrumInstrument($0) }
+            ),
+            sheetTitle: "Drum Sound"
+        ) {
             HStack(spacing: 4) {
                 Text(viewModel.selectedDrumInstrument.displayName)
                     .font(.caption.bold())
                     .lineLimit(1)
                     .foregroundColor(.primary)
-
                 Image(systemName: "chevron.down")
                     .font(.caption2.bold())
                     .foregroundColor(.secondary)
@@ -276,6 +304,15 @@ struct MixerView: View {
             .frame(maxWidth: .infinity)
             .background(Color(uiColor: .tertiarySystemFill))
             .cornerRadius(8)
+        } optionRow: { instrument in
+            HStack(spacing: 16) {
+                Image(systemName: instrument.iconName)
+                    .font(.title2)
+                    .foregroundColor(.accentColor)
+                    .frame(width: 32)
+                Text(instrument.displayName)
+                    .font(.headline)
+            }
         }
     }
 
@@ -290,23 +327,19 @@ struct MixerView: View {
     */
 
     private var bassInstrumentMenu: some View {
-        Menu {
-            ForEach(BassInstrument.allCases) { instrument in
-                Button(action: { viewModel.selectBassInstrument(instrument) }) {
-                    if instrument == viewModel.selectedBassInstrument {
-                        Label(instrument.displayName, systemImage: "checkmark")
-                    } else {
-                        Text(instrument.displayName)
-                    }
-                }
-            }
-        } label: {
+        CustomPickerButton(
+            options: Array(BassInstrument.allCases),
+            selection: Binding(
+                get: { viewModel.selectedBassInstrument },
+                set: { viewModel.selectBassInstrument($0) }
+            ),
+            sheetTitle: "Bass Sound"
+        ) {
             HStack(spacing: 4) {
                 Text(viewModel.selectedBassInstrument.displayName)
                     .font(.caption.bold())
                     .lineLimit(1)
                     .foregroundColor(.primary)
-
                 Image(systemName: "chevron.down")
                     .font(.caption2.bold())
                     .foregroundColor(.secondary)
@@ -316,6 +349,15 @@ struct MixerView: View {
             .frame(maxWidth: .infinity)
             .background(Color(uiColor: .tertiarySystemFill))
             .cornerRadius(8)
+        } optionRow: { instrument in
+            HStack(spacing: 16) {
+                Image(systemName: instrument.iconName)
+                    .font(.title2)
+                    .foregroundColor(.accentColor)
+                    .frame(width: 32)
+                Text(instrument.displayName)
+                    .font(.headline)
+            }
         }
     }
 
