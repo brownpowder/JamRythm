@@ -6,7 +6,7 @@
 import Foundation
 
 class BasePianoPlayerEngine: PianoPlayerEngine {
-    var velocityHumanizeRange: Int { return 5 }
+    var velocityHumanizeRange: Int { return 2 }
     
     func evaluate(step: Int, chordNotes: [UInt8], context: PlayerContext, genre: MusicGenre) -> [NoteEvent] {
         guard !chordNotes.isEmpty else { return [] }
@@ -75,7 +75,7 @@ class StandardPianist: PianoPlayerEngine {
 }
 
 class EmiPianist: BasePianoPlayerEngine {
-    override var velocityHumanizeRange: Int { return 6 }
+    override var velocityHumanizeRange: Int { return 3 }
     
     override func pattern(for genre: MusicGenre, variation: Int, step: Int, chordNotes: [UInt8], context: PlayerContext) -> [NoteEvent] {
         var events = [NoteEvent]()
@@ -110,7 +110,7 @@ class EmiPianist: BasePianoPlayerEngine {
 }
 
 class JazzCatPianist: BasePianoPlayerEngine {
-    override var velocityHumanizeRange: Int { return 12 } // ジャズ特有の強弱
+    override var velocityHumanizeRange: Int { return 3 } // ジャズ特有の強弱
     
     override func pattern(for genre: MusicGenre, variation: Int, step: Int, chordNotes: [UInt8], context: PlayerContext) -> [NoteEvent] {
         var events = [NoteEvent]()
@@ -137,7 +137,7 @@ class JazzCatPianist: BasePianoPlayerEngine {
 
 
 class RayPianist: BasePianoPlayerEngine {
-    override var velocityHumanizeRange: Int { return 10 }
+    override var velocityHumanizeRange: Int { return 4 }
     
     override func pattern(for genre: MusicGenre, variation: Int, step: Int, chordNotes: [UInt8], context: PlayerContext) -> [NoteEvent] {
         var events = [NoteEvent]()
@@ -174,7 +174,7 @@ class RayPianist: BasePianoPlayerEngine {
 }
 
 class ClaraPianist: BasePianoPlayerEngine {
-    override var velocityHumanizeRange: Int { return 6 }
+    override var velocityHumanizeRange: Int { return 3 }
     
     override func pattern(for genre: MusicGenre, variation: Int, step: Int, chordNotes: [UInt8], context: PlayerContext) -> [NoteEvent] {
         var events = [NoteEvent]()

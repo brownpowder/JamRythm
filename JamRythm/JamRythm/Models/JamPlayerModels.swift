@@ -84,10 +84,10 @@ enum DrumPlayer: String, JamPlayer {
         switch self {
         case .rhythmMachine: return 0.0
         case .standard: return 0.0
-        case .mark: return 5.0
-        case .leo: return 8.0
-        case .sara: return 20.0  // レイドバック
-        case .chad: return -10.0 // 前ノリ
+        case .mark: return 2.0
+        case .leo: return 4.0
+        case .sara: return 8.0  // レイドバック
+        case .chad: return -4.0 // 前ノリ
         }
     }
 
@@ -185,8 +185,8 @@ enum BassPlayer: String, JamPlayer {
         switch self {
         case .rhythmMachine: return 0.0
         case .standard: return 0.0
-        case .kr: return -8.0    // ドライブ感（前ノリ）
-        case .akiko: return 5.0
+        case .kr: return -3.0    // ドライブ感（前ノリ）
+        case .akiko: return 2.0
         case .marcus: return 0.0
         case .haruto: return 0.0
         }
@@ -286,9 +286,9 @@ enum PianoPlayer: String, JamPlayer {
         switch self {
         case .rhythmMachine: return 0.0
         case .standard: return 0.0
-        case .emi: return 2.0
-        case .jazzCat: return 10.0 // 少しタメる
-        case .ray: return 15.0     // レイドバック
+        case .emi: return 1.0
+        case .jazzCat: return 4.0 // 少しタメる
+        case .ray: return 6.0     // レイドバック
         case .clara: return 0.0
         }
     }

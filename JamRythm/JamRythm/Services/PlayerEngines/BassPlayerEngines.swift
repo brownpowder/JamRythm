@@ -6,7 +6,7 @@
 import Foundation
 
 class BaseBassPlayerEngine: BassPlayerEngine {
-    var velocityHumanizeRange: Int { return 5 }
+    var velocityHumanizeRange: Int { return 2 }
     
     func evaluate(step: Int, rootNote: UInt8?, context: PlayerContext, genre: MusicGenre) -> [NoteEvent] {
         guard let root = rootNote else { return [] }
@@ -69,7 +69,7 @@ class StandardBassist: BassPlayerEngine {
 }
 
 class KRBassist: BaseBassPlayerEngine {
-    override var velocityHumanizeRange: Int { return 10 }
+    override var velocityHumanizeRange: Int { return 4 }
     
     override func pattern(for genre: MusicGenre, variation: Int, step: Int, root: UInt8, context: PlayerContext) -> [NoteEvent] {
         var events = [NoteEvent]()
@@ -105,7 +105,7 @@ class KRBassist: BaseBassPlayerEngine {
 }
 
 class AkikoBassist: BaseBassPlayerEngine {
-    override var velocityHumanizeRange: Int { return 8 }
+    override var velocityHumanizeRange: Int { return 4 }
     
     override func pattern(for genre: MusicGenre, variation: Int, step: Int, root: UInt8, context: PlayerContext) -> [NoteEvent] {
         var events = [NoteEvent]()
@@ -168,7 +168,7 @@ private func basicBassPattern(genre: MusicGenre, step: Int, root: UInt8?) -> [No
 
 
 class MarcusBassist: BaseBassPlayerEngine {
-    override var velocityHumanizeRange: Int { return 15 }
+    override var velocityHumanizeRange: Int { return 3 }
     
     override func pattern(for genre: MusicGenre, variation: Int, step: Int, root: UInt8, context: PlayerContext) -> [NoteEvent] {
         var events = [NoteEvent]()
@@ -203,7 +203,7 @@ class MarcusBassist: BaseBassPlayerEngine {
 }
 
 class HarutoBassist: BaseBassPlayerEngine {
-    override var velocityHumanizeRange: Int { return 5 } // 正確なプレイ
+    override var velocityHumanizeRange: Int { return 2 } // 正確なプレイ
     
     override func pattern(for genre: MusicGenre, variation: Int, step: Int, root: UInt8, context: PlayerContext) -> [NoteEvent] {
         var events = [NoteEvent]()

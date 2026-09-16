@@ -10,7 +10,7 @@ import Foundation
 class BaseDrumPlayerEngine: DrumPlayerEngine {
     
     // 各キャラクター固有のベロシティのブレ幅（サブクラスで上書き可能）
-    var velocityHumanizeRange: Int { return 5 }
+    var velocityHumanizeRange: Int { return 2 }
     
     func evaluate(step: Int, context: PlayerContext, genre: MusicGenre) -> [NoteEvent] {
         let variation = (context.songLoopCount + context.phraseIndex) % 3
@@ -90,7 +90,7 @@ class StandardDrummer: DrumPlayerEngine {
 }
 
 class MarkDrummer: BaseDrumPlayerEngine {
-    override var velocityHumanizeRange: Int { return 10 }
+    override var velocityHumanizeRange: Int { return 4 }
     
     override func pattern(for genre: MusicGenre, variation: Int, step: Int, context: PlayerContext) -> [NoteEvent] {
         var events = [NoteEvent]()
@@ -137,7 +137,7 @@ class MarkDrummer: BaseDrumPlayerEngine {
 }
 
 class LeoDrummer: BaseDrumPlayerEngine {
-    override var velocityHumanizeRange: Int { return 12 } // ゴーストノート多めのためブレ幅大
+    override var velocityHumanizeRange: Int { return 3 } // ゴーストノート多めのためブレ幅大
     
     override func pattern(for genre: MusicGenre, variation: Int, step: Int, context: PlayerContext) -> [NoteEvent] {
         var events = [NoteEvent]()
@@ -215,7 +215,7 @@ private func basicGenrePattern(genre: MusicGenre, step: Int) -> [NoteEvent] {
 
 
 class SaraDrummer: BaseDrumPlayerEngine {
-    override var velocityHumanizeRange: Int { return 8 }
+    override var velocityHumanizeRange: Int { return 4 }
     
     override func pattern(for genre: MusicGenre, variation: Int, step: Int, context: PlayerContext) -> [NoteEvent] {
         var events = [NoteEvent]()
@@ -286,7 +286,7 @@ class SaraDrummer: BaseDrumPlayerEngine {
 }
 
 class ChadDrummer: BaseDrumPlayerEngine {
-    override var velocityHumanizeRange: Int { return 15 } // ベロシティのブレが激しい
+    override var velocityHumanizeRange: Int { return 3 } // ベロシティのブレが激しい
     
     override func pattern(for genre: MusicGenre, variation: Int, step: Int, context: PlayerContext) -> [NoteEvent] {
         var events = [NoteEvent]()
