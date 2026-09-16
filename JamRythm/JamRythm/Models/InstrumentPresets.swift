@@ -14,7 +14,7 @@ JamRythm.sf2（Bank 128）に収録されているドラム音色プリセット
 プログラム番号に対応し、表示名を提供する。
 */
 enum DrumInstrument: UInt8, CaseIterable, Identifiable {
-    case acoustic = 33
+    case acoustic = 0
     case electronic = 1
     case dub = 2
 
