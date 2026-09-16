@@ -198,17 +198,14 @@ struct PlayEditorView: View {
     */
     
     private var genreMenuButton: some View {
-        Menu {
-            ForEach(MusicGenre.allCases) { genre in
-                Button(action: { viewModel.changeGenre(genre) }) {
-                    if genre == viewModel.selectedGenre {
-                        Label(genre.displayName, systemImage: "checkmark")
-                    } else {
-                        Label(genre.displayName, systemImage: genre.iconName)
-                    }
-                }
-            }
-        } label: {
+        CustomPickerButton(
+            options: Array(MusicGenre.allCases),
+            selection: Binding(
+                get: { viewModel.selectedGenre },
+                set: { viewModel.changeGenre($0) }
+            ),
+            sheetTitle: "Genre"
+        ) {
             HStack(spacing: 5) {
                 Image(systemName: viewModel.selectedGenre.iconName)
                     .font(.caption.bold())
@@ -226,6 +223,21 @@ struct PlayEditorView: View {
             .padding(.vertical, 7)
             .background(Color(uiColor: .secondarySystemBackground))
             .cornerRadius(10)
+        } optionRow: { genre in
+            HStack(spacing: 16) {
+                Image(systemName: genre.iconName)
+                    .font(.title2)
+                    .foregroundColor(.accentColor)
+                    .frame(width: 32)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(genre.displayName)
+                        .font(.headline)
+                    Text(genre.styleDescription)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .lineLimit(2)
+                }
+            }
         }
     }
 
