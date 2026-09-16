@@ -275,6 +275,31 @@ final class AudioService: AudioServiceProtocol {
     private var project: Project?
     private(set) var bpm: Double = 120.0
     private var timer: Timer?
+
+    private let drumEngines: [DrumPlayer: DrumPlayerEngine] = [
+        .rhythmMachine: RhythmMachineDrummer(),
+        .standard: StandardDrummer(),
+        .mark: MarkDrummer(),
+        .leo: LeoDrummer(),
+        .sara: SaraDrummer(),
+        .chad: ChadDrummer()
+    ]
+    private let bassEngines: [BassPlayer: BassPlayerEngine] = [
+        .rhythmMachine: RhythmMachineBassist(),
+        .standard: StandardBassist(),
+        .kr: KRBassist(),
+        .akiko: AkikoBassist(),
+        .marcus: MarcusBassist(),
+        .haruto: HarutoBassist()
+    ]
+    private let pianoEngines: [PianoPlayer: PianoPlayerEngine] = [
+        .rhythmMachine: RhythmMachinePianist(),
+        .standard: StandardPianist(),
+        .emi: EmiPianist(),
+        .jazzCat: JazzCatPianist(),
+        .ray: RayPianist(),
+        .clara: ClaraPianist()
+    ]
     private var currentSectionIndex: Int = 0
     private var currentMeasure: Int = 0
     private var currentStepIndex: Int = 0
@@ -1058,21 +1083,33 @@ final class AudioService: AudioServiceProtocol {
     */
     
     private func playDrumStep(step: Int) {
-        logger.debug("Playing drum step: \(step), genre: \(self.genre.rawValue)")
-        switch genre {
-        case .pop:
-            playPopDrum(step: step)
-        case .rock:
-            playRockDrum(step: step)
-        case .dance:
-            playDanceDrum(step: step)
-        case .lofi:
-            playLoFiDrum(step: step)
-        case .rAndB:
-            playRAndBDrum(step: step)
+        guard let proj = project, currentSectionIndex < proj.sections.count else { return }
+        let measures = proj.sections[currentSectionIndex].measures
+        let measureCount = measures.isEmpty ? 1 : measures.count
+        
+        let engine = drumEngines[selectedDrumPlayer] ?? RhythmMachineDrummer()
+        let context = PlayerContext(
+            sectionType: proj.sections[currentSectionIndex].type,
+            measureIndex: currentMeasure,
+            totalMeasures: measureCount,
+            isFirstMeasure: currentMeasure == 0,
+            isLastMeasure: currentMeasure == measureCount - 1,
+            songLoopCount: 0
+        )
+        
+        let events = engine.evaluate(step: step, context: context, genre: genre)
+        let offset = selectedDrumPlayer.timingOffsetMs / 1000.0
+        
+        for event in events {
+            if offset > 0 {
+                DispatchQueue.main.asyncAfter(deadline: .now() + offset) {
+                    self.drumSampler.startNote(event.note, withVelocity: event.velocity, onChannel: 0)
+                }
+            } else {
+                self.drumSampler.startNote(event.note, withVelocity: event.velocity, onChannel: 0)
+            }
         }
     }
-
     private func playPopDrum(step: Int) {
         let hiHatVelocity: UInt8 = (step % 2 == 0) ? 90 : 65
         drumSampler.startNote(42, withVelocity: hiHatVelocity, onChannel: 0)
@@ -1226,96 +1263,70 @@ final class AudioService: AudioServiceProtocol {
     */
     
     private func playBassStep(measureIndex: Int, step: Int) {
-        guard let root = bassRootNote(for: measureIndex) else { return }
+        guard let proj = project, currentSectionIndex < proj.sections.count else { return }
+        let measures = proj.sections[currentSectionIndex].measures
+        let measureCount = measures.isEmpty ? 1 : measures.count
 
-        switch genre {
-        case .pop:
-            if step == 0 || step == 4 {
-                triggerBassNote(root, velocity: 105)
-            }
-        case .rock:
-            let vel: UInt8 = (step % 2 == 0) ? 105 : 90
-            triggerBassNote(root, velocity: vel)
-        case .dance:
-            if step % 2 == 0 {
-                triggerBassNote(root, velocity: 105)
+        let engine = bassEngines[selectedBassPlayer] ?? RhythmMachineBassist()
+        let context = PlayerContext(
+            sectionType: proj.sections[currentSectionIndex].type,
+            measureIndex: currentMeasure,
+            totalMeasures: measureCount,
+            isFirstMeasure: currentMeasure == 0,
+            isLastMeasure: currentMeasure == measureCount - 1,
+            songLoopCount: 0
+        )
+        
+        let rootNote = bassRootNote(for: measureIndex)
+        let events = engine.evaluate(step: step, rootNote: rootNote, context: context, genre: genre)
+        let offset = selectedBassPlayer.timingOffsetMs / 1000.0
+        
+        for event in events {
+            if offset > 0 {
+                DispatchQueue.main.asyncAfter(deadline: .now() + offset) {
+                    self.triggerBassNote(event.note, velocity: event.velocity)
+                }
             } else {
-                triggerBassNote(root + 12, velocity: 95)
-            }
-        case .lofi:
-            if step == 0 {
-                triggerBassNote(root, velocity: 95)
-            }
-        case .rAndB:
-            switch step {
-            case 0:
-                triggerBassNote(root, velocity: 105)
-            case 3:
-                triggerBassNote(root, velocity: 95)
-            case 4:
-                triggerBassNote(root + 7, velocity: 90)
-            case 6:
-                triggerBassNote(root + 12, velocity: 95)
-            default:
-                break
+                self.triggerBassNote(event.note, velocity: event.velocity)
             }
         }
     }
-
-    /*
-    指定ステップのピアノコード音を発音する（小節の頭: step 0でトリガー）。
-    
-    Arguments:
-    measureIndex
-      対象小節のインデックス。
-    step
-      現在の8分音符ステップ（0〜7）。
-    
-    Usage:
-    playSoundsForCurrentStepから呼び出され、小節頭でピアノ和音を持続発音する。
-    */
-    
     private func playPianoStep(measureIndex: Int, step: Int) {
-        guard let sections = project?.sections,
-              currentSectionIndex < sections.count else { return }
-        let measures = sections[currentSectionIndex].measures
+        guard let proj = project, currentSectionIndex < proj.sections.count else { return }
+        let measures = proj.sections[currentSectionIndex].measures
         guard measureIndex < measures.count else { return }
 
-        // 1拍目の頭（step 0）で現在のコードの和音を発音
-        if step == 0 {
-            stopActivePlaybackPianoNotes()
-
-            let hasAnySolo = drumIsSolo || bassIsSolo || pianoIsSolo || leadIsSolo
-            let pianoAudible = hasAnySolo ? (pianoIsSolo && !pianoIsMuted) : !pianoIsMuted
-        let leadAudible = hasAnySolo ? (leadIsSolo && !leadIsMuted) : !leadIsMuted
-            guard pianoAudible && pianoVolume > 0.01 else { return }
-
-            let chord = measures[measureIndex].activeChord
-            let previousNotes = activePlaybackPianoNotes.isEmpty ? nil : activePlaybackPianoNotes
-            let midiNotes = theoryService.voiceLedMidiNotes(for: chord, previousNotes: previousNotes)
-
-            guard !midiNotes.isEmpty else { return }
-
-            let baseVelocity: Float = 85.0
-            let velocity = UInt8(max(1, min(127, Int(baseVelocity * pianoVolume))))
-
-            for note in midiNotes {
-                pianoSampler.startNote(note, withVelocity: velocity, onChannel: 0)
+        let engine = pianoEngines[selectedPianoPlayer] ?? RhythmMachinePianist()
+        let context = PlayerContext(
+            sectionType: proj.sections[currentSectionIndex].type,
+            measureIndex: currentMeasure,
+            totalMeasures: measures.count,
+            isFirstMeasure: currentMeasure == 0,
+            isLastMeasure: currentMeasure == measures.count - 1,
+            songLoopCount: 0
+        )
+        
+        let chord = measures[measureIndex].activeChord
+        let previousNotes = activePlaybackPianoNotes.isEmpty ? nil : activePlaybackPianoNotes
+        let chordNotes = theoryService.voiceLedMidiNotes(for: chord, previousNotes: previousNotes)
+        
+        let events = engine.evaluate(step: step, chordNotes: chordNotes, context: context, genre: genre)
+        let offset = selectedPianoPlayer.timingOffsetMs / 1000.0
+        
+        if step == 0 { stopActivePlaybackPianoNotes() }
+        
+        for event in events {
+            if offset > 0 {
+                DispatchQueue.main.asyncAfter(deadline: .now() + offset) {
+                    self.pianoSampler.startNote(event.note, withVelocity: event.velocity, onChannel: 0)
+                    self.activePlaybackPianoNotes.append(event.note)
+                }
+            } else {
+                self.pianoSampler.startNote(event.note, withVelocity: event.velocity, onChannel: 0)
+                self.activePlaybackPianoNotes.append(event.note)
             }
-            activePlaybackPianoNotes = midiNotes
         }
     }
-
-    /*
-    自動伴奏で発音中のピアノノートを停止する。
-
-    Arguments:
-    なし
-
-    Usage:
-    小節頭の切り替え時やpause/stop時に呼び出される。
-    */
-
     private func stopActivePlaybackPianoNotes() {
         for note in activePlaybackPianoNotes {
             pianoSampler.stopNote(note, onChannel: 0)
