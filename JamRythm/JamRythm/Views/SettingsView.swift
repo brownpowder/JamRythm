@@ -22,22 +22,12 @@ struct SettingsView: View {
                             sectionHeader(title: "ABOUT THIS APP")
                             
                             VStack(spacing: 12) {
-                                ZStack {
-                                    Circle()
-                                        .fill(
-                                            LinearGradient(
-                                                colors: [Color.accentColor.opacity(0.8), Color.purple.opacity(0.8)],
-                                                startPoint: .topLeading,
-                                                endPoint: .bottomTrailing
-                                            )
-                                        )
-                                        .frame(width: 70, height: 70)
-                                        .shadow(color: Color.accentColor.opacity(0.3), radius: 10, x: 0, y: 5)
-                                    
-                                    Image(systemName: "guitars.fill")
-                                        .font(.system(size: 32, weight: .bold))
-                                        .foregroundColor(.white)
-                                }
+                                Image("logo")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 70, height: 70)
+                                    .cornerRadius(16)
+                                    .shadow(color: Color.black.opacity(0.15), radius: 8, x: 0, y: 4)
                                 .padding(.top, 10)
                                 
                                 Text("Jam")
