@@ -16,6 +16,7 @@ struct ProgressionTemplate: Identifiable, Equatable {
     let name: String
     let description: String
     let degrees: [Int]
+    let presetChordTypes: [String]?
     let iconName: String
     let genreTag: String
 
@@ -24,6 +25,7 @@ struct ProgressionTemplate: Identifiable, Equatable {
         name: String,
         description: String,
         degrees: [Int],
+        presetChordTypes: [String]? = nil,
         iconName: String = "music.note",
         genreTag: String = "定番"
     ) {
@@ -31,6 +33,7 @@ struct ProgressionTemplate: Identifiable, Equatable {
         self.name = name
         self.description = description
         self.degrees = degrees
+        self.presetChordTypes = presetChordTypes
         self.iconName = iconName
         self.genreTag = genreTag
     }

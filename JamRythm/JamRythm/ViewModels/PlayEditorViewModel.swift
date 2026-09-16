@@ -1097,7 +1097,7 @@ final class PlayEditorViewModel: ObservableObject {
         key: Key,
         theoryService: MusicTheoryServiceProtocol
     ) -> [Measure] {
-        return template.degrees.map { degree -> Measure in
+        return template.degrees.enumerated().map { index, degree -> Measure in
             let semitone = key.semitoneOffset + Key.semitonesForMajorDegree(degree)
             let bassNote = Key.noteName(forSemitone: semitone)
             let candidates = theoryService.calculateCandidates(key: key, baseDegree: degree)
@@ -1107,12 +1107,13 @@ final class PlayEditorViewModel: ObservableObject {
                 baseDegree: degree,
                 excludingChords: candidateChords
             )
+            let presetChord: Chord? = (template.presetChordTypes != nil && index < template.presetChordTypes!.count) ? Chord(rootNote: bassNote, type: template.presetChordTypes![index], bassNote: nil) : nil
             return Measure(
                 baseDegree: degree,
                 bassNote: bassNote,
                 chordCandidates: candidates,
                 substituteCandidates: substitutes,
-                selectedChord: nil
+                selectedChord: presetChord
             )
         }
     }
