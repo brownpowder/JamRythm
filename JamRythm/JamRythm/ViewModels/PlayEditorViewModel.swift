@@ -66,6 +66,13 @@ final class PlayEditorViewModel: ObservableObject {
     @Published var isShowingSongStructureSheet: Bool = false
     @Published var isShowingChordCustomizer: Bool = false
     @Published var errorMessage: String?
+    @Published var activeChemistry: PlayerChemistry? = nil
+
+    // MARK: - Chemistry
+
+    func updateChemistry() {
+        activeChemistry = PlayerChemistry.detectChemistry(drum: selectedDrumPlayer, bass: selectedBassPlayer, piano: selectedPianoPlayer)
+    }
 
     // MARK: - イニシャライザ
 
@@ -115,6 +122,7 @@ final class PlayEditorViewModel: ObservableObject {
         self.selectedDrumPlayer = audio.selectedDrumPlayer
         self.selectedBassPlayer = audio.selectedBassPlayer
         self.selectedPianoPlayer = audio.selectedPianoPlayer
+        updateChemistry()
 
         setupAudioEngine()
         bindAudioPosition()
@@ -921,16 +929,22 @@ final class PlayEditorViewModel: ObservableObject {
     func selectDrumPlayer(_ player: DrumPlayer) {
         self.selectedDrumPlayer = player
         audioService.selectedDrumPlayer = player
+        updateChemistry()
+        updateChemistry()
     }
 
     func selectBassPlayer(_ player: BassPlayer) {
         self.selectedBassPlayer = player
         audioService.selectedBassPlayer = player
+        updateChemistry()
+        updateChemistry()
     }
 
     func selectPianoPlayer(_ player: PianoPlayer) {
         self.selectedPianoPlayer = player
         audioService.selectedPianoPlayer = player
+        updateChemistry()
+        updateChemistry()
     }
 
     func selectDrumInstrument(_ instrument: DrumInstrument) {

@@ -10,6 +10,10 @@ protocol JamPlayer: Identifiable, CaseIterable, Equatable {
     var description: String { get }
     var isPremium: Bool { get }
     var isUnlocked: Bool { get set }
+    
+    // 個性を引き出すパラメータ
+    var timingOffsetMs: Double { get } // タイミングのズレ (正=遅い/モタる, 負=早い/突っ込む)
+    var velocityHumanizeRange: Int { get } // ベロシティのブレ幅
 }
 
 // MARK: - Drum Player
@@ -72,6 +76,28 @@ enum DrumPlayer: String, JamPlayer {
         switch self {
         case .rhythmMachine, .standard: return false
         case .mark, .leo, .sara, .chad: return true
+        }
+    }
+
+    var timingOffsetMs: Double {
+        switch self {
+        case .rhythmMachine: return 0.0
+        case .standard: return 0.0
+        case .mark: return 5.0
+        case .leo: return 8.0
+        case .sara: return 20.0  // レイドバック
+        case .chad: return -10.0 // 前ノリ
+        }
+    }
+
+    var velocityHumanizeRange: Int {
+        switch self {
+        case .rhythmMachine: return 0
+        case .standard: return 5
+        case .mark: return 12
+        case .leo: return 15
+        case .sara: return 8
+        case .chad: return 20
         }
     }
     
@@ -153,6 +179,28 @@ enum BassPlayer: String, JamPlayer {
         case .kr, .akiko, .marcus, .haruto: return true
         }
     }
+
+    var timingOffsetMs: Double {
+        switch self {
+        case .rhythmMachine: return 0.0
+        case .standard: return 0.0
+        case .kr: return -8.0    // ドライブ感（前ノリ）
+        case .akiko: return 5.0
+        case .marcus: return 0.0
+        case .haruto: return 0.0
+        }
+    }
+
+    var velocityHumanizeRange: Int {
+        switch self {
+        case .rhythmMachine: return 0
+        case .standard: return 5
+        case .kr: return 15
+        case .akiko: return 12
+        case .marcus: return 20
+        case .haruto: return 5
+        }
+    }
     
     var isUnlocked: Bool {
         get {
@@ -232,6 +280,28 @@ enum PianoPlayer: String, JamPlayer {
         case .emi, .jazzCat, .ray, .clara: return true
         }
     }
+
+    var timingOffsetMs: Double {
+        switch self {
+        case .rhythmMachine: return 0.0
+        case .standard: return 0.0
+        case .emi: return 2.0
+        case .jazzCat: return 10.0 // 少しタメる
+        case .ray: return 15.0     // レイドバック
+        case .clara: return 0.0
+        }
+    }
+
+    var velocityHumanizeRange: Int {
+        switch self {
+        case .rhythmMachine: return 0
+        case .standard: return 5
+        case .emi: return 8
+        case .jazzCat: return 18
+        case .ray: return 15
+        case .clara: return 10
+        }
+    }
     
     var isUnlocked: Bool {
         get {
@@ -250,3 +320,44 @@ enum PianoPlayer: String, JamPlayer {
 }
 
 
+
+
+// MARK: - セッション・ケミストリー (相性)
+
+struct PlayerChemistry: Identifiable, Equatable {
+    let id: String
+    let displayName: String
+    let description: String
+    let iconName: String
+    let themeColorName: String // Color(themeColorName) などで使う場合用 (省略可能)
+    
+    static let allChemistries: [PlayerChemistry] = [
+        PlayerChemistry(id: "funk_masters", displayName: "Funk Masters", description: "最高にグルーヴィーで跳ねるファンクセッション！", iconName: "flame.fill", themeColorName: "orange"),
+        PlayerChemistry(id: "heavy_drive", displayName: "Heavy Drive", description: "爆発的な疾走感！アグレッシブなハードロック。", iconName: "bolt.fill", themeColorName: "red"),
+        PlayerChemistry(id: "chill_vibes", displayName: "Chill Vibes", description: "心地よくレイドバックしたLo-Fi空間。", iconName: "moon.stars.fill", themeColorName: "indigo"),
+        PlayerChemistry(id: "jazz_lounge", displayName: "Jazz Lounge", description: "大人でオシャレなジャズラウンジの雰囲気。", iconName: "wineglass.fill", themeColorName: "purple"),
+        PlayerChemistry(id: "royal_pop", displayName: "Royal Pop", description: "超安定感！誰もが聴きやすい王道ポップス。", iconName: "star.fill", themeColorName: "yellow")
+    ]
+    
+    /*
+    現在のプレイヤー編成から発動しているケミストリーを判定する。
+    */
+    static func detectChemistry(drum: DrumPlayer, bass: BassPlayer, piano: PianoPlayer) -> PlayerChemistry? {
+        if drum == .leo && bass == .marcus {
+            return allChemistries.first(where: { $0.id == "funk_masters" })
+        }
+        if drum == .chad && bass == .kr {
+            return allChemistries.first(where: { $0.id == "heavy_drive" })
+        }
+        if drum == .sara && (piano == .ray || piano == .emi) {
+            return allChemistries.first(where: { $0.id == "chill_vibes" })
+        }
+        if bass == .akiko && piano == .jazzCat {
+            return allChemistries.first(where: { $0.id == "jazz_lounge" })
+        }
+        if bass == .haruto && drum == .standard && piano == .emi {
+            return allChemistries.first(where: { $0.id == "royal_pop" })
+        }
+        return nil
+    }
+}
