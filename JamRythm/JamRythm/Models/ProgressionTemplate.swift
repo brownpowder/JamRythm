@@ -163,7 +163,7 @@ struct ProgressionTemplate: Identifiable, Equatable {
         name: "クリシェ進行",
         description: "半音ずつ下がるベースラインが美しくドラマチックな名曲進行",
         degrees: [1, 1, 1, 6, 2, 2, 2, 1],
-        presetChordTypes: ["", "M7", "7", "7", "m", "m7", "m6", ""],
+        presetChordTypes: ["", "maj7", "7", "7", "m", "m7", "m6", ""],
         presetBassOffsets: [0, 11, 10, 9, 2, 0, 11, 0],
         iconName: "music.mic",
         genreTag: "クリシェ"
