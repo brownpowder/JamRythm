@@ -43,7 +43,7 @@ enum DrumPlayer: String, JamPlayer {
     var imageName: String {
         switch self {
         case .rhythmMachine: return "Maschine"
-        case .standard: return "Dr2"
+        case .standard: return "system:person.fill"
         case .mark: return "Dr3"
         case .leo: return "Dr4"
         }
@@ -112,7 +112,7 @@ enum BassPlayer: String, JamPlayer {
     var imageName: String {
         switch self {
         case .rhythmMachine: return "Maschine"
-        case .standard: return "Ba2"
+        case .standard: return "system:person.fill"
         case .kr: return "Ba3"
         case .akiko: return "Ba4"
         }
@@ -181,7 +181,7 @@ enum PianoPlayer: String, JamPlayer {
     var imageName: String {
         switch self {
         case .rhythmMachine: return "Maschine"
-        case .standard: return "Key2"
+        case .standard: return "system:person.fill"
         case .emi: return "Key3"
         case .jazzCat: return "Key4"
         }

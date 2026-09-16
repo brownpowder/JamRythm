@@ -135,6 +135,31 @@ struct MixerView: View {
 
     // MARK: - 音色選択メニュー & バッジ
 
+    @ViewBuilder
+    private func playerAvatar(imageName: String) -> some View {
+        if imageName.hasPrefix("system:") {
+            Image(systemName: String(imageName.dropFirst(7)))
+                .resizable()
+                .scaledToFit()
+                .padding(10)
+                .frame(width: 44, height: 44)
+                .background(Color(uiColor: .systemGray4))
+                .foregroundColor(.white)
+                .clipShape(Circle())
+                .overlay(Circle().stroke(Color(uiColor: .tertiarySystemFill), lineWidth: 2))
+                .shadow(radius: 1)
+        } else {
+            Image(imageName)
+                .resizable()
+                .scaledToFill()
+                .frame(width: 44, height: 44)
+                .clipShape(Circle())
+                .overlay(Circle().stroke(Color(uiColor: .tertiarySystemFill), lineWidth: 2))
+                .shadow(radius: 1)
+        }
+    }
+
+
     private var drumPlayerMenu: some View {
         Menu {
             ForEach(DrumPlayer.allCases) { player in
@@ -147,13 +172,7 @@ struct MixerView: View {
                 }
             }
         } label: {
-            Image(viewModel.selectedDrumPlayer.imageName)
-                .resizable()
-                .scaledToFill()
-                .frame(width: 44, height: 44)
-                .clipShape(Circle())
-                .overlay(Circle().stroke(Color(uiColor: .tertiarySystemFill), lineWidth: 2))
-                .shadow(radius: 1)
+            playerAvatar(imageName: viewModel.selectedDrumPlayer.imageName)
         }
     }
 
@@ -169,13 +188,7 @@ struct MixerView: View {
                 }
             }
         } label: {
-            Image(viewModel.selectedBassPlayer.imageName)
-                .resizable()
-                .scaledToFill()
-                .frame(width: 44, height: 44)
-                .clipShape(Circle())
-                .overlay(Circle().stroke(Color(uiColor: .tertiarySystemFill), lineWidth: 2))
-                .shadow(radius: 1)
+            playerAvatar(imageName: viewModel.selectedBassPlayer.imageName)
         }
     }
 
@@ -191,13 +204,7 @@ struct MixerView: View {
                 }
             }
         } label: {
-            Image(viewModel.selectedPianoPlayer.imageName)
-                .resizable()
-                .scaledToFill()
-                .frame(width: 44, height: 44)
-                .clipShape(Circle())
-                .overlay(Circle().stroke(Color(uiColor: .tertiarySystemFill), lineWidth: 2))
-                .shadow(radius: 1)
+            playerAvatar(imageName: viewModel.selectedPianoPlayer.imageName)
         }
     }
 
