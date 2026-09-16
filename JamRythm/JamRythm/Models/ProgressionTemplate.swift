@@ -155,7 +155,18 @@ struct ProgressionTemplate: Identifiable, Equatable {
         genreTag: "穏やか・Aメロ"
     )
 
+    static let cliche = ProgressionTemplate(
+        id: "cliche",
+        name: "クリシェ進行",
+        description: "半音ずつ下がるベースラインが美しくドラマチックな名曲進行",
+        degrees: [1, 1, 1, 6, 2, 2, 2, 1],
+        presetChordTypes: ["", "M7", "7", "7", "m", "m7", "m6", ""],
+        iconName: "music.mic",
+        genreTag: "クリシェ"
+    )
+
     static let allTemplates: [ProgressionTemplate] = [
+        .cliche,
         .royalRoad,
         .komuro,
         .justTheTwoOfUs,
