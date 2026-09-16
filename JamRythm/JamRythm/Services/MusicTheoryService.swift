@@ -18,6 +18,8 @@ enum ScaleType: String, Codable, CaseIterable, Identifiable {
     case blues = "ブルース"
     case harmonicMinor = "ハーモニックマイナー"
     case melodicMinor = "メロディックマイナー"
+    case kumoi = "雲井音階"
+    case ryukyu = "琉球音階"
 
     var id: String { rawValue }
 
@@ -28,6 +30,8 @@ enum ScaleType: String, Codable, CaseIterable, Identifiable {
         case .blues: return "Blues (6音)"
         case .harmonicMinor: return "Harmonic Minor"
         case .melodicMinor: return "Melodic Minor"
+        case .kumoi: return "Kumoi (5音)"
+        case .ryukyu: return "Ryukyu (5音)"
         }
     }
 }
@@ -1858,6 +1862,12 @@ final class MusicTheoryService: MusicTheoryServiceProtocol {
         case .melodicMinor:
             offsets = [0, 2, 3, 5, 7, 9, 11]
             typeName = "メロディックマイナー"
+        case .kumoi:
+            offsets = [0, 1, 5, 7, 8]
+            typeName = "雲井音階"
+        case .ryukyu:
+            offsets = [0, 4, 5, 7, 11]
+            typeName = "琉球音階"
         }
 
         let semitones = offsets.map { (key.semitoneOffset + $0) % 12 }
@@ -1898,6 +1908,14 @@ final class MusicTheoryService: MusicTheoryServiceProtocol {
             let offsets = [0, 2, 3, 5, 7, 9, 11]
             let semitones = offsets.map { (rootSemitone + $0) % 12 }
             return (semitones, "\(chord.rootNote) メロディックマイナー")
+        case .kumoi:
+            let offsets = [0, 1, 5, 7, 8]
+            let semitones = offsets.map { (rootSemitone + $0) % 12 }
+            return (semitones, "\(chord.rootNote) 雲井音階")
+        case .ryukyu:
+            let offsets = [0, 4, 5, 7, 11]
+            let semitones = offsets.map { (rootSemitone + $0) % 12 }
+            return (semitones, "\(chord.rootNote) 琉球音階")
         default:
             let mode = chordScaleMode(for: chord.type)
             let offsets = (scaleType == .pentatonic) ? mode.pentaOffsets : mode.diatonicOffsets
