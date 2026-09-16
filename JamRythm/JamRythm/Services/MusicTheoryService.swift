@@ -20,6 +20,13 @@ enum ScaleType: String, Codable, CaseIterable, Identifiable {
     case kumoi = "雲井音階"
     case ryukyu = "琉球音階"
 
+    var isPremiumOnly: Bool {
+        switch self {
+        case .harmonicMinor, .kumoi, .ryukyu: return true
+        default: return false
+        }
+    }
+
     var id: String { rawValue }
 
     var shortName: String {

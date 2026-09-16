@@ -21,6 +21,12 @@ enum MusicGenre: String, CaseIterable, Identifiable, Codable {
     case rAndB = "R&B"
 
     var id: String { rawValue }
+    var isPremiumOnly: Bool {
+        switch self {
+        case .lofi, .rAndB: return true
+        default: return false
+        }
+    }
 
     /*
     ユーザー向けに表示するジャンル名を返す。
