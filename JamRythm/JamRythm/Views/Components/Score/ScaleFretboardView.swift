@@ -32,7 +32,7 @@ struct ScaleFretboardView: View {
 
 
     private var availableScaleTypes: [ScaleType] {
-        var types: [ScaleType] = [.pentatonic, .diatonic, .blues]
+        var types: [ScaleType] = [.pentatonic, .diatonic]
         let type = chord.type
         let isDominant7 = type.contains("7") && !type.hasPrefix("m") && !type.hasPrefix("M")
         let isSpecialMinor = type.contains("m6") || type.contains("mM7") || type.contains("mMA7")
