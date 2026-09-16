@@ -187,3 +187,24 @@ private func basicGenrePattern(genre: MusicGenre, step: Int) -> [NoteEvent] {
     }
     return notes
 }
+
+
+class SaraDrummer: DrumPlayerEngine {
+    func evaluate(step: Int, context: PlayerContext, genre: MusicGenre) -> [NoteEvent] {
+        var events = [NoteEvent]()
+        if step % 16 == 0 { events.append(NoteEvent(note: 36, velocity: 85)) } // Kick
+        if step % 16 == 8 { events.append(NoteEvent(note: 38, velocity: 90)) } // Snare (slightly laid back)
+        if step % 4 == 0 { events.append(NoteEvent(note: 42, velocity: 65)) }  // Hihat
+        return events
+    }
+}
+
+class ChadDrummer: DrumPlayerEngine {
+    func evaluate(step: Int, context: PlayerContext, genre: MusicGenre) -> [NoteEvent] {
+        var events = [NoteEvent]()
+        if step % 4 == 0 { events.append(NoteEvent(note: 36, velocity: 120)) } // Double kick
+        if step % 16 == 8 { events.append(NoteEvent(note: 38, velocity: 127)) } // Loud Snare
+        if step % 8 == 0 { events.append(NoteEvent(note: 49, velocity: 110)) } // Crash
+        return events
+    }
+}

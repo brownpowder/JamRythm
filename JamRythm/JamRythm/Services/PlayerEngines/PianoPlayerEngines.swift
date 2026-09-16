@@ -100,3 +100,27 @@ class JazzCatPianist: PianoPlayerEngine {
         return notes
     }
 }
+
+
+class RayPianist: PianoPlayerEngine {
+    func evaluate(step: Int, chordNotes: [UInt8], context: PlayerContext, genre: MusicGenre) -> [NoteEvent] {
+        var events = [NoteEvent]()
+        if step % 16 == 4 || step % 16 == 12 { // Offbeats (Reggae chop)
+            for note in chordNotes {
+                events.append(NoteEvent(note: note, velocity: 90))
+            }
+        }
+        return events
+    }
+}
+
+class ClaraPianist: PianoPlayerEngine {
+    func evaluate(step: Int, chordNotes: [UInt8], context: PlayerContext, genre: MusicGenre) -> [NoteEvent] {
+        var events = [NoteEvent]()
+        guard !chordNotes.isEmpty else { return [] }
+        // Simple arpeggio
+        let idx = (step / 2) % chordNotes.count
+        events.append(NoteEvent(note: chordNotes[idx], velocity: 85))
+        return events
+    }
+}

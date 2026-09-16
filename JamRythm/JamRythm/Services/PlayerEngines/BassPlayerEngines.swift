@@ -175,3 +175,24 @@ private func basicBassPattern(genre: MusicGenre, step: Int, root: UInt8?) -> [No
     }
     return notes
 }
+
+
+class MarcusBassist: BassPlayerEngine {
+    func evaluate(step: Int, rootNote: UInt8?, context: PlayerContext, genre: MusicGenre) -> [NoteEvent] {
+        guard let r = rootNote else { return [] }
+        var events = [NoteEvent]()
+        if step % 16 == 0 { events.append(NoteEvent(note: r, velocity: 120)) } // Slap
+        if step % 16 == 12 { events.append(NoteEvent(note: r + 12, velocity: 110)) } // Pop
+        return events
+    }
+}
+
+class HarutoBassist: BassPlayerEngine {
+    func evaluate(step: Int, rootNote: UInt8?, context: PlayerContext, genre: MusicGenre) -> [NoteEvent] {
+        guard let r = rootNote else { return [] }
+        var events = [NoteEvent]()
+        if step % 16 == 0 { events.append(NoteEvent(note: r, velocity: 95)) }
+        if step % 16 == 8 { events.append(NoteEvent(note: r + 7, velocity: 85)) } // 5th
+        return events
+    }
+}
