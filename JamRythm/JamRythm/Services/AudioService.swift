@@ -133,6 +133,9 @@ protocol AudioServiceProtocol: AnyObject {
     var bassProgram: UInt8 { get }
     var drumProgram: UInt8 { get }
     var pianoProgram: UInt8 { get }
+    var selectedDrumPlayer: DrumPlayer { get set }
+    var selectedBassPlayer: BassPlayer { get set }
+    var selectedPianoPlayer: PianoPlayer { get set }
     func setPianoProgram(_ program: UInt8)
 
     /*
@@ -458,6 +461,9 @@ final class AudioService: AudioServiceProtocol {
     }
 
     private(set) var pianoProgram: UInt8 = 0
+    var selectedDrumPlayer: DrumPlayer = .rhythmMachine
+    var selectedBassPlayer: BassPlayer = .rhythmMachine
+    var selectedPianoPlayer: PianoPlayer = .rhythmMachine
 
     func setPianoProgram(_ program: UInt8) {
         self.pianoProgram = min(127, program)

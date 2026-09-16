@@ -53,6 +53,9 @@ final class PlayEditorViewModel: ObservableObject {
     @Published var isLeadSolo: Bool = false
     @Published var selectedLeadInstrument: LeadInstrument = .guitar
     @Published var selectedPianoInstrument: PianoInstrument = .piano
+    @Published var selectedDrumPlayer: DrumPlayer = .rhythmMachine
+    @Published var selectedBassPlayer: BassPlayer = .rhythmMachine
+    @Published var selectedPianoPlayer: PianoPlayer = .rhythmMachine
 
     @Published var selectedDrumInstrument: DrumInstrument = .acoustic
     @Published var selectedBassInstrument: BassInstrument = .dub
@@ -109,6 +112,9 @@ final class PlayEditorViewModel: ObservableObject {
         self.selectedDrumInstrument = DrumInstrument(rawValue: audio.drumProgram) ?? .acoustic
         self.selectedBassInstrument = BassInstrument(rawValue: audio.bassProgram) ?? .dub
         self.selectedPianoInstrument = PianoInstrument(rawValue: audio.pianoProgram) ?? .piano
+        self.selectedDrumPlayer = audio.selectedDrumPlayer
+        self.selectedBassPlayer = audio.selectedBassPlayer
+        self.selectedPianoPlayer = audio.selectedPianoPlayer
 
         setupAudioEngine()
         bindAudioPosition()
@@ -910,6 +916,22 @@ final class PlayEditorViewModel: ObservableObject {
     Usage:
     ミキサーのドラム音色Picker操作時に呼び出される。
     */
+
+    
+    func selectDrumPlayer(_ player: DrumPlayer) {
+        self.selectedDrumPlayer = player
+        audioService.selectedDrumPlayer = player
+    }
+
+    func selectBassPlayer(_ player: BassPlayer) {
+        self.selectedBassPlayer = player
+        audioService.selectedBassPlayer = player
+    }
+
+    func selectPianoPlayer(_ player: PianoPlayer) {
+        self.selectedPianoPlayer = player
+        audioService.selectedPianoPlayer = player
+    }
 
     func selectDrumInstrument(_ instrument: DrumInstrument) {
         self.selectedDrumInstrument = instrument

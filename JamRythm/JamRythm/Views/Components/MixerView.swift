@@ -29,7 +29,8 @@ struct MixerView: View {
                         onVolumeChange: { v in viewModel.changeDrumVolume(v) },
                         onToggleMute: viewModel.toggleDrumMute,
                         onToggleSolo: viewModel.toggleDrumSolo,
-                        instrumentMenu: { drumInstrumentMenu }
+                        instrumentMenu: { drumInstrumentMenu },
+                        playerMenu: { drumPlayerMenu }
                     )
                     channelStrip(
                         title: "BASS", iconName: "guitars", iconColor: .purple,
@@ -37,7 +38,8 @@ struct MixerView: View {
                         onVolumeChange: { v in viewModel.changeBassVolume(v) },
                         onToggleMute: viewModel.toggleBassMute,
                         onToggleSolo: viewModel.toggleBassSolo,
-                        instrumentMenu: { bassInstrumentMenu }
+                        instrumentMenu: { bassInstrumentMenu },
+                        playerMenu: { bassPlayerMenu }
                     )
                     channelStrip(
                         title: "CHORD", iconName: "pianokeys", iconColor: .teal,
@@ -45,7 +47,8 @@ struct MixerView: View {
                         onVolumeChange: { v in viewModel.changePianoVolume(v) },
                         onToggleMute: viewModel.togglePianoMute,
                         onToggleSolo: viewModel.togglePianoSolo,
-                        instrumentMenu: { pianoInstrumentMenu }
+                        instrumentMenu: { pianoInstrumentMenu },
+                        playerMenu: { pianoPlayerMenu }
                     )
                     channelStrip(
                         title: "LEAD", iconName: "music.note", iconColor: .orange,
@@ -53,7 +56,8 @@ struct MixerView: View {
                         onVolumeChange: { v in viewModel.changeLeadVolume(v) },
                         onToggleMute: viewModel.toggleLeadMute,
                         onToggleSolo: viewModel.toggleLeadSolo,
-                        instrumentMenu: { leadInstrumentMenu }
+                        instrumentMenu: { EmptyView() },
+                        playerMenu: { EmptyView() }
                     )
                 }
                 .padding(.horizontal, 8)
@@ -76,7 +80,7 @@ struct MixerView: View {
     }
 
     
-    private func channelStrip<InstrumentMenu: View>(
+    private func channelStrip<InstrumentMenu: View, PlayerMenu: View>(
         title: String,
         iconName: String,
         iconColor: Color,
@@ -86,7 +90,8 @@ struct MixerView: View {
         onVolumeChange: @escaping (Float) -> Void,
         onToggleMute: @escaping () -> Void,
         onToggleSolo: @escaping () -> Void,
-        @ViewBuilder instrumentMenu: () -> InstrumentMenu
+        @ViewBuilder instrumentMenu: () -> InstrumentMenu,
+        @ViewBuilder playerMenu: () -> PlayerMenu
     ) -> some View {
         VStack(spacing: 12) {
             HStack(spacing: 6) {
@@ -96,6 +101,7 @@ struct MixerView: View {
             }
             
             instrumentMenu()
+            playerMenu()
             
             MixerFaderView(
                 valueText: "\(Int(volume * 100))%",
@@ -119,6 +125,94 @@ struct MixerView: View {
 
 
     // MARK: - 音色選択メニュー & バッジ
+
+    private var drumPlayerMenu: some View {
+        Menu {
+            ForEach(DrumPlayer.allCases) { player in
+                Button(action: { viewModel.selectDrumPlayer(player) }) {
+                    if player == viewModel.selectedDrumPlayer {
+                        Label(player.displayName, systemImage: "checkmark")
+                    } else {
+                        Text(player.displayName)
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Text(viewModel.selectedDrumPlayer.displayName)
+                    .font(.caption.bold())
+                    .lineLimit(1)
+                    .foregroundColor(.primary)
+                Image(systemName: "person.fill")
+                    .font(.caption2.bold())
+                    .foregroundColor(.secondary)
+            }
+            .padding(.horizontal, 6)
+            .padding(.vertical, 6)
+            .frame(maxWidth: .infinity)
+            .background(Color(uiColor: .tertiarySystemFill))
+            .cornerRadius(8)
+        }
+    }
+
+    private var bassPlayerMenu: some View {
+        Menu {
+            ForEach(BassPlayer.allCases) { player in
+                Button(action: { viewModel.selectBassPlayer(player) }) {
+                    if player == viewModel.selectedBassPlayer {
+                        Label(player.displayName, systemImage: "checkmark")
+                    } else {
+                        Text(player.displayName)
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Text(viewModel.selectedBassPlayer.displayName)
+                    .font(.caption.bold())
+                    .lineLimit(1)
+                    .foregroundColor(.primary)
+                Image(systemName: "person.fill")
+                    .font(.caption2.bold())
+                    .foregroundColor(.secondary)
+            }
+            .padding(.horizontal, 6)
+            .padding(.vertical, 6)
+            .frame(maxWidth: .infinity)
+            .background(Color(uiColor: .tertiarySystemFill))
+            .cornerRadius(8)
+        }
+    }
+
+    private var pianoPlayerMenu: some View {
+        Menu {
+            ForEach(PianoPlayer.allCases) { player in
+                Button(action: { viewModel.selectPianoPlayer(player) }) {
+                    if player == viewModel.selectedPianoPlayer {
+                        Label(player.displayName, systemImage: "checkmark")
+                    } else {
+                        Text(player.displayName)
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Text(viewModel.selectedPianoPlayer.displayName)
+                    .font(.caption.bold())
+                    .lineLimit(1)
+                    .foregroundColor(.primary)
+                Image(systemName: "person.fill")
+                    .font(.caption2.bold())
+                    .foregroundColor(.secondary)
+            }
+            .padding(.horizontal, 6)
+            .padding(.vertical, 6)
+            .frame(maxWidth: .infinity)
+            .background(Color(uiColor: .tertiarySystemFill))
+            .cornerRadius(8)
+        }
+    }
+
 
     private var pianoInstrumentMenu: some View {
         Menu {
@@ -252,37 +346,6 @@ struct MixerView: View {
         .frame(maxWidth: .infinity)
         .background(Color(uiColor: .tertiarySystemFill))
         .cornerRadius(8)
-    }
-
-    
-    private var leadInstrumentMenu: some View {
-        Menu {
-            ForEach(LeadInstrument.allCases) { instrument in
-                Button(action: { viewModel.selectLeadInstrument(instrument) }) {
-                    if instrument == viewModel.selectedLeadInstrument {
-                        Label(instrument.displayName, systemImage: "checkmark")
-                    } else {
-                        Text(instrument.displayName)
-                    }
-                }
-            }
-        } label: {
-            HStack(spacing: 4) {
-                Text(viewModel.selectedLeadInstrument.displayName)
-                    .font(.caption.bold())
-                    .lineLimit(1)
-                    .foregroundColor(.primary)
-
-                Image(systemName: "chevron.down")
-                    .font(.caption2.bold())
-                    .foregroundColor(.secondary)
-            }
-            .padding(.horizontal, 6)
-            .padding(.vertical, 6)
-            .frame(maxWidth: .infinity)
-            .background(Color(uiColor: .tertiarySystemFill))
-            .cornerRadius(8)
-        }
     }
 
 
