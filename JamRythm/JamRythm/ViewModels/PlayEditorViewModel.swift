@@ -52,6 +52,7 @@ final class PlayEditorViewModel: ObservableObject {
     @Published var isLeadMuted: Bool = false
     @Published var isLeadSolo: Bool = false
     @Published var selectedLeadInstrument: LeadInstrument = .guitar
+    @Published var selectedPianoInstrument: PianoInstrument = .piano
 
     @Published var selectedDrumInstrument: DrumInstrument = .acoustic
     @Published var selectedBassInstrument: BassInstrument = .dub
@@ -107,6 +108,7 @@ final class PlayEditorViewModel: ObservableObject {
 
         self.selectedDrumInstrument = DrumInstrument(rawValue: audio.drumProgram) ?? .acoustic
         self.selectedBassInstrument = BassInstrument(rawValue: audio.bassProgram) ?? .dub
+        self.selectedPianoInstrument = PianoInstrument(rawValue: audio.pianoProgram) ?? .piano
 
         setupAudioEngine()
         bindAudioPosition()
@@ -1125,6 +1127,12 @@ final class PlayEditorViewModel: ObservableObject {
         let next = !isLeadSolo
         self.isLeadSolo = next
         audioService.setLeadSolo(next)
+    }
+
+    
+    func selectPianoInstrument(_ instrument: PianoInstrument) {
+        self.selectedPianoInstrument = instrument
+        audioService.setPianoProgram(instrument.rawValue)
     }
 
     func selectLeadInstrument(_ instrument: LeadInstrument) {

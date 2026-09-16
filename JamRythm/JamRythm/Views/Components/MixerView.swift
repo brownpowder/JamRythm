@@ -45,7 +45,7 @@ struct MixerView: View {
                         onVolumeChange: { v in viewModel.changePianoVolume(v) },
                         onToggleMute: viewModel.togglePianoMute,
                         onToggleSolo: viewModel.togglePianoSolo,
-                        instrumentMenu: { pianoInstrumentBadge }
+                        instrumentMenu: { pianoInstrumentMenu }
                     )
                     channelStrip(
                         title: "LEAD", iconName: "music.note", iconColor: .orange,
@@ -90,11 +90,8 @@ struct MixerView: View {
     ) -> some View {
         VStack(spacing: 12) {
             HStack(spacing: 6) {
-                Image(systemName: iconName)
-                    .font(.headline)
-                    .foregroundColor(iconColor)
                 Text(title)
-                    .font(.headline.bold())
+                    .font(.subheadline.bold())
                     .foregroundColor(.primary)
             }
             
@@ -122,6 +119,36 @@ struct MixerView: View {
 
 
     // MARK: - 音色選択メニュー & バッジ
+
+    private var pianoInstrumentMenu: some View {
+        Menu {
+            ForEach(PianoInstrument.allCases) { instrument in
+                Button(action: { viewModel.selectPianoInstrument(instrument) }) {
+                    if instrument == viewModel.selectedPianoInstrument {
+                        Label(instrument.displayName, systemImage: "checkmark")
+                    } else {
+                        Text(instrument.displayName)
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Text(viewModel.selectedPianoInstrument.displayName)
+                    .font(.caption.bold())
+                    .lineLimit(1)
+                    .foregroundColor(.primary)
+
+                Image(systemName: "chevron.down")
+                    .font(.caption2.bold())
+                    .foregroundColor(.secondary)
+            }
+            .padding(.horizontal, 6)
+            .padding(.vertical, 6)
+            .frame(maxWidth: .infinity)
+            .background(Color(uiColor: .tertiarySystemFill))
+            .cornerRadius(8)
+        }
+    }
 
     /*
     ドラム音色プリセットを選択するドロップダウンメニューを描画する。

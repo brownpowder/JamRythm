@@ -132,6 +132,8 @@ protocol AudioServiceProtocol: AnyObject {
 
     var bassProgram: UInt8 { get }
     var drumProgram: UInt8 { get }
+    var pianoProgram: UInt8 { get }
+    func setPianoProgram(_ program: UInt8)
 
     /*
     マスター出力音量（0.0〜1.0）を設定する。
@@ -455,11 +457,20 @@ final class AudioService: AudioServiceProtocol {
         } catch {}
     }
 
+    private(set) var pianoProgram: UInt8 = 0
+
+    func setPianoProgram(_ program: UInt8) {
+        self.pianoProgram = min(127, program)
+        if let sf2Url = soundFontURL {
+            loadPianoInstrument(sf2Url: sf2Url)
+        }
+    }
+
     private func loadPianoInstrument(sf2Url: URL) {
         do {
             try pianoSampler.loadSoundBankInstrument(
                 at: sf2Url,
-                program: 7,
+                program: pianoProgram,
                 bankMSB: UInt8(kAUSampler_DefaultMelodicBankMSB),
                 bankLSB: 0
             )
