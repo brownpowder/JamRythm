@@ -182,7 +182,7 @@ enum PianoPlayer: String, JamPlayer {
         switch self {
         case .rhythmMachine: return "system:metronome"
         case .standard: return "system:person.fill"
-        case .emi: return "Key3"
+        case .emi: return "Key2"
         case .jazzCat: return "Key4"
         }
     }
