@@ -575,7 +575,7 @@ final class AudioService: AudioServiceProtocol {
     */
     
     func setBassProgram(_ program: UInt8) {
-        self.bassProgram = min(6, program)
+        self.bassProgram = program
         if let sf2Url = soundFontURL {
             loadBassInstrument(sf2Url: sf2Url)
         }
@@ -593,7 +593,7 @@ final class AudioService: AudioServiceProtocol {
     */
     
     func setDrumProgram(_ program: UInt8) {
-        self.drumProgram = min(2, program)
+        self.drumProgram = program
         if let sf2Url = soundFontURL {
             loadDrumInstrument(sf2Url: sf2Url)
         }
