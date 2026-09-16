@@ -1107,7 +1107,15 @@ final class PlayEditorViewModel: ObservableObject {
                 baseDegree: degree,
                 excludingChords: candidateChords
             )
-            let presetChord: Chord? = (template.presetChordTypes != nil && index < template.presetChordTypes!.count) ? Chord(rootNote: bassNote, type: template.presetChordTypes![index], bassNote: nil) : nil
+            var presetChord: Chord? = nil
+            if template.presetChordTypes != nil && index < template.presetChordTypes!.count {
+                var slashBass: String? = nil
+                if let offsets = template.presetBassOffsets, index < offsets.count {
+                    let slashSemi = (key.semitoneOffset + offsets[index]) % 12
+                    slashBass = Key.noteName(forSemitone: slashSemi)
+                }
+                presetChord = Chord(rootNote: bassNote, type: template.presetChordTypes![index], bassNote: slashBass)
+            }
             return Measure(
                 baseDegree: degree,
                 bassNote: bassNote,

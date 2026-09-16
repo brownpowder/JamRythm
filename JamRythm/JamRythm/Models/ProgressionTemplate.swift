@@ -17,6 +17,7 @@ struct ProgressionTemplate: Identifiable, Equatable {
     let description: String
     let degrees: [Int]
     let presetChordTypes: [String]?
+    let presetBassOffsets: [Int]?
     let iconName: String
     let genreTag: String
 
@@ -26,6 +27,7 @@ struct ProgressionTemplate: Identifiable, Equatable {
         description: String,
         degrees: [Int],
         presetChordTypes: [String]? = nil,
+        presetBassOffsets: [Int]? = nil,
         iconName: String = "music.note",
         genreTag: String = "定番"
     ) {
@@ -34,6 +36,7 @@ struct ProgressionTemplate: Identifiable, Equatable {
         self.description = description
         self.degrees = degrees
         self.presetChordTypes = presetChordTypes
+        self.presetBassOffsets = presetBassOffsets
         self.iconName = iconName
         self.genreTag = genreTag
     }
@@ -161,6 +164,7 @@ struct ProgressionTemplate: Identifiable, Equatable {
         description: "半音ずつ下がるベースラインが美しくドラマチックな名曲進行",
         degrees: [1, 1, 1, 6, 2, 2, 2, 1],
         presetChordTypes: ["", "M7", "7", "7", "m", "m7", "m6", ""],
+        presetBassOffsets: [0, 11, 10, 9, 2, 0, 11, 0],
         iconName: "music.mic",
         genreTag: "クリシェ"
     )
