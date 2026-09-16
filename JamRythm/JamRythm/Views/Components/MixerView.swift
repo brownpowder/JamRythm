@@ -56,8 +56,16 @@ struct MixerView: View {
                         onVolumeChange: { v in viewModel.changeLeadVolume(v) },
                         onToggleMute: viewModel.toggleLeadMute,
                         onToggleSolo: viewModel.toggleLeadSolo,
-                        instrumentMenu: { EmptyView() },
-                        playerMenu: { EmptyView() }
+                        instrumentMenu: { 
+                            Text("A")
+                                .font(.caption.bold())
+                                .padding(.vertical, 6)
+                                .frame(maxWidth: .infinity)
+                                .hidden()
+                        },
+                        playerMenu: { 
+                            Color.clear.frame(height: 44) 
+                        }
                     )
                 }
                 .padding(.horizontal, 8)
@@ -116,6 +124,7 @@ struct MixerView: View {
                 onToggleSolo: onToggleSolo
             )
         }
+        .frame(maxHeight: .infinity)
         .padding(8)
         .background(
             RoundedRectangle(cornerRadius: 18)
@@ -138,20 +147,13 @@ struct MixerView: View {
                 }
             }
         } label: {
-            HStack(spacing: 4) {
-                Text(viewModel.selectedDrumPlayer.displayName)
-                    .font(.caption.bold())
-                    .lineLimit(1)
-                    .foregroundColor(.primary)
-                Image(systemName: "person.fill")
-                    .font(.caption2.bold())
-                    .foregroundColor(.secondary)
-            }
-            .padding(.horizontal, 6)
-            .padding(.vertical, 6)
-            .frame(maxWidth: .infinity)
-            .background(Color(uiColor: .tertiarySystemFill))
-            .cornerRadius(8)
+            Image(viewModel.selectedDrumPlayer.imageName)
+                .resizable()
+                .scaledToFill()
+                .frame(width: 44, height: 44)
+                .clipShape(Circle())
+                .overlay(Circle().stroke(Color(uiColor: .tertiarySystemFill), lineWidth: 2))
+                .shadow(radius: 1)
         }
     }
 
@@ -167,20 +169,13 @@ struct MixerView: View {
                 }
             }
         } label: {
-            HStack(spacing: 4) {
-                Text(viewModel.selectedBassPlayer.displayName)
-                    .font(.caption.bold())
-                    .lineLimit(1)
-                    .foregroundColor(.primary)
-                Image(systemName: "person.fill")
-                    .font(.caption2.bold())
-                    .foregroundColor(.secondary)
-            }
-            .padding(.horizontal, 6)
-            .padding(.vertical, 6)
-            .frame(maxWidth: .infinity)
-            .background(Color(uiColor: .tertiarySystemFill))
-            .cornerRadius(8)
+            Image(viewModel.selectedBassPlayer.imageName)
+                .resizable()
+                .scaledToFill()
+                .frame(width: 44, height: 44)
+                .clipShape(Circle())
+                .overlay(Circle().stroke(Color(uiColor: .tertiarySystemFill), lineWidth: 2))
+                .shadow(radius: 1)
         }
     }
 
@@ -196,20 +191,13 @@ struct MixerView: View {
                 }
             }
         } label: {
-            HStack(spacing: 4) {
-                Text(viewModel.selectedPianoPlayer.displayName)
-                    .font(.caption.bold())
-                    .lineLimit(1)
-                    .foregroundColor(.primary)
-                Image(systemName: "person.fill")
-                    .font(.caption2.bold())
-                    .foregroundColor(.secondary)
-            }
-            .padding(.horizontal, 6)
-            .padding(.vertical, 6)
-            .frame(maxWidth: .infinity)
-            .background(Color(uiColor: .tertiarySystemFill))
-            .cornerRadius(8)
+            Image(viewModel.selectedPianoPlayer.imageName)
+                .resizable()
+                .scaledToFill()
+                .frame(width: 44, height: 44)
+                .clipShape(Circle())
+                .overlay(Circle().stroke(Color(uiColor: .tertiarySystemFill), lineWidth: 2))
+                .shadow(radius: 1)
         }
     }
 
