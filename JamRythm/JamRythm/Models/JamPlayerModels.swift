@@ -113,8 +113,8 @@ enum BassPlayer: String, JamPlayer {
         switch self {
         case .rhythmMachine: return "system:metronome"
         case .standard: return "system:person.fill"
-        case .kr: return "Ba3"
-        case .akiko: return "Ba4"
+        case .kr: return "Ba4"
+        case .akiko: return "Ba2"
         }
     }
 
