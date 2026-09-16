@@ -105,9 +105,20 @@ class JazzCatPianist: PianoPlayerEngine {
 class RayPianist: PianoPlayerEngine {
     func evaluate(step: Int, chordNotes: [UInt8], context: PlayerContext, genre: MusicGenre) -> [NoteEvent] {
         var events = [NoteEvent]()
-        if step % 16 == 4 || step % 16 == 12 { // Offbeats (Reggae chop)
-            for note in chordNotes {
-                events.append(NoteEvent(note: note, velocity: 90))
+        let variation = (context.songLoopCount + context.phraseIndex) % 2
+        
+        if variation == 0 {
+            if step == 2 || step == 6 { // Offbeats (Reggae chop)
+                for note in chordNotes {
+                    events.append(NoteEvent(note: note, velocity: 90))
+                }
+            }
+        } else {
+            if step == 2 {
+                for note in chordNotes { events.append(NoteEvent(note: note, velocity: 90)) }
+            } else if step == 5 || step == 6 {
+                // syncopated
+                for note in chordNotes { events.append(NoteEvent(note: note, velocity: 85)) }
             }
         }
         return events
@@ -118,9 +129,23 @@ class ClaraPianist: PianoPlayerEngine {
     func evaluate(step: Int, chordNotes: [UInt8], context: PlayerContext, genre: MusicGenre) -> [NoteEvent] {
         var events = [NoteEvent]()
         guard !chordNotes.isEmpty else { return [] }
-        // Simple arpeggio
-        let idx = (step / 2) % chordNotes.count
-        events.append(NoteEvent(note: chordNotes[idx], velocity: 85))
+        let variation = (context.songLoopCount + context.phraseIndex) % 3
+        
+        if variation == 0 {
+            // Ascending arpeggio
+            let idx = step % chordNotes.count
+            events.append(NoteEvent(note: chordNotes[idx], velocity: 85))
+        } else if variation == 1 {
+            // Descending arpeggio
+            let idx = (chordNotes.count - 1) - (step % chordNotes.count)
+            events.append(NoteEvent(note: chordNotes[max(0, idx)], velocity: 85))
+        } else {
+            // Alberti-like
+            let pattern = [0, 2, 1, 2, 0, 2, 1, 2]
+            let nIdx = pattern[step % 8] % chordNotes.count
+            events.append(NoteEvent(note: chordNotes[nIdx], velocity: 80))
+        }
+        
         return events
     }
 }

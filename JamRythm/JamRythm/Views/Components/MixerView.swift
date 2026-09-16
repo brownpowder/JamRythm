@@ -21,6 +21,23 @@ struct MixerView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 16) {
+                // ケミストリー・バッジ
+                if let chemistry = viewModel.activeChemistry {
+                    HStack {
+                        Image(systemName: chemistry.iconName)
+                            .foregroundColor(.yellow)
+                        Text(chemistry.displayName)
+                            .font(.headline)
+                            .bold()
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(Color(uiColor: .tertiarySystemFill))
+                    .cornerRadius(12)
+                    .padding(.top, 16)
+                    .transition(.opacity.combined(with: .scale))
+                    .animation(.spring(), value: viewModel.activeChemistry)
+                }
                                 // 4チャンネル・ストリップ
                 HStack(spacing: 6) {
                     channelStrip(

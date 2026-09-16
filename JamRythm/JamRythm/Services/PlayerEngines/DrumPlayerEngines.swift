@@ -192,9 +192,34 @@ private func basicGenrePattern(genre: MusicGenre, step: Int) -> [NoteEvent] {
 class SaraDrummer: DrumPlayerEngine {
     func evaluate(step: Int, context: PlayerContext, genre: MusicGenre) -> [NoteEvent] {
         var events = [NoteEvent]()
-        if step % 16 == 0 { events.append(NoteEvent(note: 36, velocity: 85)) } // Kick
-        if step % 16 == 8 { events.append(NoteEvent(note: 38, velocity: 90)) } // Snare (slightly laid back)
-        if step % 4 == 0 { events.append(NoteEvent(note: 42, velocity: 65)) }  // Hihat
+        let variation = (context.songLoopCount + context.phraseIndex) % 3
+        
+        if context.isFillTiming && step >= 6 {
+            events.append(NoteEvent(note: 38, velocity: 85))
+            if step == 7 { events.append(NoteEvent(note: 42, velocity: 70)) }
+            return events
+        }
+        
+        // Hi-hat
+        if variation == 2 && (step == 3 || step == 7) {
+            events.append(NoteEvent(note: 42, velocity: 50)) // 16th feel
+        } else if step % 4 == 0 {
+            events.append(NoteEvent(note: 42, velocity: 65))
+        }
+
+        // Kick & Snare
+        if variation == 0 {
+            if step == 0 || step == 4 { events.append(NoteEvent(note: 36, velocity: 85)) }
+            if step == 2 || step == 6 { events.append(NoteEvent(note: 38, velocity: 90)) }
+        } else if variation == 1 {
+            if step == 0 || step == 3 || step == 4 { events.append(NoteEvent(note: 36, velocity: 85)) } // Syncopated kick
+            if step == 2 || step == 6 { events.append(NoteEvent(note: 38, velocity: 90)) }
+        } else {
+            if step == 0 { events.append(NoteEvent(note: 36, velocity: 85)) }
+            if step == 2 || step == 6 { events.append(NoteEvent(note: 38, velocity: 90)) }
+            if step == 5 { events.append(NoteEvent(note: 36, velocity: 75)) } // Ghost kick
+        }
+        
         return events
     }
 }
@@ -202,9 +227,36 @@ class SaraDrummer: DrumPlayerEngine {
 class ChadDrummer: DrumPlayerEngine {
     func evaluate(step: Int, context: PlayerContext, genre: MusicGenre) -> [NoteEvent] {
         var events = [NoteEvent]()
-        if step % 4 == 0 { events.append(NoteEvent(note: 36, velocity: 120)) } // Double kick
-        if step % 16 == 8 { events.append(NoteEvent(note: 38, velocity: 127)) } // Loud Snare
-        if step % 8 == 0 { events.append(NoteEvent(note: 49, velocity: 110)) } // Crash
+        let variation = (context.songLoopCount + context.phraseIndex) % 3
+        
+        if context.isFillTiming && step >= 4 {
+            events.append(NoteEvent(note: 38, velocity: 127)) // Snare roll
+            events.append(NoteEvent(note: 36, velocity: 127)) // Kick match
+            if step == 7 { events.append(NoteEvent(note: 47, velocity: 120)) } // Tom
+            return events
+        }
+        
+        // Ride/Hihat
+        if variation == 2 {
+            events.append(NoteEvent(note: 51, velocity: 110)) // Ride
+        } else {
+            events.append(NoteEvent(note: 42, velocity: 100)) // Hihat
+        }
+
+        if step == 0 { events.append(NoteEvent(note: 49, velocity: 110)) } // Crash on 1
+
+        if variation == 0 {
+            if step % 2 == 0 { events.append(NoteEvent(note: 36, velocity: 120)) } // Double kick
+            if step == 2 || step == 6 { events.append(NoteEvent(note: 38, velocity: 127)) } // Snare
+        } else if variation == 1 {
+            if step == 0 || step == 3 || step == 4 { events.append(NoteEvent(note: 36, velocity: 127)) } 
+            if step == 2 || step == 6 { events.append(NoteEvent(note: 38, velocity: 127)) }
+        } else {
+            // Blast-like or heavy tom
+            events.append(NoteEvent(note: 36, velocity: 127)) // kick every step
+            if step == 2 || step == 6 { events.append(NoteEvent(note: 38, velocity: 127)) }
+        }
+        
         return events
     }
 }

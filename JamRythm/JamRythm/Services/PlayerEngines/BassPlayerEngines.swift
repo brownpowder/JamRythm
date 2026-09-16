@@ -181,8 +181,18 @@ class MarcusBassist: BassPlayerEngine {
     func evaluate(step: Int, rootNote: UInt8?, context: PlayerContext, genre: MusicGenre) -> [NoteEvent] {
         guard let r = rootNote else { return [] }
         var events = [NoteEvent]()
-        if step % 16 == 0 { events.append(NoteEvent(note: r, velocity: 120)) } // Slap
-        if step % 16 == 12 { events.append(NoteEvent(note: r + 12, velocity: 110)) } // Pop
+        let variation = (context.songLoopCount + context.phraseIndex) % 2
+        
+        if variation == 0 {
+            if step == 0 || step == 4 { events.append(NoteEvent(note: r, velocity: 120)) } // Slap
+            if step == 3 || step == 7 { events.append(NoteEvent(note: r + 12, velocity: 110)) } // Pop
+        } else {
+            if step == 0 { events.append(NoteEvent(note: r, velocity: 120)) }
+            if step == 2 { events.append(NoteEvent(note: r, velocity: 60)) } // Ghost
+            if step == 3 { events.append(NoteEvent(note: r + 12, velocity: 115)) }
+            if step == 5 { events.append(NoteEvent(note: r, velocity: 60)) }
+            if step == 6 { events.append(NoteEvent(note: r + 10, velocity: 100)) } // b7
+        }
         return events
     }
 }
@@ -191,8 +201,15 @@ class HarutoBassist: BassPlayerEngine {
     func evaluate(step: Int, rootNote: UInt8?, context: PlayerContext, genre: MusicGenre) -> [NoteEvent] {
         guard let r = rootNote else { return [] }
         var events = [NoteEvent]()
-        if step % 16 == 0 { events.append(NoteEvent(note: r, velocity: 95)) }
-        if step % 16 == 8 { events.append(NoteEvent(note: r + 7, velocity: 85)) } // 5th
+        let variation = (context.songLoopCount + context.phraseIndex) % 2
+        
+        if variation == 0 {
+            if step == 0 { events.append(NoteEvent(note: r, velocity: 95)) }
+            if step == 4 { events.append(NoteEvent(note: r + 7, velocity: 85)) } // 5th
+        } else {
+            if step == 0 || step == 3 { events.append(NoteEvent(note: r, velocity: 95)) }
+            if step == 6 { events.append(NoteEvent(note: r, velocity: 80)) }
+        }
         return events
     }
 }
