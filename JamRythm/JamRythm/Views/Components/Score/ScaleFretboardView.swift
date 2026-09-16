@@ -224,13 +224,11 @@ struct ScaleFretboardView: View {
             // 上段: スケール名 & 各種切替ボタン
             HStack(spacing: 6) {
                 // スケール名ラベル（タップでスケール種類切替）
-                Menu {
-                    Picker("Scale", selection: $scaleType) {
-                        ForEach(availableScaleTypes) { type in
-                            Text(type.shortName).tag(type)
-                        }
-                    }
-                } label: {
+                CustomPickerButton(
+                    options: availableScaleTypes,
+                    selection: $scaleType,
+                    sheetTitle: "スケール選択"
+                ) {
                     HStack(spacing: 3) {
                         Image(systemName: "music.note.list")
                             .font(.system(size: 9, weight: .bold))
@@ -247,6 +245,19 @@ struct ScaleFretboardView: View {
                     .padding(.vertical, 3)
                     .background(Color(uiColor: .quaternarySystemFill))
                     .cornerRadius(5)
+                } optionRow: { type in
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(type.rawValue).font(.headline)
+                            Text(type.shortName).font(.caption).foregroundColor(.secondary)
+                        }
+                        Spacer()
+                        if type.isPremiumOnly {
+                            Image(systemName: "lock.fill")
+                                .foregroundColor(.secondary)
+                                .font(.footnote)
+                        }
+                    }
                 }
                 
                 Spacer()
@@ -270,13 +281,11 @@ struct ScaleFretboardView: View {
                 .buttonStyle(.plain)
 
                 // 楽器切替ピッカー
-                Menu {
-                    Picker("Instrument", selection: $instrument) {
-                        ForEach(ScaleInstrument.allCases) { inst in
-                            Text(inst.shortName).tag(inst)
-                        }
-                    }
-                } label: {
+                CustomPickerButton(
+                    options: ScaleInstrument.allCases,
+                    selection: $instrument,
+                    sheetTitle: "楽器表示選択"
+                ) {
                     HStack(spacing: 2) {
                         Image(systemName: instrument == .piano ? "pianokeys" : "guitars")
                             .font(.system(size: 8, weight: .bold))
@@ -291,6 +300,8 @@ struct ScaleFretboardView: View {
                     .background(Color(uiColor: .quaternarySystemFill))
                     .foregroundColor(.secondary)
                     .cornerRadius(5)
+                } optionRow: { inst in
+                    Text(inst.shortName).font(.headline)
                 }
                 .onChange(of: instrument) { newValue in
                     if newValue == .piano {
