@@ -7,15 +7,12 @@ import SwiftUI
 
 struct ProjectListView: View {
     @StateObject private var repository = ProjectRepository.shared
-    @State private var showingNewProject = false
     
     var body: some View {
         NavigationStack {
             List {
-                ForEach(repository.projects, id: \.id) { (project: Project) in
-                    NavigationLink {
-                        PlayEditorView(project: project)
-                    } label: {
+                ForEach(repository.projects) { project in
+                    NavigationLink(value: project) {
                         VStack(alignment: .leading, spacing: 6) {
                             Text(project.title)
                                 .font(.headline)
@@ -43,11 +40,17 @@ struct ProjectListView: View {
                 }
             }
             .navigationTitle("My Projects")
+            .navigationDestination(for: Project.self) { project in
+                PlayEditorView(project: project)
+            }
+            .navigationDestination(for: String.self) { val in
+                if val == "new" {
+                    PlayEditorView(project: nil)
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    NavigationLink {
-                        PlayEditorView(project: nil)
-                    } label: {
+                    NavigationLink(value: "new") {
                         Image(systemName: "plus")
                     }
                 }
@@ -56,5 +59,10 @@ struct ProjectListView: View {
                 repository.loadAllProjects()
             }
         }
+    }
+}
+extension Project: Hashable {
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
     }
 }
