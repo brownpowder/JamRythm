@@ -59,6 +59,30 @@ struct ProjectListView: View {
             .onAppear {
                 repository.loadAllProjects()
             }
+            .safeAreaInset(edge: .bottom) {
+                Button(action: {
+                    // TODO: アプリの使い方ツアーを開始する処理
+                }) {
+                    HStack {
+                        Image(systemName: "info.circle.fill")
+                        Text("アプリの使い方を見る")
+                            .fontWeight(.bold)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.accentColor)
+                    .foregroundColor(.white)
+                    .cornerRadius(12)
+                    .padding(.horizontal)
+                    .padding(.vertical, 8)
+                }
+                .background(
+                    Rectangle()
+                        .fill(Color(uiColor: .systemBackground).opacity(0.95))
+                        .ignoresSafeArea(edges: .bottom)
+                        .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: -5)
+                )
+            }
         }
     }
 }
