@@ -665,7 +665,7 @@ struct ScaleFretboardView: View {
             ? .system(size: 8, weight: .heavy, design: .rounded)
             : .system(size: 7, weight: .bold, design: .rounded)
 
-        let labelText = Text(position.role == .root ? "R" : position.noteName)
+        let labelText = Text(position.noteName)
             .font(font)
             .foregroundColor(textColor)
 
