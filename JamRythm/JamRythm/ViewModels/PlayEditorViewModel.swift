@@ -94,6 +94,7 @@ final class PlayEditorViewModel: ObservableObject {
         audioService: AudioServiceProtocol? = nil,
         theoryService: MusicTheoryServiceProtocol? = nil
     ) {
+        print("DEBUG: PlayEditorViewModel init called. Project is \(project == nil ? "nil" : "exists")")
         let audio = audioService ?? AudioService()
         let theory = theoryService ?? MusicTheoryService()
         self.audioService = audio
@@ -102,7 +103,9 @@ final class PlayEditorViewModel: ObservableObject {
         if let existingProject = project {
             self.project = existingProject
         } else {
-            let initialProject = Self.createDefaultProject(template: .royalRoad, key: .C, theoryService: theory)
+            let nextTitle = ProjectRepository.shared.generateNextProjectName()
+            var initialProject = Self.createDefaultProject(template: .royalRoad, key: .C, theoryService: theory)
+            initialProject.title = nextTitle
             self.project = initialProject
         }
         self.selectedGenre = self.project.genre
@@ -138,6 +141,7 @@ final class PlayEditorViewModel: ObservableObject {
             .dropFirst()
             .debounce(for: .seconds(2), scheduler: RunLoop.main)
             .sink { [weak self] updatedProject in
+                print("DEBUG: Auto-saving project: \(updatedProject.title)")
                 ProjectRepository.shared.save(updatedProject)
             }
             .store(in: &cancellables)

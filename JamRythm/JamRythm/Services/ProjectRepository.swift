@@ -37,6 +37,24 @@ class ProjectRepository: ObservableObject {
     
     // MARK: - Public Methods
     
+    func generateNextProjectName() -> String {
+        let prefix = "Project"
+        var maxNumber = 0
+        
+        for project in projects {
+            if project.title.hasPrefix(prefix) {
+                let numberString = project.title.dropFirst(prefix.count).trimmingCharacters(in: .whitespaces)
+                if let number = Int(numberString) {
+                    if number > maxNumber {
+                        maxNumber = number
+                    }
+                }
+            }
+        }
+        return "\(prefix)\(maxNumber + 1)"
+    }
+
+    
     func loadAllProjects() {
         var loadedProjects: [Project] = []
         
