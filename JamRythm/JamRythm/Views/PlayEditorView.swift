@@ -153,6 +153,13 @@ struct PlayEditorView: View {
                     .font(.headline)
                     .multilineTextAlignment(.center)
             }
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    isShowingSettings = true
+                } label: {
+                    Image(systemName: "gearshape.fill")
+                }
+            }
         }
         .sheet(isPresented: $isShowingSettings) {
             SettingsView()
@@ -180,15 +187,6 @@ struct PlayEditorView: View {
 
             // ジャンル選択ボタン（Genre名 + アイコン + 下矢印）
             genreMenuButton
-            
-            // 設定ボタン
-            Button(action: {
-                isShowingSettings = true
-            }) {
-                Image(systemName: "gearshape.fill")
-                    .font(.title3)
-                    .foregroundColor(.secondary)
-            }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
