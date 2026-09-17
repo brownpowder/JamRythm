@@ -104,8 +104,6 @@ final class PlayEditorViewModel: ObservableObject {
         } else {
             let initialProject = Self.createDefaultProject(template: .royalRoad, key: .C, theoryService: theory)
             self.project = initialProject
-            // 新規作成時は保存
-            ProjectRepository.shared.save(self.project)
         }
         self.selectedGenre = self.project.genre
         self.volume = audio.volume
