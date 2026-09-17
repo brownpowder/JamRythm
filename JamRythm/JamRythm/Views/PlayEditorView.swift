@@ -146,6 +146,14 @@ struct PlayEditorView: View {
                 Text(viewModel.errorMessage ?? "")
             }
         }
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                TextField("Project Title", text: $viewModel.project.title)
+                    .font(.headline)
+                    .multilineTextAlignment(.center)
+            }
+        }
         .sheet(isPresented: $isShowingSettings) {
             SettingsView()
         }
