@@ -69,19 +69,9 @@ struct ProjectListView: View {
                             .fontWeight(.bold)
                     }
                     .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.accentColor)
-                    .foregroundColor(.white)
-                    .cornerRadius(12)
-                    .padding(.horizontal)
-                    .padding(.vertical, 8)
+                    .padding(.vertical, 16)
+                    .foregroundColor(.accentColor)
                 }
-                .background(
-                    Rectangle()
-                        .fill(Color(uiColor: .systemBackground).opacity(0.95))
-                        .ignoresSafeArea(edges: .bottom)
-                        .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: -5)
-                )
             }
         }
     }
