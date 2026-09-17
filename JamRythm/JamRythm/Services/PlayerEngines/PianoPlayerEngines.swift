@@ -178,17 +178,27 @@ class ClaraPianist: BasePianoPlayerEngine {
     
     override func pattern(for genre: MusicGenre, variation: Int, step: Int, chordNotes: [UInt8], context: PlayerContext) -> [NoteEvent] {
         var events = [NoteEvent]()
-        // クラシック的な分散和音（アルペジオ）
+        guard chordNotes.count > 1 else { return [] }
+        
+        let bassNote = chordNotes[0]
+        let upperNotes = Array(chordNotes.dropFirst())
+        
+        // ステップ0ではベース音を鳴らす（重厚感を出すため）
+        if step == 0 {
+            events.append(NoteEvent(note: bassNote, velocity: 90))
+        }
+        
+        // クラシック的な分散和音（アルペジオ）は上声部（右手）のみで行う
         if variation == 0 {
-            let idx = step % chordNotes.count
-            events.append(NoteEvent(note: chordNotes[idx], velocity: 85))
+            let idx = step % upperNotes.count
+            events.append(NoteEvent(note: upperNotes[idx], velocity: 85))
         } else if variation == 1 {
-            let idx = (chordNotes.count - 1) - (step % chordNotes.count)
-            events.append(NoteEvent(note: chordNotes[max(0, idx)], velocity: 85))
+            let idx = (upperNotes.count - 1) - (step % upperNotes.count)
+            events.append(NoteEvent(note: upperNotes[max(0, idx)], velocity: 85))
         } else {
             let pattern = [0, 2, 1, 2, 0, 2, 1, 2]
-            let nIdx = pattern[step % 8] % chordNotes.count
-            events.append(NoteEvent(note: chordNotes[nIdx], velocity: 80))
+            let nIdx = pattern[step % 8] % upperNotes.count
+            events.append(NoteEvent(note: upperNotes[nIdx], velocity: 80))
         }
         return events
     }
