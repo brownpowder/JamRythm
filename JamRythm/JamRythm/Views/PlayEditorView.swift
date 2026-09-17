@@ -25,7 +25,7 @@ struct PlayEditorView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        Group {
             ScrollView {
                 VStack(spacing: 18) {
                     // 1. 小節進行 & 拍インジケーター（一時コメントアウト）

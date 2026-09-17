@@ -90,6 +90,7 @@ final class PlayEditorViewModel: ObservableObject {
     */
     
     init(
+        project: Project? = nil,
         audioService: AudioServiceProtocol? = nil,
         theoryService: MusicTheoryServiceProtocol? = nil
     ) {
@@ -98,9 +99,15 @@ final class PlayEditorViewModel: ObservableObject {
         self.audioService = audio
         self.theoryService = theory
 
-        let initialProject = Self.createDefaultProject(template: .royalRoad, key: .C, theoryService: theory)
-        self.project = initialProject
-        self.selectedGenre = initialProject.genre
+        if let existingProject = project {
+            self.project = existingProject
+        } else {
+            let initialProject = Self.createDefaultProject(template: .royalRoad, key: .C, theoryService: theory)
+            self.project = initialProject
+            // 新規作成時は保存
+            ProjectRepository.shared.save(self.project)
+        }
+        self.selectedGenre = self.project.genre
         self.volume = audio.volume
         self.drumVolume = audio.drumVolume
         self.bassVolume = audio.bassVolume
@@ -127,7 +134,18 @@ final class PlayEditorViewModel: ObservableObject {
         setupAudioEngine()
         bindAudioPosition()
         updateCandidatesForCurrentMeasure()
+        
+        // オートセーブ（projectが変更されるたびにDebounceして保存）
+        $project
+            .dropFirst()
+            .debounce(for: .seconds(2), scheduler: RunLoop.main)
+            .sink { [weak self] updatedProject in
+                ProjectRepository.shared.save(updatedProject)
+            }
+            .store(in: &cancellables)
     }
+    
+
 
     // MARK: - 計算プロパティ (View支援)
 

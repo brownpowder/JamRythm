@@ -135,6 +135,8 @@ struct Project: Codable, Identifiable, Equatable {
     var key: Key
     var genre: MusicGenre
     var sections: [Section]
+    var createdAt: Date
+    var lastModified: Date
 
     init(
         id: UUID = UUID(),
@@ -142,7 +144,9 @@ struct Project: Codable, Identifiable, Equatable {
         bpm: Double = 120.0,
         key: Key = .C,
         genre: MusicGenre = .pop,
-        sections: [Section] = []
+        sections: [Section] = [],
+        createdAt: Date = Date(),
+        lastModified: Date = Date()
     ) {
         self.id = id
         self.title = title
@@ -150,5 +154,7 @@ struct Project: Codable, Identifiable, Equatable {
         self.key = key
         self.genre = genre
         self.sections = sections
+        self.createdAt = createdAt
+        self.lastModified = lastModified
     }
 }
