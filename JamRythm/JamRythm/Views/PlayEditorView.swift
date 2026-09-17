@@ -100,7 +100,7 @@ struct PlayEditorView: View {
                 .background(Color(uiColor: .secondarySystemBackground))
             }
             .background(Color(uiColor: .systemBackground))
-            .toolbar(.hidden, for: .navigationBar)
+            
             .sheet(isPresented: $viewModel.isShowingMixer) {
                 MixerView(viewModel: viewModel)
                     .presentationDetents([.fraction(0.55), .medium])
