@@ -40,6 +40,7 @@ struct ProjectListView: View {
                 }
             }
             .navigationTitle("My Projects")
+            .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(for: Project.self) { project in
                 PlayEditorView(project: project)
             }
