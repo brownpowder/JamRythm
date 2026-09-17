@@ -20,8 +20,8 @@ struct PlayEditorView: View {
     @StateObject private var viewModel: PlayEditorViewModel
     @State private var isShowingSettings = false
 
-    init(viewModel: PlayEditorViewModel? = nil) {
-        _viewModel = StateObject(wrappedValue: viewModel ?? PlayEditorViewModel())
+    init(project: Project? = nil) {
+        _viewModel = StateObject(wrappedValue: PlayEditorViewModel(project: project))
     }
 
     var body: some View {

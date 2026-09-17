@@ -14,7 +14,7 @@ struct ProjectListView: View {
             List {
                 ForEach(repository.projects, id: \.id) { (project: Project) in
                     NavigationLink {
-                        PlayEditorView(viewModel: PlayEditorViewModel(project: project))
+                        PlayEditorView(project: project)
                     } label: {
                         VStack(alignment: .leading, spacing: 6) {
                             Text(project.title)
@@ -46,7 +46,7 @@ struct ProjectListView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     NavigationLink {
-                        PlayEditorView(viewModel: PlayEditorViewModel(project: nil))
+                        PlayEditorView(project: nil)
                     } label: {
                         Image(systemName: "plus")
                     }
