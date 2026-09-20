@@ -14,7 +14,7 @@ import SwiftUI
 「セクション追加」および「既存セクションの進行変更」の両方で共有・再利用される。
 */
 struct ProgressionSelectionSheetView: View {
-    let title: String
+    let title: LocalizedStringKey
     let onSelect: (ProgressionTemplate) -> Void
     @Environment(\.dismiss) private var dismiss
 
@@ -70,7 +70,7 @@ struct ProgressionSelectionSheetView: View {
                 degreesBadgeRow(for: template)
 
                 // 下段: 音楽的解説文
-                Text(template.description)
+                Text(LocalizedStringKey(template.description))
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .lineLimit(2)
@@ -116,11 +116,11 @@ struct ProgressionSelectionSheetView: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
-                    Text(template.name)
+                    Text(LocalizedStringKey(template.name))
                         .font(.subheadline.bold())
                         .foregroundColor(.primary)
 
-                    Text(template.genreTag)
+                    Text(LocalizedStringKey(template.genreTag))
                         .font(.system(size: 10, weight: .semibold))
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
@@ -133,7 +133,7 @@ struct ProgressionSelectionSheetView: View {
             Spacer()
 
             // 小節数バッジ
-            Text("\(template.degrees.count)小節")
+            Text("\(template.degrees.count) " + NSLocalizedString("Bars", comment: ""))
                 .font(.caption2.bold())
                 .foregroundColor(.secondary)
                 .padding(.horizontal, 7)

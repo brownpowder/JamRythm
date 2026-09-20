@@ -16,6 +16,7 @@ import SwiftUI
 struct SongStructureSheetView: View {
     @ObservedObject var viewModel: PlayEditorViewModel
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var tourManager = TourManager.shared
 
     @State private var selectedCategory: SongStructureCategory = .fullSong
 
@@ -24,6 +25,7 @@ struct SongStructureSheetView: View {
     }
 
     var body: some View {
+        ZStack {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 14) {
@@ -51,6 +53,9 @@ struct SongStructureSheetView: View {
                 }
             }
         }
+        TourOverlayView(spaceName: "SheetTourSpace")
+        }
+        .environmentObject(tourManager)
     }
 
     // MARK: - カテゴリ切り替えセグメント
@@ -68,7 +73,7 @@ struct SongStructureSheetView: View {
     private var categoryPicker: some View {
         Picker("規模", selection: $selectedCategory) {
             ForEach(SongStructureCategory.allCases) { cat in
-                Text(cat.rawValue).tag(cat)
+                Text(LocalizedStringKey(cat.rawValue)).tag(cat)
             }
         }
         .pickerStyle(.segmented)
@@ -92,7 +97,7 @@ struct SongStructureSheetView: View {
                 .font(.title3)
                 .foregroundColor(.accentColor)
 
-            Text(selectedCategory.description)
+            Text(LocalizedStringKey(selectedCategory.description))
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .lineLimit(2)
@@ -121,49 +126,32 @@ struct SongStructureSheetView: View {
             viewModel.generateAndApplyRandomSongStructure(category: selectedCategory)
             dismiss()
         }) {
-            HStack(spacing: 12) {
-                ZStack {
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [.orange, .pink],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 42, height: 42)
+            VStack(alignment: .leading, spacing: 6) {
+                Text("おまかせランダム生成")
+                    .font(.headline)
+                    .foregroundColor(.primary)
+                    .lineLimit(1)
 
-                    Image(systemName: "dice.fill")
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundColor(.white)
-                }
+                HStack(spacing: 8) {
+                    Text("🎲 ランダム")
+                        .font(.system(size: 10, weight: .bold))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(Color.orange.opacity(0.2))
+                        .foregroundColor(.orange)
+                        .cornerRadius(6)
 
-                VStack(alignment: .leading, spacing: 3) {
-                    HStack(spacing: 6) {
-                        Text("おまかせランダム生成")
-                            .font(.subheadline.bold())
-                            .foregroundColor(.primary)
-
-                        Text("🎲 ランダム")
-                            .font(.system(size: 9, weight: .heavy))
-                            .padding(.horizontal, 5)
-                            .padding(.vertical, 2)
-                            .background(Color.orange.opacity(0.2))
-                            .foregroundColor(.orange)
-                            .cornerRadius(4)
-                    }
-
-                    Text("\(selectedCategory.rawValue)のセクションとコード進行を理論に基づいて毎回新しく自動生成")
+                    Text("\(NSLocalizedString(selectedCategory.rawValue, comment: "")) " + NSLocalizedString("のセクションとコード進行を自動生成", comment: ""))
                         .font(.caption2)
                         .foregroundColor(.secondary)
                         .lineLimit(1)
+                        
+                    Spacer()
+                    
+                    Image(systemName: "wand.and.stars")
+                        .font(.caption2.bold())
+                        .foregroundColor(.orange)
                 }
-
-                Spacer()
-
-                Image(systemName: "wand.and.stars")
-                    .font(.subheadline.bold())
-                    .foregroundColor(.orange)
             }
             .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -208,7 +196,7 @@ struct SongStructureSheetView: View {
                 cardHeader(for: structure)
                 sectionFlowRow(for: structure)
 
-                Text(structure.description)
+                Text(LocalizedStringKey(structure.description))
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .lineLimit(2)
@@ -240,36 +228,21 @@ struct SongStructureSheetView: View {
     */
 
     private func cardHeader(for structure: SongStructureTemplate) -> some View {
-        HStack(spacing: 10) {
-            ZStack {
-                Circle()
-                    .fill(Color.accentColor.opacity(0.12))
-                    .frame(width: 36, height: 36)
+        VStack(alignment: .leading, spacing: 6) {
+            Text(LocalizedStringKey(structure.name))
+                .font(.headline)
+                .foregroundColor(.primary)
+                .lineLimit(1)
 
-                Image(systemName: structure.iconName)
-                    .font(.system(size: 16, weight: .bold))
+            HStack(spacing: 8) {
+                Text(LocalizedStringKey(structure.recommendedGenre.displayName))
+                    .font(.system(size: 10, weight: .bold))
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(Color.accentColor.opacity(0.12))
                     .foregroundColor(.accentColor)
-            }
+                    .cornerRadius(6)
 
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 6) {
-                    Text(structure.name)
-                        .font(.subheadline.bold())
-                        .foregroundColor(.primary)
-
-                    Text(structure.recommendedGenre.displayName)
-                        .font(.system(size: 10, weight: .semibold))
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color.accentColor.opacity(0.12))
-                        .foregroundColor(.accentColor)
-                        .cornerRadius(6)
-                }
-            }
-
-            Spacer()
-
-            HStack(spacing: 5) {
                 Text("BPM \(Int(structure.recommendedBpm))")
                     .font(.system(size: 10, weight: .bold))
                     .foregroundColor(.secondary)
@@ -278,18 +251,20 @@ struct SongStructureSheetView: View {
                     .background(Color(uiColor: .tertiarySystemFill))
                     .cornerRadius(6)
 
-                Text("\(structure.totalMeasures)小節")
+                Text("\(structure.totalMeasures) " + NSLocalizedString("Bars", comment: ""))
                     .font(.system(size: 10, weight: .bold))
                     .foregroundColor(.secondary)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 3)
                     .background(Color(uiColor: .tertiarySystemFill))
                     .cornerRadius(6)
+                    
+                Spacer()
+                
+                Image(systemName: "chevron.right")
+                    .font(.caption2.bold())
+                    .foregroundColor(Color(uiColor: .tertiaryLabel))
             }
-
-            Image(systemName: "chevron.right")
-                .font(.caption2.bold())
-                .foregroundColor(Color(uiColor: .tertiaryLabel))
         }
     }
 
@@ -308,7 +283,7 @@ struct SongStructureSheetView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 5) {
                 ForEach(Array(structure.sections.enumerated()), id: \.offset) { index, sec in
-                    Text(sec.type.displayName)
+                    Text(LocalizedStringKey(sec.type.displayName))
                         .font(.system(size: 11, weight: .bold, design: .rounded))
                         .foregroundColor(.primary)
                         .padding(.horizontal, 7)

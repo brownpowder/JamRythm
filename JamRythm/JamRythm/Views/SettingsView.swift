@@ -7,6 +7,10 @@ import SwiftUI
 
 struct SettingsView: View {
     @Environment(\.dismiss) var dismiss
+    
+#if DEBUG
+    @AppStorage("debugPremiumUnlocked") private var isDebugPremiumUnlocked: Bool = true
+#endif
 
     var body: some View {
         NavigationStack {
@@ -16,6 +20,29 @@ struct SettingsView: View {
 
                 ScrollView {
                     VStack(spacing: 24) {
+                        
+                        
+#if DEBUG
+                        // Debug Settings
+                        VStack(spacing: 16) {
+                            sectionHeader(title: "DEBUG OPTIONS")
+                            
+                            VStack(spacing: 1) {
+                                Toggle(isOn: $isDebugPremiumUnlocked) {
+                                    HStack {
+                                        Image(systemName: "lock.open.fill")
+                                            .foregroundColor(.green)
+                                        Text("Unlock Premium Items")
+                                            .font(.body)
+                                    }
+                                }
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 12)
+                            }
+                            .background(Color(uiColor: .secondarySystemGroupedBackground))
+                            .cornerRadius(12)
+                        }
+#endif
                         
                         // About this app
                         VStack(spacing: 16) {
@@ -76,14 +103,14 @@ struct SettingsView: View {
                                     icon: "xmark",
                                     iconColor: .primary,
                                     title: "X (Twitter)",
-                                    url: "https://twitter.com/ikatomape"
+                                    url: "https://x.com/ikatomape"
                                 )
                                 Divider().padding(.leading, 50)
                                 settingsLinkRow(
                                     icon: "camera.fill",
                                     iconColor: .purple,
                                     title: "Instagram",
-                                    url: "https://instagram.com/ikatomape"
+                                    url: "https://www.instagram.com/ikatomape"
                                 )
                                 Divider().padding(.leading, 50)
                                 settingsLinkRow(
@@ -106,14 +133,14 @@ struct SettingsView: View {
                                     icon: "doc.text.fill",
                                     iconColor: .gray,
                                     title: "プライバシーポリシー",
-                                    url: "https://example.com/privacy"
+                                    url: "https://ikatomape.com/apps/jam/privacypolicy"
                                 )
                                 Divider().padding(.leading, 50)
                                 settingsLinkRow(
                                     icon: "hand.raised.fill",
                                     iconColor: .gray,
                                     title: "利用規約",
-                                    url: "https://example.com/terms"
+                                    url: "https://ikatomape.com/apps/jam/termsofuse"
                                 )
                             }
                             .background(Color(uiColor: .secondarySystemGroupedBackground))
@@ -143,7 +170,7 @@ struct SettingsView: View {
     
     // MARK: - Subviews
     
-    private func sectionHeader(title: String) -> some View {
+    private func sectionHeader(title: LocalizedStringKey) -> some View {
         HStack {
             Text(title)
                 .font(.footnote.bold())
@@ -154,7 +181,7 @@ struct SettingsView: View {
         .padding(.leading, 4)
     }
     
-    private func settingsLinkRow(icon: String, iconColor: Color, title: String, url: String) -> some View {
+    private func settingsLinkRow(icon: String, iconColor: Color, title: LocalizedStringKey, url: String) -> some View {
         Link(destination: URL(string: url)!) {
             HStack(spacing: 16) {
                 ZStack {

@@ -174,7 +174,7 @@ struct ChordCustomizerSheetView: View {
                 Image(systemName: "circle.circle.fill")
                     .font(.system(size: 9))
                     .foregroundColor(.accentColor)
-                Text("濃い色ほど、現在の進行（Key: \(viewModel.project.key.rawValue)）に破綻せずスムーズに調和します")
+                Text(String(format: NSLocalizedString("濃い色ほど、現在の進行（Key: %@）に破綻せずスムーズに調和します", comment: ""), viewModel.project.key.rawValue))
                     .font(.system(size: 10, weight: .medium))
                     .foregroundColor(.secondary)
                     .lineLimit(1)
@@ -379,7 +379,7 @@ struct ChordCustomizerSheetView: View {
             HStack(spacing: 6) {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.subheadline.bold())
-                Text("このコードを小節に適用: \(builtChord.displayString)")
+                Text(String(format: NSLocalizedString("このコードを小節に適用: %@", comment: ""), builtChord.displayString))
                     .font(.subheadline.bold())
             }
             .foregroundColor(.white)
