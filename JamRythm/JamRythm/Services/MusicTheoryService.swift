@@ -17,12 +17,21 @@ enum ScaleType: String, Codable, CaseIterable, Identifiable {
     case diatonic = "ダイアトニック"
     case harmonicMinor = "ハーモニックマイナー"
     case melodicMinor = "メロディックマイナー"
-    case kumoi = "雲井音階"
     case ryukyu = "琉球音階"
+    case japanese = "Japanese"
+
+    var isLocked: Bool {
+        return isPremiumOnly
+    }
 
     var isPremiumOnly: Bool {
+        #if DEBUG
+        let unlocked = UserDefaults.standard.object(forKey: "debugPremiumUnlocked") == nil ? true : UserDefaults.standard.bool(forKey: "debugPremiumUnlocked")
+        if unlocked { return false }
+        #endif
+        
         switch self {
-        case .harmonicMinor, .kumoi, .ryukyu: return true
+        case .harmonicMinor, .ryukyu, .japanese: return true
         default: return false
         }
     }
@@ -35,8 +44,8 @@ enum ScaleType: String, Codable, CaseIterable, Identifiable {
         case .diatonic: return "Diatonic (7音)"
         case .harmonicMinor: return "Harmonic Minor"
         case .melodicMinor: return "Melodic Minor"
-        case .kumoi: return "Kumoi (5音)"
         case .ryukyu: return "Ryukyu (5音)"
+        case .japanese: return "Japanese"
         }
     }
 }
@@ -67,16 +76,14 @@ enum ScaleReferenceMode: String, Codable, CaseIterable, Identifiable {
 */
 enum ScaleInstrument: String, Codable, CaseIterable, Identifiable {
     case guitar = "6弦 (Guitar)"
-    case bass = "4弦 (Bass)"
     case piano = "鍵盤 (Piano)"
 
     var id: String { rawValue }
 
     var shortName: String {
         switch self {
-        case .guitar: return "6弦 Guitar"
-        case .bass: return "4弦 Bass"
-        case .piano: return "鍵盤 Piano"
+        case .guitar: return "Guitar"
+        case .piano: return "Piano"
         }
     }
 }
@@ -1734,7 +1741,7 @@ final class MusicTheoryService: MusicTheoryServiceProtocol {
 
         switch referenceMode {
         case .chord:
-            let result = calculateChordScaleSemitonesAndName(chord: chord, scaleType: scaleType)
+            let result = calculateChordScaleSemitonesAndName(key: key, chord: chord, scaleType: scaleType)
             semitones = result.semitones
             scaleName = result.name
         case .key:
@@ -1744,7 +1751,7 @@ final class MusicTheoryService: MusicTheoryServiceProtocol {
                     semitones = minorPenta.semitones
                     scaleName = minorPenta.name
                 } else {
-                    let result = calculateChordScaleSemitonesAndName(chord: chord, scaleType: .diatonic)
+                    let result = calculateChordScaleSemitonesAndName(key: key, chord: chord, scaleType: .diatonic)
                     semitones = result.semitones
                     scaleName = result.name
                 }
@@ -1786,7 +1793,7 @@ final class MusicTheoryService: MusicTheoryServiceProtocol {
         let minorRootName = Key.noteName(forSemitone: minorRootSemitone)
         let pentaOffsets = [0, 3, 5, 7, 10]
         let semitones = pentaOffsets.map { (minorRootSemitone + $0) % 12 }
-        return (semitones, "\(minorRootName) マイナーペンタ")
+        return (semitones, "\(minorRootName) " + NSLocalizedString("マイナーペンタ", comment: ""))
     }
 
     /*
@@ -1852,16 +1859,18 @@ final class MusicTheoryService: MusicTheoryServiceProtocol {
         case .melodicMinor:
             offsets = [0, 2, 3, 5, 7, 9, 11]
             typeName = "メロディックマイナー"
-        case .kumoi:
-            offsets = [0, 1, 5, 7, 8]
-            typeName = "雲井音階"
         case .ryukyu:
             offsets = [0, 4, 5, 7, 11]
             typeName = "琉球音階"
+        case .japanese:
+            // ユーザーのメンタルモデル（Keyの平行調のマイナー）に合わせて相対的なオフセットを使用
+            // Cメジャーキーの時、Aヨナ抜き短音階（A, B, C, E, F）の構成音になるように [0, 4, 5, 9, 11] (C, E, F, A, B) を返す
+            offsets = [0, 4, 5, 9, 11]
+            typeName = "Japanese"
         }
 
         let semitones = offsets.map { (key.semitoneOffset + $0) % 12 }
-        return (semitones, "\(key.rawValue) \(typeName)")
+        return (semitones, "\(key.rawValue) " + NSLocalizedString(typeName, comment: ""))
     }
 
     /*
@@ -1878,6 +1887,7 @@ final class MusicTheoryService: MusicTheoryServiceProtocol {
     */
 
     private func calculateChordScaleSemitonesAndName(
+        key: Key,
         chord: Chord,
         scaleType: ScaleType
     ) -> (semitones: [Int], name: String) {
@@ -1887,25 +1897,25 @@ final class MusicTheoryService: MusicTheoryServiceProtocol {
         case .harmonicMinor:
             let offsets = [0, 2, 3, 5, 7, 8, 11]
             let semitones = offsets.map { (rootSemitone + $0) % 12 }
-            return (semitones, "\(chord.rootNote) ハーモニックマイナー")
+            return (semitones, "\(chord.rootNote) " + NSLocalizedString("ハーモニックマイナー", comment: ""))
         case .melodicMinor:
             let offsets = [0, 2, 3, 5, 7, 9, 11]
             let semitones = offsets.map { (rootSemitone + $0) % 12 }
-            return (semitones, "\(chord.rootNote) メロディックマイナー")
-        case .kumoi:
-            let offsets = [0, 1, 5, 7, 8]
-            let semitones = offsets.map { (rootSemitone + $0) % 12 }
-            return (semitones, "\(chord.rootNote) 雲井音階")
+            return (semitones, "\(chord.rootNote) " + NSLocalizedString("メロディックマイナー", comment: ""))
         case .ryukyu:
             let offsets = [0, 4, 5, 7, 11]
             let semitones = offsets.map { (rootSemitone + $0) % 12 }
-            return (semitones, "\(chord.rootNote) 琉球音階")
+            return (semitones, "\(chord.rootNote) " + NSLocalizedString("琉球音階", comment: ""))
+        case .japanese:
+            let offsets = [0, 2, 3, 7, 8]
+            let semitones = offsets.map { (rootSemitone + $0) % 12 }
+            return (semitones, "\(chord.rootNote) " + NSLocalizedString("Japanese", comment: ""))
         default:
-            let mode = chordScaleMode(for: chord.type)
+            let mode = calculateKeyAwareChordScaleMode(chord: chord, key: key) ?? chordScaleMode(for: chord.type)
             let offsets = (scaleType == .pentatonic) ? mode.pentaOffsets : mode.diatonicOffsets
             let modeName = (scaleType == .pentatonic) ? mode.pentaName : mode.diatonicName
             let semitones = offsets.map { (rootSemitone + $0) % 12 }
-            return (semitones, "\(chord.rootNote) \(modeName)")
+            return (semitones, "\(chord.rootNote) " + NSLocalizedString(modeName, comment: ""))
         }
     }
 
@@ -1919,6 +1929,46 @@ final class MusicTheoryService: MusicTheoryServiceProtocol {
     Usage:
     calculateChordScaleSemitonesAndName内でモード名と半音オフセットを導出する。
     */
+
+    private func calculateKeyAwareChordScaleMode(
+        chord: Chord, key: Key
+    ) -> (diatonicName: String, diatonicOffsets: [Int], pentaName: String, pentaOffsets: [Int])? {
+        let rootSemitone = Key.semitone(forNoteName: chord.rootNote)
+        let keySemitone = key.semitoneOffset
+        let diff = (rootSemitone - keySemitone + 12) % 12
+        let type = chord.type.trimmingCharacters(in: .whitespaces)
+
+        // I (Ionian)
+        if diff == 0 && (!type.hasPrefix("m") || type.hasPrefix("maj")) {
+            return ("イオニアン", [0, 2, 4, 5, 7, 9, 11], "メジャーペンタ", [0, 2, 4, 7, 9])
+        }
+        // II (Dorian)
+        if diff == 2 && type.hasPrefix("m") && !type.hasPrefix("maj") {
+            return ("ドリアン", [0, 2, 3, 5, 7, 9, 10], "マイナーペンタ", [0, 3, 5, 7, 10])
+        }
+        // III (Phrygian)
+        if diff == 4 && type.hasPrefix("m") && !type.hasPrefix("maj") {
+            return ("フリジアン", [0, 1, 3, 5, 7, 8, 10], "マイナーペンタ", [0, 3, 5, 7, 10])
+        }
+        // IV (Lydian)
+        if diff == 5 && (!type.hasPrefix("m") || type.hasPrefix("maj")) {
+            return ("リディアン", [0, 2, 4, 6, 7, 9, 11], "メジャーペンタ", [0, 2, 4, 7, 9])
+        }
+        // V (Mixolydian)
+        if diff == 7 && (!type.hasPrefix("m") || type.hasPrefix("maj")) {
+            return ("ミクソリディアン", [0, 2, 4, 5, 7, 9, 10], "メジャーペンタ", [0, 2, 4, 7, 9])
+        }
+        // VI (Aeolian)
+        if diff == 9 && type.hasPrefix("m") && !type.hasPrefix("maj") {
+            return ("エオリアン", [0, 2, 3, 5, 7, 8, 10], "マイナーペンタ", [0, 3, 5, 7, 10])
+        }
+        // VII (Locrian)
+        if diff == 11 && (type.contains("dim") || type.contains("m7b5") || type.contains("m7(♭5)")) {
+            return ("ロクリアン", [0, 1, 3, 5, 6, 8, 10], "マイナーペンタ♭5", [0, 3, 5, 6, 10])
+        }
+        
+        return nil
+    }
 
     private func chordScaleMode(
         for chordType: String

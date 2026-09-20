@@ -33,11 +33,11 @@ enum DrumInstrument: UInt8, CaseIterable, Identifiable {
     var displayName: String {
         switch self {
         case .acoustic:
-            return "Acoustic"
+            return NSLocalizedString("Acoustic", comment: "")
         case .electronic:
-            return "Electronic"
+            return NSLocalizedString("Electronic", comment: "")
         case .dub:
-            return "Lo-Fi Dub"
+            return NSLocalizedString("Lo-Fi Dub", comment: "")
         }
     }
 
@@ -54,11 +54,11 @@ enum DrumInstrument: UInt8, CaseIterable, Identifiable {
     var iconName: String {
         switch self {
         case .acoustic:
-            return "music.note"
+            return NSLocalizedString("music.note", comment: "")
         case .electronic:
-            return "bolt.fill"
+            return NSLocalizedString("bolt.fill", comment: "")
         case .dub:
-            return "waveform"
+            return NSLocalizedString("waveform", comment: "")
         }
     }
 }
@@ -94,19 +94,19 @@ enum BassInstrument: UInt8, CaseIterable, Identifiable {
     var displayName: String {
         switch self {
         case .acoustic:
-            return "Acoustic"
+            return NSLocalizedString("Acoustic", comment: "")
         case .dub:
-            return "Dub Sub"
+            return NSLocalizedString("Dub Sub", comment: "")
         case .synthSaw:
-            return "Synth Saw"
+            return NSLocalizedString("Synth Saw", comment: "")
         case .synthSine:
-            return "Synth Sine"
+            return NSLocalizedString("Synth Sine", comment: "")
         case .synthSquare:
-            return "Synth Square"
+            return NSLocalizedString("Synth Square", comment: "")
         case .synthTriangle:
-            return "Synth Triangle"
+            return NSLocalizedString("Synth Triangle", comment: "")
         case .pizzicato:
-            return "Pizzicato"
+            return NSLocalizedString("Pizzicato", comment: "")
         }
     }
 
@@ -123,9 +123,9 @@ enum BassInstrument: UInt8, CaseIterable, Identifiable {
     var iconName: String {
         switch self {
         case .acoustic, .pizzicato:
-            return "guitars.fill"
+            return NSLocalizedString("guitars.fill", comment: "")
         case .dub, .synthSaw, .synthSine, .synthSquare, .synthTriangle:
-            return "waveform.path"
+            return NSLocalizedString("waveform.path", comment: "")
         }
     }
 }
@@ -142,15 +142,15 @@ enum PianoInstrument: UInt8, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .piano: return "Grand Piano"
-        case .ePiano1: return "E-Piano 1"
-        case .ePiano2: return "E-Piano 2"
+        case .piano: return NSLocalizedString("Grand Piano", comment: "")
+        case .ePiano1: return NSLocalizedString("E-Piano 1", comment: "")
+        case .ePiano2: return NSLocalizedString("E-Piano 2", comment: "")
                 }
     }
 
     var iconName: String {
         switch self {
-        case .piano, .ePiano1, .ePiano2: return "pianokeys"
+        case .piano, .ePiano1, .ePiano2: return NSLocalizedString("pianokeys", comment: "")
                 }
     }
 }
@@ -165,15 +165,15 @@ enum LeadInstrument: UInt8, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .guitar: return "Guitar"
-        case .piano: return "Grand Piano"
+        case .guitar: return NSLocalizedString("Guitar", comment: "")
+        case .piano: return NSLocalizedString("Grand Piano", comment: "")
             }
     }
 
     var iconName: String {
         switch self {
-        case .guitar: return "guitars.fill"
-        case .piano: return "pianokeys"
+        case .guitar: return NSLocalizedString("guitars.fill", comment: "")
+        case .piano: return NSLocalizedString("pianokeys", comment: "")
         }
     }
 }

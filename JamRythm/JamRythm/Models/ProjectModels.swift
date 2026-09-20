@@ -23,7 +23,7 @@ enum SectionType: String, Codable, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    var displayName: String { rawValue }
+    var displayName: String { NSLocalizedString(rawValue, comment: "") }
 
     var displayColor: Color {
         switch self {

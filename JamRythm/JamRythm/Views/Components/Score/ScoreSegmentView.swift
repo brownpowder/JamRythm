@@ -10,9 +10,9 @@ import SwiftUI
 // MARK: - 表示モード列挙型
 
 enum ScoreDisplayMode: String, CaseIterable, Identifiable {
-    case tab = "TAB"
     case scale = "スケール"
     case staff = "五線譜"
+    case tab = "TAB"
 
     var id: String { rawValue }
 }
@@ -32,14 +32,14 @@ struct ScoreSegmentView: View {
     var theoryService: MusicTheoryServiceProtocol = MusicTheoryService()
     var audioService: AudioServiceProtocol? = nil
 
-    @State private var displayMode: ScoreDisplayMode = .tab
+    @State private var displayMode: ScoreDisplayMode = .scale
 
     var body: some View {
         VStack(spacing: 10) {
             // 切り替えセグメントコントロール
             Picker("Score Mode", selection: $displayMode) {
                 ForEach(ScoreDisplayMode.allCases) { mode in
-                    Text(mode.rawValue).tag(mode)
+                    Text(LocalizedStringKey(mode.rawValue)).tag(mode)
                 }
             }
             .pickerStyle(.segmented)

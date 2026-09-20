@@ -162,9 +162,7 @@ struct SectionTimelineBarView: View {
             let measure = section.measures[viewModel.currentMeasureIndex]
             HStack(spacing: 8) {
                 HStack(spacing: 4) {
-                    Text("\(viewModel.currentMeasureIndex + 1)小節目:")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(.secondary)
+                    // Removed measure index label
 
                     Text(measure.activeChord.displayString)
                         .font(.system(size: 13, weight: .bold, design: .rounded))
@@ -235,7 +233,7 @@ struct SectionTimelineBarView: View {
                         .font(.system(size: 14, weight: .bold, design: .rounded))
                         .foregroundColor(isSelected ? .accentColor : .primary)
 
-                    Text("\(section.measures.count)小節")
+                    Text("\(section.measures.count) " + NSLocalizedString("Bars", comment: ""))
                         .font(.caption2)
                         .foregroundColor(.secondary)
                 }
@@ -427,6 +425,9 @@ struct SectionTimelineBarView: View {
     private var generateSongStructureButton: some View {
         Button(action: {
             viewModel.isShowingSongStructureSheet = true
+            if TourManager.shared.isActive && TourManager.shared.currentStep == .step2_scrollAndTapGenerateMenu {
+                TourManager.shared.advance()
+            }
         }) {
             HStack(spacing: 6) {
                 Image(systemName: "sparkles")
@@ -443,6 +444,7 @@ struct SectionTimelineBarView: View {
                 RoundedRectangle(cornerRadius: 10)
                     .stroke(Color.purple.opacity(0.25), lineWidth: 1)
             )
+            .tourSpotlight(.step2_scrollAndTapGenerateMenu)
         }
         .buttonStyle(.plain)
     }

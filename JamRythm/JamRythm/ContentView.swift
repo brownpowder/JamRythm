@@ -7,9 +7,18 @@
 
 import SwiftUI
 
+
 struct ContentView: View {
+    @StateObject private var tourManager = TourManager.shared
+    @StateObject private var storeManager = StoreManager.shared
     var body: some View {
-        ProjectListView()
+        ZStack {
+            ProjectListView()
+            
+            // TourOverlayView(spaceName: "TourSpace")
+        }
+        // No longer using PreferenceKey, modifier writes to TourManager directly
+        .environmentObject(tourManager)
     }
 }
 

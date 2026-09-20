@@ -26,8 +26,9 @@ struct PlayEditorView: View {
 
     var body: some View {
         Group {
-            ScrollView {
-                VStack(spacing: 18) {
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(spacing: 18) {
                     // 1. 小節進行 & 拍インジケーター（一時コメントアウト）
                     /*
                     if let measures = viewModel.project.sections.first?.measures {
@@ -71,11 +72,28 @@ struct PlayEditorView: View {
                         theoryService: viewModel.theoryService,
                         audioService: viewModel.audioService
                     )
+                    .id("scoreSegment")
 
                     // 3. 進行・セクション＆小節コード一覧（セクション追加・編集・全曲構成）
                     SectionTimelineBarView(viewModel: viewModel)
+                        .id("sectionTimeline")
                 }
                 .padding(.vertical, 14)
+            }
+            .onChange(of: TourManager.shared.currentStep) { step in
+                print("📜 [PlayEditorView] ScrollView onChange step: \(step)")
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    withAnimation {
+                        if step == .step2_scrollAndTapGenerateMenu || step == .step4_viewGeneratedSong {
+                            print("📜 [PlayEditorView] Scrolling to sectionTimeline")
+                            proxy.scrollTo("sectionTimeline", anchor: .bottom)
+                        } else if step == .step5_tapScaleFretboard || step == .step6_playGuitar || step == .step8_playWhilePlaying || step == .step9_tapInstrumentMenu || step == .step11_playPiano {
+                            print("📜 [PlayEditorView] Scrolling to scoreSegment")
+                            proxy.scrollTo("scoreSegment", anchor: .center)
+                        }
+                    }
+                }
+            }
             }
             .safeAreaInset(edge: .top, spacing: 0) {
                 VStack(spacing: 0) {
@@ -96,6 +114,7 @@ struct PlayEditorView: View {
                         onVolumeChange: { viewModel.changeVolume($0) },
                         onOpenMixer: { viewModel.isShowingMixer = true }
                     )
+                    .id("playbackControls")
                 }
                 .background(Color(uiColor: .secondarySystemBackground))
             }
@@ -164,6 +183,9 @@ struct PlayEditorView: View {
         .sheet(isPresented: $isShowingSettings) {
             SettingsView()
         }
+        .onAppear {
+            print("🎬 [PlayEditorView] onAppear")
+        }
     }
 
     // MARK: - 固定ヘッダーサブビュー
@@ -182,11 +204,14 @@ struct PlayEditorView: View {
         HStack(spacing: 10) {
             // Key選択ボタン（Key名 + 下矢印）
             keyMenuButton
+                .tourSpotlight(.step12_changeKey)
 
             Spacer()
 
             // ジャンル選択ボタン（Genre名 + アイコン + 下矢印）
             genreMenuButton
+                .tourSpotlight(.step13_changeGenreDance)
+                .tourSpotlight(.step14_changeGenreLofi)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
@@ -236,12 +261,17 @@ struct PlayEditorView: View {
                     .foregroundColor(.accentColor)
                     .frame(width: 32)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(genre.displayName)
+                    Text(LocalizedStringKey(genre.displayName))
                         .font(.headline)
-                    Text(genre.styleDescription)
+                    Text(LocalizedStringKey(genre.styleDescription))
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .lineLimit(2)
+                }
+                Spacer()
+                if genre.isLocked {
+                    Image(systemName: "lock.fill")
+                        .foregroundColor(.secondary)
                 }
             }
         }
@@ -264,7 +294,7 @@ struct PlayEditorView: View {
                     if key == viewModel.project.key {
                         Label(key.rawValue, systemImage: "checkmark")
                     } else {
-                        Text(key.rawValue)
+                        Text(LocalizedStringKey(key.rawValue))
                     }
                 }
             }

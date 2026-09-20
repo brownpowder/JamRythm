@@ -13,7 +13,7 @@ import Foundation
 伴奏スタイルを決定する音楽ジャンルを表す列挙型。
 各ジャンルごとにドラムパターンとベースラインの自動演奏スタイルを規定する。
 */
-enum MusicGenre: String, CaseIterable, Identifiable, Codable {
+enum MusicGenre: String, CaseIterable, Identifiable, Codable, PremiumLockable {
     case pop = "Pop"
     case rock = "Rock"
     case dance = "Dance"
@@ -21,7 +21,17 @@ enum MusicGenre: String, CaseIterable, Identifiable, Codable {
     case rAndB = "R&B"
 
     var id: String { rawValue }
+    var isLocked: Bool {
+        print("DEBUG Genre.isLocked evaluated for \(self). isPremiumOnly=\(isPremiumOnly)")
+        return isPremiumOnly
+    }
+
     var isPremiumOnly: Bool {
+        #if DEBUG
+        let unlocked = UserDefaults.standard.object(forKey: "debugPremiumUnlocked") == nil ? true : UserDefaults.standard.bool(forKey: "debugPremiumUnlocked")
+        if unlocked { return false }
+        #endif
+        
         switch self {
         case .lofi, .rAndB: return true
         default: return false
@@ -41,15 +51,15 @@ enum MusicGenre: String, CaseIterable, Identifiable, Codable {
     var displayName: String {
         switch self {
         case .pop:
-            return "Pop (8-Beat)"
+            return NSLocalizedString("Pop (8-Beat)", comment: "")
         case .rock:
-            return "Rock (Drive)"
+            return NSLocalizedString("Rock (Drive)", comment: "")
         case .dance:
-            return "Dance (4-Floor)"
+            return NSLocalizedString("Dance (4-Floor)", comment: "")
         case .lofi:
-            return "Lo-Fi (Chill)"
+            return NSLocalizedString("Lo-Fi (Chill)", comment: "")
         case .rAndB:
-            return "R&B (Groove)"
+            return NSLocalizedString("R&B (Groove)", comment: "")
         }
     }
 
@@ -80,15 +90,15 @@ enum MusicGenre: String, CaseIterable, Identifiable, Codable {
     var iconName: String {
         switch self {
         case .pop:
-            return "music.note"
+            return NSLocalizedString("music.note", comment: "")
         case .rock:
-            return "bolt.horizontal.fill"
+            return NSLocalizedString("bolt.horizontal.fill", comment: "")
         case .dance:
-            return "sparkles"
+            return NSLocalizedString("sparkles", comment: "")
         case .lofi:
-            return "moon.stars.fill"
+            return NSLocalizedString("moon.stars.fill", comment: "")
         case .rAndB:
-            return "waveform"
+            return NSLocalizedString("waveform", comment: "")
         }
     }
 
@@ -105,15 +115,15 @@ enum MusicGenre: String, CaseIterable, Identifiable, Codable {
     var styleDescription: String {
         switch self {
         case .pop:
-            return "定番の8ビートと安定感のあるベースライン"
+            return NSLocalizedString("定番の8ビートと安定感のあるベースライン", comment: "")
         case .rock:
-            return "パワフルなドラムと疾走感ある8分音符ルート連打ベース"
+            return NSLocalizedString("パワフルなドラムと疾走感ある8分音符ルート連打ベース", comment: "")
         case .dance:
-            return "四つ打ちキックと裏拍オープンハット、オクターブベース"
+            return NSLocalizedString("四つ打ちキックと裏拍オープンハット、オクターブベース", comment: "")
         case .lofi:
-            return "レイドバックしたハーフタイムビートと落ち着いた重低音ベース"
+            return NSLocalizedString("レイドバックしたハーフタイムビートと落ち着いた重低音ベース", comment: "")
         case .rAndB:
-            return "シンコペーションを効かせた都会的でファンキーなグルーヴ"
+            return NSLocalizedString("シンコペーションを効かせた都会的でファンキーなグルーヴ", comment: "")
         }
     }
 

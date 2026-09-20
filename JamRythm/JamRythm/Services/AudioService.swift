@@ -1394,7 +1394,7 @@ final class AudioService: AudioServiceProtocol {
     
     func playPreviewNote(_ midiNote: UInt8, instrument: ScaleInstrument) {
         if !audioEngine.isRunning { try? audioEngine.start() }
-        let sampler = instrument == .piano ? leadSampler : (instrument == .bass ? bassSampler : leadSampler)
+        let sampler = instrument == .piano ? pianoSampler : leadSampler
         sampler.startNote(midiNote, withVelocity: 105, onChannel: 0)
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak sampler] in
             sampler?.stopNote(midiNote, onChannel: 0)

@@ -31,7 +31,8 @@ struct ChordDisplayView: View {
         GridItem(.flexible(), spacing: 10)
     ]
 
-    @State private var isExpanded: Bool = true
+    @State private var isExpanded: Bool = false
+    @State private var showPaywall: Bool = false
 
     var body: some View {
         VStack(spacing: 10) {
@@ -63,6 +64,9 @@ struct ChordDisplayView: View {
                 .stroke(Color.accentColor.opacity(0.25), lineWidth: 1)
         )
         .padding(.horizontal)
+        .fullScreenCover(isPresented: $showPaywall) {
+            PremiumPaywallView()
+        }
     }
 
     // MARK: - サブビュー
@@ -253,7 +257,7 @@ struct ChordDisplayView: View {
         }) {
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
-                    Text(candidate.flavor.rawValue)
+                    Text(LocalizedStringKey(candidate.flavor.rawValue))
                         .font(.caption2.bold())
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
@@ -335,13 +339,20 @@ struct ChordDisplayView: View {
     private func substituteButton(for candidate: SubstituteCandidate) -> some View {
         let isSelected = selectedChord == candidate.chord
         let accentColor = Color.teal
+        let isLocked = !StoreManager.shared.isUnlocked
 
         return Button(action: {
-            onSelect(candidate.chord)
+            if isLocked {
+                print("DEBUG ChordDisplayView: Locked substitute tapped. showPaywall set to true.")
+                onPlayChord?(candidate.chord)
+                showPaywall = true
+            } else {
+                onSelect(candidate.chord)
+            }
         }) {
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
-                    Text(candidate.label)
+                    Text(LocalizedStringKey(candidate.label))
                         .font(.system(size: 10, weight: .bold))
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
@@ -349,6 +360,12 @@ struct ChordDisplayView: View {
                         .foregroundColor(accentColor)
                         .cornerRadius(4)
                         .lineLimit(1)
+                    Spacer()
+                    if isLocked {
+                        Image(systemName: "lock.fill")
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary)
+                    }
 
                     Spacer()
 

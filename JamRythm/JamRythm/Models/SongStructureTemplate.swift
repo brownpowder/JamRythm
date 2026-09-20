@@ -279,13 +279,13 @@ struct SongStructureTemplate: Identifiable, Equatable {
         case .oneChorus:
             sections = generateSectionsForOneChorus()
             totalBars = 16
-            title = "\(genre.rawValue) ランダム 1コーラス"
-            desc = "Introからサビまで、\(genre.rawValue)スタイルに調和するコード進行をランダムに組み立てた16小節"
+            title = "\(genre.rawValue) " + NSLocalizedString("ランダム 1コーラス", comment: "")
+            desc = NSLocalizedString("Introからサビまで、", comment: "") + genre.rawValue + NSLocalizedString("スタイルに調和するコード進行をランダムに組み立てた16小節", comment: "")
         case .fullSong:
             sections = generateSectionsForFullSong()
             totalBars = 28
-            title = "\(genre.rawValue) ランダム フル構成"
-            desc = "A/BメロからCメロ・ラスサビまで、\(genre.rawValue)の起承転結をドラマチックに紡ぐ48小節構成"
+            title = "\(genre.rawValue) " + NSLocalizedString("ランダム フル構成", comment: "")
+            desc = NSLocalizedString("A/BメロからCメロ・ラスサビまで、", comment: "") + genre.rawValue + NSLocalizedString("の起承転結をドラマチックに紡ぐ48小節構成", comment: "")
         }
 
         return SongStructureTemplate(

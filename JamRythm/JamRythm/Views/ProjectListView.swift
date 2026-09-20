@@ -53,15 +53,17 @@ struct ProjectListView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     NavigationLink(value: "new") {
                         Image(systemName: "plus")
+                            .tourSpotlight(.step1_createNewProject)
                     }
                 }
             }
             .onAppear {
                 repository.loadAllProjects()
             }
+            /*
             .safeAreaInset(edge: .bottom) {
                 Button(action: {
-                    // TODO: アプリの使い方ツアーを開始する処理
+                    // TourManager.shared.startTour()
                 }) {
                     HStack {
                         Image(systemName: "info.circle.fill")
@@ -73,6 +75,7 @@ struct ProjectListView: View {
                     .foregroundColor(.accentColor)
                 }
             }
+            */
         }
     }
 }

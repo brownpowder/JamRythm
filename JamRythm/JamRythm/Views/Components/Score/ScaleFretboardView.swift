@@ -32,17 +32,8 @@ struct ScaleFretboardView: View {
 
 
     private var availableScaleTypes: [ScaleType] {
-        var types: [ScaleType] = [.pentatonic, .diatonic]
-        let type = chord.type
-        let isDominant7 = type.contains("7") && !type.hasPrefix("m") && !type.hasPrefix("M")
-        let isSpecialMinor = type.contains("m6") || type.contains("mM7") || type.contains("mMA7")
+        var types: [ScaleType] = [.pentatonic, .diatonic, .japanese, .ryukyu]
 
-        if isDominant7 {
-            types.append(.harmonicMinor)
-            types.append(.melodicMinor)
-        } else if isSpecialMinor {
-            types.append(.melodicMinor)
-        }
         return types
     }
 
@@ -61,16 +52,25 @@ struct ScaleFretboardView: View {
             RoundedRectangle(cornerRadius: 12)
                 .fill(Color(uiColor: .tertiarySystemBackground))
         )
+        .onChange(of: instrument) { inst in
+            if TourManager.shared.isActive && (TourManager.shared.currentStep == .step9_tapInstrumentMenu || TourManager.shared.currentStep == .step10_selectPiano) && inst == .piano {
+                TourManager.shared.currentStep = .step11_playPiano
+            }
+        }
     }
     
+
+
     private var keyboardCanvas: some View {
         GeometryReader { geometry in
-            ScrollView(.horizontal, showsIndicators: false) {
-                let whiteKeyCount = 43 // C1 to C7 is 6 octaves + 1 note
-                let whiteKeyWidth: CGFloat = 40.0
-                let totalWidth = CGFloat(whiteKeyCount) * whiteKeyWidth
-                
-                Canvas { context, size in
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    let whiteKeyCount = 43 // C1 to C7 is 6 octaves + 1 note
+                    let whiteKeyWidth: CGFloat = 40.0
+                    let totalWidth = CGFloat(whiteKeyCount) * whiteKeyWidth
+                    
+                    ZStack(alignment: .topLeading) {
+                        Canvas { context, size in
                 let blackKeyWidth = whiteKeyWidth * 0.65
                 let blackKeyHeight = size.height * 0.6
                 
@@ -146,9 +146,25 @@ struct ScaleFretboardView: View {
                     }
                 }
             }
-                .frame(width: totalWidth, height: geometry.size.height)
-                .onTapGesture { location in
-                    handlePianoTap(at: location, size: CGSize(width: totalWidth, height: geometry.size.height))
+                        .frame(width: totalWidth, height: geometry.size.height)
+                        .onTapGesture { location in
+                            handlePianoTap(at: location, size: CGSize(width: totalWidth, height: geometry.size.height))
+                            // if TourManager.shared.isActive && TourManager.shared.currentStep == .step11_playPiano {
+                            //     TourManager.shared.advance()
+                            // }
+                        }
+                        
+                        // C3 anchor (C1 is baseMidi=24, C3 is 2 octaves up = 14 white keys)
+                        Color.clear
+                            .frame(width: 1, height: 1)
+                            .position(x: 14 * whiteKeyWidth + (whiteKeyWidth / 2), y: geometry.size.height / 2)
+                            .id("C3")
+                    }
+                    .onAppear {
+                        DispatchQueue.main.async {
+                            proxy.scrollTo("C3", anchor: .center)
+                        }
+                    }
                 }
             }
         }
@@ -233,10 +249,12 @@ struct ScaleFretboardView: View {
                         Image(systemName: "music.note.list")
                             .font(.system(size: 9, weight: .bold))
                             .foregroundColor(.accentColor)
-                        Text(scaleInfo.scaleName)
+                        Text(LocalizedStringKey(scaleInfo.scaleName))
                             .font(.system(size: 10, weight: .bold))
                             .foregroundColor(.primary)
                             .lineLimit(1)
+                            .truncationMode(.tail)
+                            .frame(width: 85, alignment: .leading)
                         Image(systemName: "chevron.up.chevron.down")
                             .font(.system(size: 8))
                             .foregroundColor(.secondary)
@@ -248,8 +266,8 @@ struct ScaleFretboardView: View {
                 } optionRow: { type in
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(type.rawValue).font(.headline)
-                            Text(type.shortName).font(.caption).foregroundColor(.secondary)
+                            Text(LocalizedStringKey(type.rawValue)).font(.headline)
+                            Text(LocalizedStringKey(type.shortName)).font(.caption).foregroundColor(.secondary)
                         }
                         Spacer()
                         if type.isPremiumOnly {
@@ -269,8 +287,11 @@ struct ScaleFretboardView: View {
                     HStack(spacing: 2) {
                         Image(systemName: referenceMode == .chord ? "target" : "globe")
                             .font(.system(size: 8, weight: .bold))
-                        Text(referenceMode.shortName)
+                        Text(LocalizedStringKey(referenceMode.shortName))
                             .font(.system(size: 9, weight: .bold))
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                            .frame(width: 70, alignment: .leading)
                     }
                     .padding(.horizontal, 6)
                     .padding(.vertical, 3)
@@ -289,8 +310,11 @@ struct ScaleFretboardView: View {
                     HStack(spacing: 2) {
                         Image(systemName: instrument == .piano ? "pianokeys" : "guitars")
                             .font(.system(size: 8, weight: .bold))
-                        Text(instrument.shortName)
+                        Text(LocalizedStringKey(instrument.shortName))
                             .font(.system(size: 9, weight: .bold))
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                            .frame(width: 40, alignment: .leading)
                         Image(systemName: "chevron.up.chevron.down")
                             .font(.system(size: 8))
                             .foregroundColor(.secondary)
@@ -301,8 +325,14 @@ struct ScaleFretboardView: View {
                     .foregroundColor(.secondary)
                     .cornerRadius(5)
                 } optionRow: { inst in
-                    Text(inst.shortName).font(.headline)
+                    if inst == .piano {
+                        Text(LocalizedStringKey(inst.shortName)).font(.headline)
+                            .tourSpotlight(.step10_selectPiano, space: "PickerTourSpace")
+                    } else {
+                        Text(LocalizedStringKey(inst.shortName)).font(.headline)
+                    }
                 }
+                .tourSpotlight(.step9_tapInstrumentMenu)
                 .onChange(of: instrument) { newValue in
                     if newValue == .piano {
                         audioService?.setLeadInstrument(.piano)
@@ -312,45 +342,47 @@ struct ScaleFretboardView: View {
                 }
             }
 
-            // 下段: スケール構成音バッジ列（タップで英語/日本語切替）
-            Button(action: {
-                guard NoteNameNotation.isJapaneseLanguage else { return }
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    useJapaneseNoteNames.toggle()
-                }
-            }) {
-                HStack(spacing: 4) {
-                    HStack(spacing: 2) {
-                        Text("Notes:")
-                            .font(.system(size: 9, weight: .bold))
-                            .foregroundColor(.secondary)
-                        if NoteNameNotation.isJapaneseLanguage {
-                            Image(systemName: "arrow.triangle.2.circlepath")
-                                .font(.system(size: 7, weight: .bold))
-                                .foregroundColor(.secondary.opacity(0.7))
+            // 下段: スケール構成音バッジ列 & Chord/Key切替
+            HStack {
+                Button(action: {
+                    guard NoteNameNotation.isJapaneseLanguage else { return }
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        useJapaneseNoteNames.toggle()
+                    }
+                }) {
+                    HStack(spacing: 4) {
+                        HStack(spacing: 2) {
+                            Text("Notes:")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundColor(.secondary)
+                            if NoteNameNotation.isJapaneseLanguage {
+                                Image(systemName: "arrow.triangle.2.circlepath")
+                                    .font(.system(size: 7, weight: .bold))
+                                    .foregroundColor(.secondary.opacity(0.7))
+                            }
+                        }
+
+                        let notation: NoteNameNotation = (NoteNameNotation.isJapaneseLanguage && useJapaneseNoteNames) ? .japanese : .english
+                        ForEach(scaleInfo.scaleNotes, id: \.self) { note in
+                            let isRoot = (note == chord.rootNote)
+                            Text(NoteNameNotation.localizedNoteName(note, notation: notation))
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundColor(isRoot ? .white : .primary)
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 1.5)
+                                .background(
+                                    isRoot ? Color.orange : Color(uiColor: .quaternarySystemFill)
+                                )
+                                .cornerRadius(3)
                         }
                     }
-
-                    let notation: NoteNameNotation = (NoteNameNotation.isJapaneseLanguage && useJapaneseNoteNames) ? .japanese : .english
-                    ForEach(scaleInfo.scaleNotes, id: \.self) { note in
-                        let isRoot = (note == chord.rootNote)
-                        Text(NoteNameNotation.localizedNoteName(note, notation: notation))
-                            .font(.system(size: 9, weight: .bold))
-                            .foregroundColor(isRoot ? .white : .primary)
-                            .padding(.horizontal, 5)
-                            .padding(.vertical, 1.5)
-                            .background(
-                                isRoot ? Color.orange : Color(uiColor: .quaternarySystemFill)
-                            )
-                            .cornerRadius(3)
-                    }
-
-                    Spacer()
                 }
+                .buttonStyle(.plain)
+                .disabled(!NoteNameNotation.isJapaneseLanguage)
+                
+
             }
-            .buttonStyle(.plain)
-            .disabled(!NoteNameNotation.isJapaneseLanguage)
         }
         .padding(.horizontal, 10)
         .padding(.top, 4)
@@ -466,24 +498,14 @@ struct ScaleFretboardView: View {
         guard let pos = tappedPos else { return }
         
         let baseMidi: UInt8
-        if instrument == .bass {
-            switch pos.stringNumber {
-            case 6: baseMidi = 28 // E1
-            case 5: baseMidi = 33 // A1
-            case 4: baseMidi = 38 // D2
-            case 3: baseMidi = 43 // G2
-            default: baseMidi = 28
-            }
-        } else {
-            switch pos.stringNumber {
-            case 6: baseMidi = 40 // E2
-            case 5: baseMidi = 45 // A2
-            case 4: baseMidi = 50 // D3
-            case 3: baseMidi = 55 // G3
-            case 2: baseMidi = 59 // B3
-            case 1: baseMidi = 64 // E4
-            default: baseMidi = 40
-            }
+        switch pos.stringNumber {
+        case 6: baseMidi = 40 // E2
+        case 5: baseMidi = 45 // A2
+        case 4: baseMidi = 50 // D3
+        case 3: baseMidi = 55 // G3
+        case 2: baseMidi = 59 // B3
+        case 1: baseMidi = 64 // E4
+        default: baseMidi = 40
         }
         
         let midiNote = baseMidi + UInt8(pos.fret)
@@ -529,10 +551,8 @@ struct ScaleFretboardView: View {
         paddingTop: CGFloat,
         stringSpacing: CGFloat
     ) {
-        // 6弦(Guitar: 1E〜6E) または 4弦(Bass: 1G〜4E)
-        let labels = (instrument == .guitar)
-            ? ["1E", "2B", "3G", "4D", "5A", "6E"]
-            : ["1G", "2D", "3A", "4E"]
+        // 6弦(Guitar: 1E〜6E)
+        let labels = ["1E", "2B", "3G", "4D", "5A", "6E"]
 
         for (i, label) in labels.enumerated() {
             let y = paddingTop + CGFloat(i) * stringSpacing

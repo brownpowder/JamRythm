@@ -19,7 +19,11 @@ protocol JamPlayer: Identifiable, CaseIterable, Equatable {
 
 // MARK: - Drum Player
 
-enum DrumPlayer: String, JamPlayer {
+enum DrumPlayer: String, JamPlayer, PremiumLockable {
+    var isLocked: Bool {
+        print("DEBUG DrumPlayer.isLocked evaluated for \(self). isUnlocked=\(isUnlocked)")
+        return !isUnlocked
+    }
     case rhythmMachine
     case standard
     case mark
@@ -31,45 +35,45 @@ enum DrumPlayer: String, JamPlayer {
 
     var displayName: String {
         switch self {
-        case .rhythmMachine: return "Rhythm Machine"
-        case .standard: return "Standard"
-        case .mark: return "Mark (Rock)"
-        case .leo: return "Leo (Funk)"
-        case .sara: return "Sara (Chill)"
-        case .chad: return "Chad (Metal)"
+        case .rhythmMachine: return NSLocalizedString("Rhythm Machine", comment: "")
+        case .standard: return NSLocalizedString("Standard", comment: "")
+        case .mark: return NSLocalizedString("Mark (Rock)", comment: "")
+        case .leo: return NSLocalizedString("Leo (Funk)", comment: "")
+        case .sara: return NSLocalizedString("Sara (Chill)", comment: "")
+        case .chad: return NSLocalizedString("Chad (Metal)", comment: "")
         }
     }
 
     var iconName: String {
         switch self {
-        case .rhythmMachine: return "metronome"
-        case .standard: return "person"
-        case .mark: return "person.fill"
-        case .leo: return "person.fill.turn.right"
-        case .sara: return "person.fill.turn.down"
-        case .chad: return "person.wave.2.fill"
+        case .rhythmMachine: return NSLocalizedString("metronome", comment: "")
+        case .standard: return NSLocalizedString("person", comment: "")
+        case .mark: return NSLocalizedString("person.fill", comment: "")
+        case .leo: return NSLocalizedString("person.fill.turn.right", comment: "")
+        case .sara: return NSLocalizedString("person.fill.turn.down", comment: "")
+        case .chad: return NSLocalizedString("person.wave.2.fill", comment: "")
         }
     }
 
     var imageName: String {
         switch self {
-        case .rhythmMachine: return "system:metronome"
-        case .standard: return "system:person.fill"
-        case .mark: return "Dr3"
-        case .leo: return "Dr4"
-        case .sara: return "Dr2"
-        case .chad: return "Dr1"
+        case .rhythmMachine: return "Maschine"
+        case .standard: return NSLocalizedString("system:person.fill", comment: "")
+        case .mark: return NSLocalizedString("Dr3", comment: "")
+        case .leo: return NSLocalizedString("Dr4", comment: "")
+        case .sara: return NSLocalizedString("Dr2", comment: "")
+        case .chad: return NSLocalizedString("Dr1", comment: "")
         }
     }
 
     var description: String {
         switch self {
-        case .rhythmMachine: return "従来の正確でシンプルな定型ビート。ループ練習に最適。"
-        case .standard: return "オーソドックスな8ビート・16ビートドラマー。セクション展開に合わせたシンプルな変化のみ。"
-        case .mark: return "パワフル・ロックドラマー。力強いビートと多彩なフィルイン。サビ前でのド派手なタム回しが特徴。"
-        case .leo: return "ファンク＆ネオソウル・ドラマー。跳ねる16分ゴーストスネアと細かいハットワーク、シンコペーションによるノリ。"
-        case .sara: return "Lo-Fi ＆ Chill。少しモタったスネアと、心地よい揺らぎを感じるレイドバックしたグルーヴが特徴。"
-        case .chad: return "メタル・ハードロックドラマー。パワフルなツーバスと派手なシンバルワークで激しくアグレッシブに叩きまくる。"
+        case .rhythmMachine: return NSLocalizedString("従来の正確でシンプルな定型ビート。ループ練習に最適。", comment: "")
+        case .standard: return NSLocalizedString("オーソドックスな8ビート・16ビートドラマー。セクション展開に合わせたシンプルな変化のみ。", comment: "")
+        case .mark: return NSLocalizedString("パワフル・ロックドラマー。力強いビートと多彩なフィルイン。サビ前でのド派手なタム回しが特徴。", comment: "")
+        case .leo: return NSLocalizedString("ファンク＆ネオソウル・ドラマー。跳ねる16分ゴーストスネアと細かいハットワーク、シンコペーションによるノリ。", comment: "")
+        case .sara: return NSLocalizedString("Lo-Fi ＆ Chill。少しモタったスネアと、心地よい揺らぎを感じるレイドバックしたグルーヴが特徴。", comment: "")
+        case .chad: return NSLocalizedString("メタル・ハードロックドラマー。パワフルなツーバスと派手なシンバルワークで激しくアグレッシブに叩きまくる。", comment: "")
         }
     }
 
@@ -106,7 +110,10 @@ enum DrumPlayer: String, JamPlayer {
         get {
             if !isPremium { return true }
             #if DEBUG
-            return true
+            if UserDefaults.standard.object(forKey: "debugPremiumUnlocked") == nil {
+                return true
+            }
+            return UserDefaults.standard.bool(forKey: "debugPremiumUnlocked")
             #else
             // Stub: 実際には UserDefaults や Keychain からリストアするか、StoreKit を参照します。
             return UserDefaults.standard.bool(forKey: "unlocked_drum_\(self.rawValue)")
@@ -120,7 +127,11 @@ enum DrumPlayer: String, JamPlayer {
 
 // MARK: - Bass Player
 
-enum BassPlayer: String, JamPlayer {
+enum BassPlayer: String, JamPlayer, PremiumLockable {
+    var isLocked: Bool {
+        print("DEBUG BassPlayer.isLocked evaluated for \(self). isUnlocked=\(isUnlocked)")
+        return !isUnlocked
+    }
     case rhythmMachine
     case standard
     case kr
@@ -132,45 +143,45 @@ enum BassPlayer: String, JamPlayer {
 
     var displayName: String {
         switch self {
-        case .rhythmMachine: return "Rhythm Machine"
-        case .standard: return "Standard"
-        case .kr: return "KR (Punk)"
-        case .akiko: return "Akiko (Groove)"
-        case .marcus: return "Marcus (Funk)"
-        case .haruto: return "Haruto (Pop)"
+        case .rhythmMachine: return NSLocalizedString("Rhythm Machine", comment: "")
+        case .standard: return NSLocalizedString("Standard", comment: "")
+        case .kr: return NSLocalizedString("KR (Punk)", comment: "")
+        case .akiko: return NSLocalizedString("Akiko (Groove)", comment: "")
+        case .marcus: return NSLocalizedString("Marcus (Funk)", comment: "")
+        case .haruto: return NSLocalizedString("Haruto (Pop)", comment: "")
         }
     }
 
     var iconName: String {
         switch self {
-        case .rhythmMachine: return "metronome"
-        case .standard: return "person"
-        case .kr: return "person.fill.bolt"
-        case .akiko: return "person.fill.viewfinder"
-        case .marcus: return "person.fill.turn.down"
-        case .haruto: return "person.wave.2.fill"
+        case .rhythmMachine: return NSLocalizedString("metronome", comment: "")
+        case .standard: return NSLocalizedString("person", comment: "")
+        case .kr: return NSLocalizedString("person.fill.bolt", comment: "")
+        case .akiko: return NSLocalizedString("person.fill.viewfinder", comment: "")
+        case .marcus: return NSLocalizedString("person.fill.turn.down", comment: "")
+        case .haruto: return NSLocalizedString("person.wave.2.fill", comment: "")
         }
     }
 
     var imageName: String {
         switch self {
-        case .rhythmMachine: return "system:metronome"
-        case .standard: return "system:person.fill"
-        case .kr: return "Ba4"
-        case .akiko: return "Ba2"
-        case .marcus: return "Ba1"
-        case .haruto: return "Ba3"
+        case .rhythmMachine: return "Maschine"
+        case .standard: return NSLocalizedString("system:person.fill", comment: "")
+        case .kr: return NSLocalizedString("Ba4", comment: "")
+        case .akiko: return NSLocalizedString("Ba2", comment: "")
+        case .marcus: return NSLocalizedString("Ba1", comment: "")
+        case .haruto: return NSLocalizedString("Ba3", comment: "")
         }
     }
 
     var description: String {
         switch self {
-        case .rhythmMachine: return "従来のルート音中心の定型パターン。"
-        case .standard: return "オーソドックスなルート＆5度の安定したベース。"
-        case .kr: return "パンク＆ロック・ドライヴ。8分音符でルート＆オクターブをゴリゴリ刻みまくる疾走感。サビ前でスライドを多用。"
-        case .akiko: return "グルーヴィ・ウォーキング。スケール音や経過音（クロマチック）を縦横無尽に使い、次コードのルートへ滑らかにアプローチ。"
-        case .marcus: return "ヘヴィ・ファンクベーシスト。スラップ奏法やゴーストノートを駆使し、タイトでノリの良いベースラインを刻む。"
-        case .haruto: return "王道ポップ・ベーシスト。コード進行に寄り添うメロディアスで美しいベースライン。安定感抜群。"
+        case .rhythmMachine: return NSLocalizedString("従来のルート音中心の定型パターン。", comment: "")
+        case .standard: return NSLocalizedString("オーソドックスなルート＆5度の安定したベース。", comment: "")
+        case .kr: return NSLocalizedString("パンク＆ロック・ドライヴ。8分音符でルート＆オクターブをゴリゴリ刻みまくる疾走感。サビ前でスライドを多用。", comment: "")
+        case .akiko: return NSLocalizedString("グルーヴィ・ウォーキング。スケール音や経過音（クロマチック）を縦横無尽に使い、次コードのルートへ滑らかにアプローチ。", comment: "")
+        case .marcus: return NSLocalizedString("ヘヴィ・ファンクベーシスト。スラップ奏法やゴーストノートを駆使し、タイトでノリの良いベースラインを刻む。", comment: "")
+        case .haruto: return NSLocalizedString("王道ポップ・ベーシスト。コード進行に寄り添うメロディアスで美しいベースライン。安定感抜群。", comment: "")
         }
     }
 
@@ -207,7 +218,10 @@ enum BassPlayer: String, JamPlayer {
         get {
             if !isPremium { return true }
             #if DEBUG
-            return true
+            if UserDefaults.standard.object(forKey: "debugPremiumUnlocked") == nil {
+                return true
+            }
+            return UserDefaults.standard.bool(forKey: "debugPremiumUnlocked")
             #else
             // Stub: 実際には UserDefaults や Keychain からリストアするか、StoreKit を参照します。
             return UserDefaults.standard.bool(forKey: "unlocked_bass_\(self.rawValue)")
@@ -221,7 +235,11 @@ enum BassPlayer: String, JamPlayer {
 
 // MARK: - Piano Player
 
-enum PianoPlayer: String, JamPlayer {
+enum PianoPlayer: String, JamPlayer, PremiumLockable {
+    var isLocked: Bool {
+        print("DEBUG PianoPlayer.isLocked evaluated for \(self). isUnlocked=\(isUnlocked)")
+        return !isUnlocked
+    }
     case rhythmMachine
     case standard
     case emi
@@ -233,45 +251,45 @@ enum PianoPlayer: String, JamPlayer {
 
     var displayName: String {
         switch self {
-        case .rhythmMachine: return "Rhythm Machine"
-        case .standard: return "Standard"
-        case .emi: return "Emi (Pop)"
-        case .jazzCat: return "JazzCat (Jazz)"
-        case .ray: return "Ray (R&B)"
-        case .clara: return "Clara (Classical)"
+        case .rhythmMachine: return NSLocalizedString("Rhythm Machine", comment: "")
+        case .standard: return NSLocalizedString("Standard", comment: "")
+        case .emi: return NSLocalizedString("Emi (Pop)", comment: "")
+        case .jazzCat: return NSLocalizedString("JazzCat (Jazz)", comment: "")
+        case .ray: return NSLocalizedString("Ray (R&B)", comment: "")
+        case .clara: return NSLocalizedString("Clara (Classical)", comment: "")
         }
     }
 
     var iconName: String {
         switch self {
-        case .rhythmMachine: return "metronome"
-        case .standard: return "person"
-        case .emi: return "person.fill.star"
-        case .jazzCat: return "person.fill.eyeglasses"
-        case .ray: return "person.fill.turn.down"
-        case .clara: return "person.wave.2.fill"
+        case .rhythmMachine: return NSLocalizedString("metronome", comment: "")
+        case .standard: return NSLocalizedString("person", comment: "")
+        case .emi: return NSLocalizedString("person.fill.star", comment: "")
+        case .jazzCat: return NSLocalizedString("person.fill.eyeglasses", comment: "")
+        case .ray: return NSLocalizedString("person.fill.turn.down", comment: "")
+        case .clara: return NSLocalizedString("person.wave.2.fill", comment: "")
         }
     }
 
     var imageName: String {
         switch self {
-        case .rhythmMachine: return "system:metronome"
-        case .standard: return "system:person.fill"
-        case .emi: return "Key2"
-        case .jazzCat: return "Key1"
-        case .ray: return "Key3"
-        case .clara: return "Key4"
+        case .rhythmMachine: return "Maschine"
+        case .standard: return NSLocalizedString("system:person.fill", comment: "")
+        case .emi: return NSLocalizedString("Key2", comment: "")
+        case .jazzCat: return NSLocalizedString("Key1", comment: "")
+        case .ray: return NSLocalizedString("Key3", comment: "")
+        case .clara: return NSLocalizedString("Key4", comment: "")
         }
     }
 
     var description: String {
         switch self {
-        case .rhythmMachine: return "小節頭の全音符（白玉）のみ。"
-        case .standard: return "オーソドックスなコード弾き。"
-        case .emi: return "ポップ・コンピング。Bメロからのリズミカルなコンピングやサビでの力強いプッシュ。"
-        case .jazzCat: return "テンションコードとシンコペーションを多用するオシャレなジャズピアニスト。"
-        case .ray: return "R&B / レゲエ・キーボーディスト。裏打ちのバッキングや、ブルージーな装飾音符を得意とし、時折ロックなアプローチも見せる。"
-        case .clara: return "クラシック出身のピアニスト。流麗なアルペジオを自在に操り、コード進行を優雅かつ壮大に彩るプレイが魅力。"
+        case .rhythmMachine: return NSLocalizedString("小節頭の全音符（白玉）のみ。", comment: "")
+        case .standard: return NSLocalizedString("オーソドックスなコード弾き。", comment: "")
+        case .emi: return NSLocalizedString("ポップ・コンピング。Bメロからのリズミカルなコンピングやサビでの力強いプッシュ。", comment: "")
+        case .jazzCat: return NSLocalizedString("テンションコードとシンコペーションを多用するオシャレなジャズピアニスト。", comment: "")
+        case .ray: return NSLocalizedString("R&B / レゲエ・キーボーディスト。裏打ちのバッキングや、ブルージーな装飾音符を得意とし、時折ロックなアプローチも見せる。", comment: "")
+        case .clara: return NSLocalizedString("クラシック出身のピアニスト。流麗なアルペジオを自在に操り、コード進行を優雅かつ壮大に彩るプレイが魅力。", comment: "")
         }
     }
 
@@ -308,7 +326,10 @@ enum PianoPlayer: String, JamPlayer {
         get {
             if !isPremium { return true }
             #if DEBUG
-            return true
+            if UserDefaults.standard.object(forKey: "debugPremiumUnlocked") == nil {
+                return true
+            }
+            return UserDefaults.standard.bool(forKey: "debugPremiumUnlocked")
             #else
             // Stub: 実際には UserDefaults や Keychain からリストアするか、StoreKit を参照します。
             return UserDefaults.standard.bool(forKey: "unlocked_piano_\(self.rawValue)")
@@ -366,7 +387,21 @@ struct PlayerChemistry: Identifiable, Equatable {
 import SwiftUI
 
 class StoreManager: ObservableObject {
+    static let shared = StoreManager()
+    
     @Published var isPremium: Bool = false
+    
+    var isUnlocked: Bool {
+        #if DEBUG
+        if UserDefaults.standard.object(forKey: "debugPremiumUnlocked") == nil {
+            return true
+        }
+        return UserDefaults.standard.bool(forKey: "debugPremiumUnlocked")
+        #else
+        return isPremium
+        #endif
+    }
+    @Published var showPaywall: Bool = false
     
     // シミュレーターでのテスト用にトグルするためのメソッド
     func togglePremium() {

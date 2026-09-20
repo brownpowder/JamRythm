@@ -198,6 +198,12 @@ struct MixerView: View {
                         .foregroundColor(.secondary)
                         .lineLimit(2)
                 }
+                Spacer()
+                if !player.isUnlocked {
+                    Image(systemName: "lock.fill")
+                        .foregroundColor(.secondary)
+                        .font(.footnote)
+                }
             }
         }
     }
@@ -223,6 +229,12 @@ struct MixerView: View {
                         .foregroundColor(.secondary)
                         .lineLimit(2)
                 }
+                Spacer()
+                if !player.isUnlocked {
+                    Image(systemName: "lock.fill")
+                        .foregroundColor(.secondary)
+                        .font(.footnote)
+                }
             }
         }
     }
@@ -247,6 +259,12 @@ struct MixerView: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .lineLimit(2)
+                }
+                Spacer()
+                if !player.isUnlocked {
+                    Image(systemName: "lock.fill")
+                        .foregroundColor(.secondary)
+                        .font(.footnote)
                 }
             }
         }
