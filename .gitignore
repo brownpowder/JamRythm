@@ -76,3 +76,8 @@ default.store
 
 # Temporary scripts
 *.py
+
+# Root level temporary assets
+Images/
+*.png
+test_*.swift
