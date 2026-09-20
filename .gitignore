@@ -73,3 +73,6 @@ GoogleService-Info.plist
 *.sqlite-wal
 *.sqlite-shm
 default.store
+
+# Temporary scripts
+*.py
