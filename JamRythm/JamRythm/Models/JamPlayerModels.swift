@@ -386,32 +386,3 @@ struct PlayerChemistry: Identifiable, Equatable {
 
 import SwiftUI
 
-class StoreManager: ObservableObject {
-    static let shared = StoreManager()
-    
-    @Published var isPremium: Bool = false
-    
-    var isUnlocked: Bool {
-        #if DEBUG
-        if UserDefaults.standard.object(forKey: "debugPremiumUnlocked") == nil {
-            return true
-        }
-        return UserDefaults.standard.bool(forKey: "debugPremiumUnlocked")
-        #else
-        return isPremium
-        #endif
-    }
-    @Published var showPaywall: Bool = false
-    
-    // シミュレーターでのテスト用にトグルするためのメソッド
-    func togglePremium() {
-        isPremium.toggle()
-    }
-    
-    // 将来的にStoreKitを実装する想定
-    func purchasePremium() {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            self.isPremium = true
-        }
-    }
-}
