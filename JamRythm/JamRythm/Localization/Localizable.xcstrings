@@ -3114,6 +3114,40 @@
           }
         }
       }
+    },
+    "Premium User": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Premium User"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プレミアムユーザー"
+          }
+        }
+      }
+    },
+    "Free User": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Free User"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無料ユーザー"
+          }
+        }
+      }
     }
   },
   "version": "1.1"

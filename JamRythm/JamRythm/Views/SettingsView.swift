@@ -7,6 +7,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @Environment(\.dismiss) var dismiss
+    @ObservedObject var store = StoreManager.shared
     
 #if DEBUG
     @AppStorage("debugPremiumUnlocked") private var isDebugPremiumUnlocked: Bool = true
@@ -64,7 +65,23 @@ struct SettingsView: View {
                                 Text("Version \(appVersion)")
                                     .font(.footnote)
                                     .foregroundColor(.secondary)
-                                    .padding(.bottom, 10)
+                                    .padding(.bottom, 5)
+                                    
+                                // User Status
+                                HStack(spacing: 6) {
+                                    Image(systemName: store.isUnlocked ? "crown.fill" : "person.fill")
+                                        .foregroundColor(store.isUnlocked ? .orange : .secondary)
+                                    Text(store.isUnlocked ? LocalizedStringKey("Premium User") : LocalizedStringKey("Free User"))
+                                        .font(.subheadline.bold())
+                                        .foregroundColor(store.isUnlocked ? .orange : .secondary)
+                                }
+                                .padding(.vertical, 8)
+                                .padding(.horizontal, 16)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .fill(store.isUnlocked ? Color.orange.opacity(0.15) : Color(uiColor: .tertiarySystemFill))
+                                )
+                                .padding(.bottom, 15)
                             }
                             .frame(maxWidth: .infinity)
                             .background(Color(uiColor: .secondarySystemGroupedBackground))
