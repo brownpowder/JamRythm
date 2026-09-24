@@ -239,19 +239,25 @@ class SaraDrummer: BaseDrumPlayerEngine {
             }
             
         case .lofi, .rAndB:
-            // Saraの本領発揮。隙間の多いチルビート
+            // Saraの本領発揮。隙間の多いチルビート＆J Dilla的ヨレ感
+            // ハイハットを細かく入れつつ、ベロシティでグルーヴを作る
+            let hatVel: UInt8 = step % 2 == 0 ? 75 : 50
+            if genre == .lofi { events.append(NoteEvent(note: 42, velocity: hatVel)) }
+            else if step % 2 == 0 { events.append(NoteEvent(note: 42, velocity: hatVel)) }
+
             if variation == 0 {
                 if step == 0 { events.append(NoteEvent(note: 36, velocity: 85)) }
-                if step == 4 { events.append(NoteEvent(note: 38, velocity: 90)) }
-                if step % 4 == 0 { events.append(NoteEvent(note: 42, velocity: 65)) }
+                if step == 5 { events.append(NoteEvent(note: 36, velocity: 60)) } // 裏キック
+                if step == 4 { events.append(NoteEvent(note: 37, velocity: 85)) } // リムショット(37)
             } else if variation == 1 {
                 if step == 0 || step == 3 { events.append(NoteEvent(note: 36, velocity: 85)) }
-                if step == 4 { events.append(NoteEvent(note: 38, velocity: 90)) }
-                if step == 2 || step == 6 { events.append(NoteEvent(note: 42, velocity: 65)) } // 裏拍ハット
+                if step == 4 { events.append(NoteEvent(note: 38, velocity: 80)) } // スネア
+                if step == 7 { events.append(NoteEvent(note: 38, velocity: 40)) } // ゴーストスネア
             } else {
                 if step == 0 { events.append(NoteEvent(note: 36, velocity: 80)) }
-                if step == 4 { events.append(NoteEvent(note: 38, velocity: 90)) }
-                if step == 7 { events.append(NoteEvent(note: 36, velocity: 70)) } // 次の小節へのゴーストキック
+                if step == 2 { events.append(NoteEvent(note: 36, velocity: 60)) }
+                if step == 4 { events.append(NoteEvent(note: 37, velocity: 85)) }
+                if step == 7 { events.append(NoteEvent(note: 36, velocity: 70)) }
             }
             
         case .rock:
