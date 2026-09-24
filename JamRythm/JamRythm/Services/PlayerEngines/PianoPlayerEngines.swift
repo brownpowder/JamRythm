@@ -143,19 +143,28 @@ class RayPianist: BasePianoPlayerEngine {
         var events = [NoteEvent]()
         switch genre {
         case .lofi, .rAndB:
+            // Lo-Fiの鍵盤はモタリ（Delay）とテンションノートが命
+            // エモさを出すためにアルペジオっぽくずらしたり、白玉を長くする
             if variation == 0 {
-                if step == 2 || step == 6 { // 裏打ちチョップ
-                    for note in chordNotes { events.append(NoteEvent(note: note, velocity: 90)) }
+                if step == 0 { 
+                    for (i, note) in chordNotes.enumerated() { 
+                        // 少しずつベロシティを下げる
+                        events.append(NoteEvent(note: note, velocity: UInt8(max(65, 100 - i * 5)))) 
+                    }
+                }
+                if step == 3 { 
+                    for note in chordNotes { events.append(NoteEvent(note: note, velocity: 75)) }
                 }
             } else if variation == 1 {
-                if step == 2 {
+                if step == 2 || step == 5 { // シンコペーション気味のバッキング
                     for note in chordNotes { events.append(NoteEvent(note: note, velocity: 90)) }
-                } else if step == 5 || step == 6 {
-                    for note in chordNotes { events.append(NoteEvent(note: note, velocity: 85)) }
                 }
             } else {
-                if step == 0 || step == 3 {
-                    for note in chordNotes { events.append(NoteEvent(note: note, velocity: 85)) }
+                // ポロロロンと弾くようなアプローチ（分散和音風）
+                if step == 0 { events.append(NoteEvent(note: chordNotes[0], velocity: 100)) }
+                if step == 1 { if chordNotes.count > 1 { events.append(NoteEvent(note: chordNotes[1], velocity: 95)) } }
+                if step == 2 { 
+                    for note in chordNotes.dropFirst(2) { events.append(NoteEvent(note: note, velocity: 90)) }
                 }
             }
         default:

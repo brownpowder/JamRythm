@@ -202,9 +202,9 @@ private func basicGenrePattern(genre: MusicGenre, step: Int) -> [NoteEvent] {
         if step % 2 == 0 { notes.append(NoteEvent(note: 36, velocity: 120)) }
         if step == 2 || step == 6 { notes.append(NoteEvent(note: 39, velocity: 110)) }
     case .lofi:
-        if step % 4 == 0 { notes.append(NoteEvent(note: 42, velocity: 70)) }
-        if step == 0 || step == 5 { notes.append(NoteEvent(note: 36, velocity: 90)) }
-        if step == 2 || step == 6 { notes.append(NoteEvent(note: 38, velocity: 90)) }
+        if step % 4 == 0 { notes.append(NoteEvent(note: 42, velocity: 85)) }
+        if step == 0 || step == 5 { notes.append(NoteEvent(note: 36, velocity: 105)) }
+        if step == 2 || step == 6 { notes.append(NoteEvent(note: 38, velocity: 105)) }
     case .rAndB:
         notes.append(NoteEvent(note: 42, velocity: (step % 2 == 0) ? 95 : 75))
         if step == 0 || step == 3 { notes.append(NoteEvent(note: 36, velocity: 105)) }
@@ -241,23 +241,23 @@ class SaraDrummer: BaseDrumPlayerEngine {
         case .lofi, .rAndB:
             // Saraの本領発揮。隙間の多いチルビート＆J Dilla的ヨレ感
             // ハイハットを細かく入れつつ、ベロシティでグルーヴを作る
-            let hatVel: UInt8 = step % 2 == 0 ? 75 : 50
+            let hatVel: UInt8 = step % 2 == 0 ? 90 : 65
             if genre == .lofi { events.append(NoteEvent(note: 42, velocity: hatVel)) }
             else if step % 2 == 0 { events.append(NoteEvent(note: 42, velocity: hatVel)) }
 
             if variation == 0 {
-                if step == 0 { events.append(NoteEvent(note: 36, velocity: 85)) }
-                if step == 5 { events.append(NoteEvent(note: 36, velocity: 60)) } // 裏キック
-                if step == 4 { events.append(NoteEvent(note: 37, velocity: 85)) } // リムショット(37)
+                if step == 0 { events.append(NoteEvent(note: 36, velocity: 100)) }
+                if step == 5 { events.append(NoteEvent(note: 36, velocity: 75)) } // 裏キック
+                if step == 4 { events.append(NoteEvent(note: 37, velocity: 100)) } // リムショット(37)
             } else if variation == 1 {
-                if step == 0 || step == 3 { events.append(NoteEvent(note: 36, velocity: 85)) }
-                if step == 4 { events.append(NoteEvent(note: 38, velocity: 80)) } // スネア
-                if step == 7 { events.append(NoteEvent(note: 38, velocity: 40)) } // ゴーストスネア
+                if step == 0 || step == 3 { events.append(NoteEvent(note: 36, velocity: 100)) }
+                if step == 4 { events.append(NoteEvent(note: 38, velocity: 95)) } // スネア
+                if step == 7 { events.append(NoteEvent(note: 38, velocity: 55)) } // ゴーストスネア
             } else {
-                if step == 0 { events.append(NoteEvent(note: 36, velocity: 80)) }
-                if step == 2 { events.append(NoteEvent(note: 36, velocity: 60)) }
-                if step == 4 { events.append(NoteEvent(note: 37, velocity: 85)) }
-                if step == 7 { events.append(NoteEvent(note: 36, velocity: 70)) }
+                if step == 0 { events.append(NoteEvent(note: 36, velocity: 95)) }
+                if step == 2 { events.append(NoteEvent(note: 36, velocity: 75)) }
+                if step == 4 { events.append(NoteEvent(note: 37, velocity: 100)) }
+                if step == 7 { events.append(NoteEvent(note: 36, velocity: 85)) }
             }
             
         case .rock:

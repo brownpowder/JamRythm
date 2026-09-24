@@ -111,17 +111,18 @@ class AkikoBassist: BaseBassPlayerEngine {
         var events = [NoteEvent]()
         switch genre {
         case .lofi, .rAndB:
-            // ネオソウル的なアプローチ
+            // 重低音で隙間を活かすダブ・ネオソウル的ベース
             if variation == 0 {
-                if step == 0 { events.append(NoteEvent(note: root, velocity: 95)) }
-                if step == 6 { events.append(NoteEvent(note: root + 7, velocity: 85)) } // 5度
+                if step == 0 { events.append(NoteEvent(note: UInt8(max(0, Int(root) - 12)), velocity: 115)) } // サブベース領域
+                if step == 5 { events.append(NoteEvent(note: root, velocity: 95)) } // オクターブ上（シンコペーション）
             } else if variation == 1 {
-                if step == 0 { events.append(NoteEvent(note: root, velocity: 95)) }
-                if step == 3 { events.append(NoteEvent(note: root + 10, velocity: 80)) } // m7
-                if step == 5 { events.append(NoteEvent(note: root + 7, velocity: 85)) }
+                if step == 0 { events.append(NoteEvent(note: UInt8(max(0, Int(root) - 12)), velocity: 105)) }
+                if step == 3 { events.append(NoteEvent(note: UInt8(max(0, Int(root) - 12)), velocity: 100)) }
+                if step == 6 { events.append(NoteEvent(note: UInt8(max(0, Int(root) - 5)), velocity: 100)) } // 5度（オクターブ下から）
             } else {
-                if step == 0 { events.append(NoteEvent(note: root, velocity: 90)) }
-                if step == 2 || step == 6 { events.append(NoteEvent(note: root + 12, velocity: 75)) } // オクターブ上
+                if step == 0 { events.append(NoteEvent(note: UInt8(max(0, Int(root) - 12)), velocity: 110)) }
+                if step == 4 { events.append(NoteEvent(note: UInt8(max(0, Int(root) - 7)), velocity: 95)) } // 4度
+                if step == 7 { events.append(NoteEvent(note: UInt8(max(0, Int(root) - 12)), velocity: 85)) } // ゴースト
             }
         default:
             if variation == 0 {
@@ -157,7 +158,7 @@ private func basicBassPattern(genre: MusicGenre, step: Int, root: UInt8?) -> [No
         if step % 2 == 0 { notes.append(NoteEvent(note: root, velocity: 105)) }
         else { notes.append(NoteEvent(note: root + 12, velocity: 95)) }
     case .lofi:
-        if step == 0 { notes.append(NoteEvent(note: root, velocity: 95)) }
+        if step == 0 { notes.append(NoteEvent(note: root, velocity: 110)) }
     case .rAndB:
         if step == 0 { notes.append(NoteEvent(note: root, velocity: 105)) }
         else if step == 3 { notes.append(NoteEvent(note: root + 12, velocity: 95)) }
