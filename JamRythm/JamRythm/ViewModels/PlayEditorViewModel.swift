@@ -370,7 +370,7 @@ final class PlayEditorViewModel: ObservableObject {
     var editingMeasureTitle: String {
         let sectionNum = selectedSectionIndex + 1
         let measureNum = currentMeasureIndex + 1
-        return "Section \(sectionNum) - \(measureNum)小節目"
+        return String(format: NSLocalizedString("Section %d - Measure %d", comment: ""), sectionNum, measureNum)
     }
 
     /*

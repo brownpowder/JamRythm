@@ -140,7 +140,7 @@ struct ChordCustomizerSheetView: View {
                 HStack(spacing: 4) {
                     Image(systemName: comp.badgeIcon)
                         .font(.system(size: 10, weight: .bold))
-                    Text(comp.badgeText)
+                    Text(LocalizedStringKey(comp.badgeText))
                         .font(.system(size: 11, weight: .bold))
                 }
                 .foregroundColor(compatibilityColor(comp))
@@ -203,7 +203,7 @@ struct ChordCustomizerSheetView: View {
 
     private var rootSelectorSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            sectionTitle("1. ルート音 (Root)", subtitle: "コードの基準となる土台の音（濃い色ほどスムーズに調和）")
+            sectionTitle("1. ルート音 (Root)", subtitle: "コードの基準となる土台の音")
 
             let columns = Array(repeating: GridItem(.flexible(), spacing: 6), count: 6)
             LazyVGrid(columns: columns, spacing: 6) {
@@ -247,7 +247,7 @@ struct ChordCustomizerSheetView: View {
 
     private var chordTypeSection: some View {
         VStack(alignment: .leading, spacing: 14) {
-            sectionTitle("2. コードの響き (Quality & Tension)", subtitle: "選択中のRootに対して破綻しない響きほど濃い色で表示")
+            sectionTitle("2. コードの響き (Quality & Tension)", subtitle: "コードの響きやテンションを選択")
 
             VStack(alignment: .leading, spacing: 6) {
                 Text("基本三和音 / サス")
