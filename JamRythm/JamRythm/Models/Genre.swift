@@ -27,12 +27,7 @@ enum MusicGenre: String, CaseIterable, Identifiable, Codable, PremiumLockable {
     }
 
     var isPremiumOnly: Bool {
-        #if DEBUG
-        let unlocked = UserDefaults.standard.object(forKey: "debugPremiumUnlocked") == nil ? true : UserDefaults.standard.bool(forKey: "debugPremiumUnlocked")
-        if unlocked { return false }
-        #else
         if StoreManager.shared.isUnlocked { return false }
-        #endif
         
         switch self {
         case .lofi, .rAndB: return true
@@ -179,7 +174,8 @@ enum MusicGenre: String, CaseIterable, Identifiable, Codable, PremiumLockable {
         switch self {
         case .pop, .dance: return .standard
         case .rock: return .mark
-        case .lofi, .rAndB: return .leo
+        case .lofi: return .sara
+        case .rAndB: return .leo
         }
     }
     
