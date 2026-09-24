@@ -144,7 +144,7 @@ struct PremiumPaywallView: View {
                     
                     // Restore Purchases
                     Button(action: {
-                        // Restore logic
+                        store.restorePurchases()
                         dismiss()
                     }) {
                         Text(LocalizedStringKey("購入を復元する"))

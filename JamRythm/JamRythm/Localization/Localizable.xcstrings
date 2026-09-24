@@ -2309,7 +2309,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Unlock all premium features with a single, one-time purchase! No subscriptions."
+            "value": "A one-time purchase unlocks all additional features forever! This is not a subscription."
           }
         }
       }
@@ -2375,7 +2375,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Unlock all unique drum, bass, and piano players."
+            "value": "Unlock all unique Drum, Bass, and Piano players."
           }
         }
       }
@@ -2823,7 +2823,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Exotic Scales"
+            "value": "Special Scales"
           }
         }
       }
