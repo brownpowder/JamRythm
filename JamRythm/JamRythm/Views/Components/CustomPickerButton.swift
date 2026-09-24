@@ -1,4 +1,5 @@
 import SwiftUI
+import StoreKit
 
 struct CustomPickerButton<T: Identifiable & Equatable, Label: View, OptionRow: View>: View {
     let options: [T]
@@ -72,6 +73,7 @@ struct CustomPickerButton<T: Identifiable & Equatable, Label: View, OptionRow: V
 
 struct PremiumPaywallView: View {
     @Environment(\.dismiss) var dismiss
+    @ObservedObject var store = StoreManager.shared
     
     var body: some View {
         NavigationView {
@@ -112,19 +114,31 @@ struct PremiumPaywallView: View {
                     
                     // Purchase Button
                     Button(action: {
-                        // In the future: call StoreManager
-                        dismiss()
+                        store.purchasePremium()
                     }) {
-                        Text(LocalizedStringKey("¥800 で全てロック解除"))
-                            .font(.headline.bold())
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(
-                                LinearGradient(colors: [.orange, .red], startPoint: .leading, endPoint: .trailing)
-                            )
-                            .cornerRadius(16)
-                            .shadow(color: .orange.opacity(0.3), radius: 10, x: 0, y: 5)
+                        if let product = store.products.first {
+                            Text("\(product.displayPrice) で全てロック解除")
+                                .font(.headline.bold())
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(
+                                    LinearGradient(colors: [.orange, .red], startPoint: .leading, endPoint: .trailing)
+                                )
+                                .cornerRadius(16)
+                                .shadow(color: .orange.opacity(0.3), radius: 10, x: 0, y: 5)
+                        } else {
+                            Text("¥800 で全てロック解除")
+                                .font(.headline.bold())
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(
+                                    LinearGradient(colors: [.orange, .red], startPoint: .leading, endPoint: .trailing)
+                                )
+                                .cornerRadius(16)
+                                .shadow(color: .orange.opacity(0.3), radius: 10, x: 0, y: 5)
+                        }
                     }
                     .padding(.horizontal, 24)
                     
