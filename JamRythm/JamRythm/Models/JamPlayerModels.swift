@@ -90,7 +90,7 @@ enum DrumPlayer: String, JamPlayer, PremiumLockable {
         case .standard: return 0.0
         case .mark: return 2.0
         case .leo: return 4.0
-        case .sara: return 8.0  // レイドバック
+        case .sara: return 4.0  // 弱めのレイドバック
         case .chad: return -4.0 // 前ノリ
         }
     }
@@ -109,14 +109,7 @@ enum DrumPlayer: String, JamPlayer, PremiumLockable {
     var isUnlocked: Bool {
         get {
             if !isPremium { return true }
-            #if DEBUG
-            if UserDefaults.standard.object(forKey: "debugPremiumUnlocked") == nil {
-                return true
-            }
-            return UserDefaults.standard.bool(forKey: "debugPremiumUnlocked")
-            #else
             return StoreManager.shared.isUnlocked
-            #endif
         }
         set {
             UserDefaults.standard.set(newValue, forKey: "unlocked_drum_\(self.rawValue)")
@@ -216,14 +209,7 @@ enum BassPlayer: String, JamPlayer, PremiumLockable {
     var isUnlocked: Bool {
         get {
             if !isPremium { return true }
-            #if DEBUG
-            if UserDefaults.standard.object(forKey: "debugPremiumUnlocked") == nil {
-                return true
-            }
-            return UserDefaults.standard.bool(forKey: "debugPremiumUnlocked")
-            #else
             return StoreManager.shared.isUnlocked
-            #endif
         }
         set {
             UserDefaults.standard.set(newValue, forKey: "unlocked_bass_\(self.rawValue)")
@@ -303,7 +289,7 @@ enum PianoPlayer: String, JamPlayer, PremiumLockable {
         case .rhythmMachine: return 0.0
         case .standard: return 0.0
         case .emi: return 1.0
-        case .jazzCat: return 4.0 // 少しタメる
+        case .jazzCat: return 2.0 // 少しタメる
         case .ray: return 6.0     // レイドバック
         case .clara: return 0.0
         }
@@ -323,14 +309,7 @@ enum PianoPlayer: String, JamPlayer, PremiumLockable {
     var isUnlocked: Bool {
         get {
             if !isPremium { return true }
-            #if DEBUG
-            if UserDefaults.standard.object(forKey: "debugPremiumUnlocked") == nil {
-                return true
-            }
-            return UserDefaults.standard.bool(forKey: "debugPremiumUnlocked")
-            #else
             return StoreManager.shared.isUnlocked
-            #endif
         }
         set {
             UserDefaults.standard.set(newValue, forKey: "unlocked_piano_\(self.rawValue)")
