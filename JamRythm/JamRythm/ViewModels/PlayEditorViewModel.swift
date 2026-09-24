@@ -1008,7 +1008,7 @@ final class PlayEditorViewModel: ObservableObject {
             try audioService.prepare(project: project)
         } catch {
             logger.error("AudioEngine setup failed: \(error.localizedDescription)")
-            self.errorMessage = "オーディオエンジンの初期化に失敗しました: \(error.localizedDescription)"
+            self.errorMessage = String(format: NSLocalizedString("オーディオエンジンの初期化に失敗しました: %@", comment: ""), error.localizedDescription)
         }
     }
 
