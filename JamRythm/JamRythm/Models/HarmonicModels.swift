@@ -30,9 +30,9 @@ enum HarmonicCompatibility: Int, Comparable, CaseIterable, Identifiable {
 
     var badgeText: String {
         switch self {
-        case .verySmooth: return "✨ スムーズ (超自然)"
-        case .dramatic: return "💜 ドラマチック (エモい)"
-        case .flavorful: return "🔥 スパイス (個性派)"
+        case .verySmooth: return "スムーズ (超自然)"
+        case .dramatic: return "ドラマチック (エモい)"
+        case .flavorful: return "スパイス (個性派)"
         case .abstract: return "挑戦的 (アブストラクト)"
         }
     }
