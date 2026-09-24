@@ -16,8 +16,9 @@ class StoreManager: ObservableObject {
     
     var isUnlocked: Bool {
         #if DEBUG
+        if isPremium { return true }
         if UserDefaults.standard.object(forKey: "debugPremiumUnlocked") == nil {
-            return true
+            return false // Test StoreKit by default
         }
         return UserDefaults.standard.bool(forKey: "debugPremiumUnlocked")
         #else

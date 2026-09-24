@@ -10,6 +10,7 @@ struct CustomPickerButton<T: Identifiable & Equatable, Label: View, OptionRow: V
 
     @State private var isSheetPresented = false
     @State private var showPaywall = false
+    @ObservedObject var store = StoreManager.shared
 
     var body: some View {
         Button(action: { isSheetPresented = true }) {
