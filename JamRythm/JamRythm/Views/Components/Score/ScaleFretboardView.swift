@@ -17,6 +17,7 @@ Keyと現在コードに基づき、スケール構成音（外れない音）�
 struct ScaleFretboardView: View {
     let key: Key
     let chord: Chord
+    @ObservedObject var store = StoreManager.shared
     let theoryService: MusicTheoryServiceProtocol
     var audioService: AudioServiceProtocol? = nil
 

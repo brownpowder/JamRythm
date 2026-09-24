@@ -20,6 +20,7 @@ struct ChordDisplayView: View {
     let nextChord: Chord?
     let candidates: [ChordCandidate]
     let substituteCandidates: [SubstituteCandidate]
+    @ObservedObject var store = StoreManager.shared
     let selectedChord: Chord?
     let onSelect: (Chord) -> Void
     var onPrevious: (() -> Void)? = nil

@@ -19,6 +19,7 @@ import SwiftUI
 struct PlayEditorView: View {
     @StateObject private var viewModel: PlayEditorViewModel
     @State private var isShowingSettings = false
+    @ObservedObject var store = StoreManager.shared
 
     init(project: Project? = nil) {
         _viewModel = StateObject(wrappedValue: PlayEditorViewModel(project: project))
