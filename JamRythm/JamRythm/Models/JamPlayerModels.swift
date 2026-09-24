@@ -115,8 +115,7 @@ enum DrumPlayer: String, JamPlayer, PremiumLockable {
             }
             return UserDefaults.standard.bool(forKey: "debugPremiumUnlocked")
             #else
-            // Stub: 実際には UserDefaults や Keychain からリストアするか、StoreKit を参照します。
-            return UserDefaults.standard.bool(forKey: "unlocked_drum_\(self.rawValue)")
+            return StoreManager.shared.isUnlocked
             #endif
         }
         set {
@@ -223,8 +222,7 @@ enum BassPlayer: String, JamPlayer, PremiumLockable {
             }
             return UserDefaults.standard.bool(forKey: "debugPremiumUnlocked")
             #else
-            // Stub: 実際には UserDefaults や Keychain からリストアするか、StoreKit を参照します。
-            return UserDefaults.standard.bool(forKey: "unlocked_bass_\(self.rawValue)")
+            return StoreManager.shared.isUnlocked
             #endif
         }
         set {
@@ -331,8 +329,7 @@ enum PianoPlayer: String, JamPlayer, PremiumLockable {
             }
             return UserDefaults.standard.bool(forKey: "debugPremiumUnlocked")
             #else
-            // Stub: 実際には UserDefaults や Keychain からリストアするか、StoreKit を参照します。
-            return UserDefaults.standard.bool(forKey: "unlocked_piano_\(self.rawValue)")
+            return StoreManager.shared.isUnlocked
             #endif
         }
         set {

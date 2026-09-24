@@ -28,6 +28,8 @@ enum ScaleType: String, Codable, CaseIterable, Identifiable {
         #if DEBUG
         let unlocked = UserDefaults.standard.object(forKey: "debugPremiumUnlocked") == nil ? true : UserDefaults.standard.bool(forKey: "debugPremiumUnlocked")
         if unlocked { return false }
+        #else
+        if StoreManager.shared.isUnlocked { return false }
         #endif
         
         switch self {
