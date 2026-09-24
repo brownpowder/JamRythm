@@ -17,6 +17,7 @@ DAWコンソールスタイルのミキサーView。
 struct MixerView: View {
     @ObservedObject var viewModel: PlayEditorViewModel
     @Environment(\.dismiss) private var dismiss
+    @ObservedObject var store = StoreManager.shared
 
     var body: some View {
         NavigationStack {

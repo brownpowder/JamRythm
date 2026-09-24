@@ -16,6 +16,7 @@ import SwiftUI
 struct ChordCustomizerSheetView: View {
     @ObservedObject var viewModel: PlayEditorViewModel
     @Environment(\.dismiss) private var dismiss
+    @ObservedObject var store = StoreManager.shared
 
     @State private var selectedRoot: String
     @State private var selectedType: String

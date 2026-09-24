@@ -16,6 +16,7 @@ import SwiftUI
 struct SongStructureSheetView: View {
     @ObservedObject var viewModel: PlayEditorViewModel
     @Environment(\.dismiss) private var dismiss
+    @ObservedObject var store = StoreManager.shared
     @StateObject private var tourManager = TourManager.shared
 
     @State private var selectedCategory: SongStructureCategory = .fullSong

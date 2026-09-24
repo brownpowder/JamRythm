@@ -168,6 +168,11 @@ struct PremiumPaywallView: View {
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
+        .onChange(of: store.isPremium) { newValue in
+            if newValue {
+                dismiss()
+            }
+        }
     }
     
     private func featureRow(icon: String, color: Color, title: LocalizedStringKey, description: LocalizedStringKey) -> some View {
