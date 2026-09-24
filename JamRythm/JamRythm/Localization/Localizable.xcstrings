@@ -88,12 +88,12 @@
       }
     },
     "💜 ドラマチック (エモい)": {
-      "extractionState": "stale",
+      "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "💜 Dramatic (Emo)"
+            "value": "💜 Dramatic (Emotional)"
           }
         }
       }
@@ -2673,12 +2673,12 @@
       }
     },
     "挑戦的 (アブストラクト)": {
-      "extractionState": "stale",
+      "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Challenging (Abstract)"
+            "value": "Abstract (Challenging)"
           }
         }
       }
@@ -3133,6 +3133,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Failed to initialize audio engine: %@"
+          }
+        }
+      }
+    },
+    "🔥 スパイス (個性派)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "🔥 Spice (Unique)"
           }
         }
       }
