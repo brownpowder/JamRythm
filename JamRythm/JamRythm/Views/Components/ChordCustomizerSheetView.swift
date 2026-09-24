@@ -398,7 +398,7 @@ struct ChordCustomizerSheetView: View {
     セクション見出しタイトルとサブタイトルを描画するヘルパー。
     */
 
-    private func sectionTitle(_ title: String, subtitle: String) -> some View {
+    private func sectionTitle(_ title: LocalizedStringKey, subtitle: LocalizedStringKey) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title)
                 .font(.subheadline.bold())
