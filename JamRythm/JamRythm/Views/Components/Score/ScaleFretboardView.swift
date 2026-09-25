@@ -149,20 +149,26 @@ struct ScaleFretboardView: View {
                 }
             }
                         .frame(width: totalWidth, height: geometry.size.height)
-                        .gesture(
-                            DragGesture(minimumDistance: 0)
-                                .onChanged { value in
-                                    let size = CGSize(width: totalWidth, height: geometry.size.height)
-                                    if let note = getPianoTapNote(at: value.location, size: size) {
-                                        if note != lastPlayedMidiNote {
-                                            audioService?.playPreviewNote(note, instrument: .piano)
-                                            lastPlayedMidiNote = note
-                                        }
+                        .onTouch(
+                            down: { location in
+                                let size = CGSize(width: totalWidth, height: geometry.size.height)
+                                if let note = getPianoTapNote(at: location, size: size) {
+                                    audioService?.playPreviewNote(note, instrument: .piano)
+                                    lastPlayedMidiNote = note
+                                }
+                            },
+                            drag: { location in
+                                let size = CGSize(width: totalWidth, height: geometry.size.height)
+                                if let note = getPianoTapNote(at: location, size: size) {
+                                    if note != lastPlayedMidiNote {
+                                        audioService?.playPreviewNote(note, instrument: .piano)
+                                        lastPlayedMidiNote = note
                                     }
                                 }
-                                .onEnded { _ in
-                                    lastPlayedMidiNote = nil
-                                }
+                            },
+                            up: {
+                                lastPlayedMidiNote = nil
+                            }
                         )
                         
                         // C3 anchor (C1 is baseMidi=24, C3 is 2 octaves up = 14 white keys)
@@ -447,20 +453,26 @@ struct ScaleFretboardView: View {
                 )
             }
                 .frame(width: totalWidth, height: geometry.size.height)
-                .gesture(
-                    DragGesture(minimumDistance: 0)
-                        .onChanged { value in
-                            let size = CGSize(width: totalWidth, height: geometry.size.height)
-                            if let note = getGuitarTapNote(at: value.location, size: size) {
-                                if note != lastPlayedMidiNote {
-                                    audioService?.playPreviewNote(note, instrument: instrument)
-                                    lastPlayedMidiNote = note
-                                }
+                .onTouch(
+                    down: { location in
+                        let size = CGSize(width: totalWidth, height: geometry.size.height)
+                        if let note = getGuitarTapNote(at: location, size: size) {
+                            audioService?.playPreviewNote(note, instrument: instrument)
+                            lastPlayedMidiNote = note
+                        }
+                    },
+                    drag: { location in
+                        let size = CGSize(width: totalWidth, height: geometry.size.height)
+                        if let note = getGuitarTapNote(at: location, size: size) {
+                            if note != lastPlayedMidiNote {
+                                audioService?.playPreviewNote(note, instrument: instrument)
+                                lastPlayedMidiNote = note
                             }
                         }
-                        .onEnded { _ in
-                            lastPlayedMidiNote = nil
-                        }
+                    },
+                    up: {
+                        lastPlayedMidiNote = nil
+                    }
                 )
             }
         }
@@ -699,5 +711,91 @@ struct ScaleFretboardView: View {
             .foregroundColor(textColor)
 
         context.draw(context.resolve(labelText), at: center)
+    }
+}
+import SwiftUI
+
+struct TouchDownHandlerModifier: ViewModifier {
+    var onTouchDown: (CGPoint) -> Void
+    var onTouchDrag: (CGPoint) -> Void
+    var onTouchUp: () -> Void
+
+    func body(content: Content) -> some View {
+        content.background(
+            TouchHandlingView(
+                onTouchDown: onTouchDown,
+                onTouchDrag: onTouchDrag,
+                onTouchUp: onTouchUp
+            )
+        )
+    }
+}
+
+extension View {
+    func onTouch(
+        down: @escaping (CGPoint) -> Void,
+        drag: @escaping (CGPoint) -> Void,
+        up: @escaping () -> Void
+    ) -> some View {
+        self.modifier(TouchDownHandlerModifier(onTouchDown: down, onTouchDrag: drag, onTouchUp: up))
+    }
+}
+
+struct TouchHandlingView: UIViewRepresentable {
+    var onTouchDown: (CGPoint) -> Void
+    var onTouchDrag: (CGPoint) -> Void
+    var onTouchUp: () -> Void
+
+    func makeUIView(context: Context) -> _TouchUIView {
+        let view = _TouchUIView()
+        view.onTouchDown = onTouchDown
+        view.onTouchDrag = onTouchDrag
+        view.onTouchUp = onTouchUp
+        return view
+    }
+
+    func updateUIView(_ uiView: _TouchUIView, context: Context) {
+        uiView.onTouchDown = onTouchDown
+        uiView.onTouchDrag = onTouchDrag
+        uiView.onTouchUp = onTouchUp
+    }
+}
+
+class _TouchUIView: UIView {
+    var onTouchDown: ((CGPoint) -> Void)?
+    var onTouchDrag: ((CGPoint) -> Void)?
+    var onTouchUp: (() -> Void)?
+
+    init() {
+        super.init(frame: .zero)
+        self.isUserInteractionEnabled = true
+        self.backgroundColor = .clear
+        self.isMultipleTouchEnabled = true
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        super.touchesBegan(touches, with: event)
+        guard let touch = touches.first else { return }
+        onTouchDown?(touch.location(in: self))
+    }
+
+    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+        super.touchesMoved(touches, with: event)
+        guard let touch = touches.first else { return }
+        onTouchDrag?(touch.location(in: self))
+    }
+
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        super.touchesEnded(touches, with: event)
+        onTouchUp?()
+    }
+
+    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
+        super.touchesCancelled(touches, with: event)
+        onTouchUp?()
     }
 }
