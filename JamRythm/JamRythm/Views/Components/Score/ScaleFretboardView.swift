@@ -721,7 +721,7 @@ struct TouchDownHandlerModifier: ViewModifier {
     var onTouchUp: () -> Void
 
     func body(content: Content) -> some View {
-        content.background(
+        content.overlay(
             TouchHandlingView(
                 onTouchDown: onTouchDown,
                 onTouchDrag: onTouchDrag,
