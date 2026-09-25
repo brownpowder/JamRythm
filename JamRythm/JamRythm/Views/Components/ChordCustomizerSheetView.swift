@@ -170,21 +170,6 @@ struct ChordCustomizerSheetView: View {
                 }
             }
 
-            // 案内凡例バナー
-            HStack(spacing: 6) {
-                Image(systemName: "circle.circle.fill")
-                    .font(.system(size: 9))
-                    .foregroundColor(.accentColor)
-                Text(String(format: NSLocalizedString("濃い色ほど、現在の進行（Key: %@）に破綻せずスムーズに調和します", comment: ""), viewModel.project.key.rawValue))
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 4)
-            .background(Color(uiColor: .tertiarySystemGroupedBackground))
-            .cornerRadius(6)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 14)
@@ -204,7 +189,7 @@ struct ChordCustomizerSheetView: View {
 
     private var rootSelectorSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            sectionTitle("1. ルート音 (Root)", subtitle: "コードの基準となる土台の音")
+            sectionTitle("1. ルート音 (Root)")
 
             let columns = Array(repeating: GridItem(.flexible(), spacing: 6), count: 6)
             LazyVGrid(columns: columns, spacing: 6) {
@@ -248,7 +233,7 @@ struct ChordCustomizerSheetView: View {
 
     private var chordTypeSection: some View {
         VStack(alignment: .leading, spacing: 14) {
-            sectionTitle("2. コードの響き (Quality & Tension)", subtitle: "コードの響きやテンションを選択")
+            sectionTitle("2. コードの響き (Quality & Tension)")
 
             VStack(alignment: .leading, spacing: 6) {
                 Text("基本三和音 / サス")
@@ -330,7 +315,7 @@ struct ChordCustomizerSheetView: View {
     private var bassSelectorSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                sectionTitle("3. ベース音 (On-Chord / 分数コード)", subtitle: "ルートと異なるベース音で浮遊感やクリシェを演出")
+                sectionTitle("3. ベース音 (On-Chord / 分数コード)")
                 Spacer()
                 if !selectedBass.isEmpty {
                     Button("リセット") {
@@ -399,15 +384,10 @@ struct ChordCustomizerSheetView: View {
     セクション見出しタイトルとサブタイトルを描画するヘルパー。
     */
 
-    private func sectionTitle(_ title: LocalizedStringKey, subtitle: LocalizedStringKey) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(title)
-                .font(.subheadline.bold())
-                .foregroundColor(.primary)
-            Text(subtitle)
-                .font(.caption2)
-                .foregroundColor(.secondary)
-        }
+    private func sectionTitle(_ title: LocalizedStringKey) -> some View {
+        Text(title)
+            .font(.subheadline.bold())
+            .foregroundColor(.primary)
     }
 
     // MARK: - 親和性カラーヘルパー
