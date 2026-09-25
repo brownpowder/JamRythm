@@ -351,7 +351,11 @@ struct ChordCustomizerSheetView: View {
                             .padding(.vertical, 8)
                             .background(
                                 RoundedRectangle(cornerRadius: 8)
-                                    .fill(isSelected ? Color.purple : compatibilityColor(comp).opacity(0.14))
+                                    .fill(rootButtonFill(comp: comp, isSelected: isSelected))
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(rootButtonStroke(comp: comp, isSelected: isSelected), lineWidth: isSelected ? 2 : 1)
                             )
                     }
                     .buttonStyle(.plain)
@@ -415,8 +419,8 @@ struct ChordCustomizerSheetView: View {
     private func compatibilityColor(_ comp: HarmonicCompatibility) -> Color {
         switch comp {
         case .verySmooth: return .accentColor
-        case .dramatic: return .purple
-        case .flavorful: return .orange
+        case .dramatic: return .accentColor
+        case .flavorful: return .accentColor
         case .abstract: return .secondary
         }
     }
@@ -436,7 +440,7 @@ struct ChordCustomizerSheetView: View {
 
     private func rootButtonFill(comp: HarmonicCompatibility, isSelected: Bool) -> Color {
         if isSelected {
-            return .accentColor
+            return .orange
         }
         switch comp {
         case .verySmooth: return Color.accentColor.opacity(0.35)
@@ -461,7 +465,7 @@ struct ChordCustomizerSheetView: View {
 
     private func rootButtonStroke(comp: HarmonicCompatibility, isSelected: Bool) -> Color {
         if isSelected {
-            return .accentColor
+            return .orange
         }
         switch comp {
         case .verySmooth: return Color.accentColor.opacity(0.70)
