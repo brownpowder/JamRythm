@@ -307,19 +307,9 @@ struct SectionTimelineBarView: View {
             )
         }
         .buttonStyle(.plain)
-        .contextMenu {
-            Button {
-                viewModel.openChordCustomizer(forSection: sectionIndex, measureIndex: measureIndex)
-            } label: {
-                Label("コードを編集", systemImage: "pencil")
-            }
-
-            Button {
-                viewModel.playChordPreview(measure.activeChord)
-            } label: {
-                Label("コードを試聴", systemImage: "speaker.wave.2")
-            }
-        }
+        .simultaneousGesture(LongPressGesture(minimumDuration: 0.4).onEnded { _ in
+            viewModel.openChordCustomizer(forSection: sectionIndex, measureIndex: measureIndex)
+        })
     }
 
     /*
