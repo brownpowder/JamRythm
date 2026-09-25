@@ -318,9 +318,7 @@ struct SectionTimelineBarView: View {
         }) {
             VStack(spacing: 3) {
                 HStack(spacing: 2) {
-                    Text("\(measureIndex + 1)")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundColor(isFocused ? .accentColor : .secondary)
+
 
                     if isPlayingThisMeasure {
                         Circle()
@@ -343,10 +341,7 @@ struct SectionTimelineBarView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
 
-                Text("Base: \(measure.bassNote)")
-                    .font(.system(size: 9))
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
+
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 8)
