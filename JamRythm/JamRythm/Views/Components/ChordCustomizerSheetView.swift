@@ -331,6 +331,15 @@ struct ChordCustomizerSheetView: View {
             LazyVGrid(columns: columns, spacing: 6) {
                 ForEach(rootNotes, id: \.self) { note in
                     let isSelected = (selectedBass == note)
+                    let tempChord = Chord(rootNote: selectedRoot, type: selectedType, bassNote: note)
+                    let comp = viewModel.theoryService.chordCompatibility(
+                        chord: tempChord,
+                        key: viewModel.project.key,
+                        baseDegree: viewModel.editingBaseDegree,
+                        originalChord: viewModel.editingOriginalChord,
+                        nextChord: viewModel.editingNextChord
+                    )
+
                     Button(action: {
                         selectedBass = (selectedBass == note) ? "" : note
                         viewModel.playChordPreview(builtChord)
@@ -342,7 +351,7 @@ struct ChordCustomizerSheetView: View {
                             .padding(.vertical, 8)
                             .background(
                                 RoundedRectangle(cornerRadius: 8)
-                                    .fill(isSelected ? Color.purple : Color(uiColor: .secondarySystemGroupedBackground))
+                                    .fill(isSelected ? Color.purple : compatibilityColor(comp).opacity(0.14))
                             )
                     }
                     .buttonStyle(.plain)
