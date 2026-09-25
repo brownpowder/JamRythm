@@ -769,7 +769,7 @@ class _TouchUIView: UIView {
     init() {
         super.init(frame: .zero)
         self.isUserInteractionEnabled = true
-        self.backgroundColor = .clear
+        self.backgroundColor = UIColor.white.withAlphaComponent(0.005)
         self.isMultipleTouchEnabled = true
     }
 
@@ -780,6 +780,7 @@ class _TouchUIView: UIView {
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         super.touchesBegan(touches, with: event)
         guard let touch = touches.first else { return }
+        print("DEBUG: touchesBegan at \(touch.location(in: self))")
         onTouchDown?(touch.location(in: self))
     }
 
