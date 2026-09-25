@@ -288,6 +288,7 @@ struct ScaleFretboardView: View {
                     HStack(spacing: 2) {
                         Image(systemName: referenceMode == .chord ? "target" : "globe")
                             .font(.system(size: 8, weight: .bold))
+                            .frame(width: 12)
                         Text(LocalizedStringKey(referenceMode.shortName))
                             .font(.system(size: 9, weight: .bold))
                             .lineLimit(1)
@@ -309,10 +310,11 @@ struct ScaleFretboardView: View {
                     HStack(spacing: 2) {
                         Image(systemName: instrument == .piano ? "pianokeys" : "guitars")
                             .font(.system(size: 9, weight: .bold))
+                            .frame(width: 14)
                         Text(LocalizedStringKey(instrument.shortName))
                             .font(.system(size: 10, weight: .bold))
                             .lineLimit(1)
-                            .frame(width: 42, alignment: .leading)
+                            .frame(width: 40, alignment: .leading)
                     }
                     .foregroundColor(.accentColor)
                     .padding(.horizontal, 6)
