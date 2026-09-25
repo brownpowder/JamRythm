@@ -182,7 +182,7 @@ extension MusicTheoryService {
             // ユーザーのメンタルモデル（Keyの平行調のマイナー）に合わせて相対的なオフセットを使用
             // Cメジャーキーの時、Aヨナ抜き短音階（A, B, C, E, F）の構成音になるように [0, 4, 5, 9, 11] (C, E, F, A, B) を返す
             offsets = [0, 4, 5, 9, 11]
-            typeName = "Japanese"
+            typeName = "ヨナ抜きマイナー"
         }
 
         let semitones = offsets.map { (key.semitoneOffset + $0) % 12 }
@@ -225,7 +225,7 @@ extension MusicTheoryService {
         case .japanese:
             let offsets = [0, 2, 3, 7, 8]
             let semitones = offsets.map { (rootSemitone + $0) % 12 }
-            return (semitones, "\(chord.rootNote) " + NSLocalizedString("Japanese", comment: ""))
+            return (semitones, "\(chord.rootNote) " + NSLocalizedString("ヨナ抜きマイナー", comment: ""))
         default:
             let mode = calculateKeyAwareChordScaleMode(chord: chord, key: key) ?? chordScaleMode(for: chord.type)
             let offsets = (scaleType == .pentatonic) ? mode.pentaOffsets : mode.diatonicOffsets

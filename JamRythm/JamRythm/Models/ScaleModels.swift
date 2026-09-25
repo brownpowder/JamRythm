@@ -18,19 +18,14 @@ enum ScaleType: String, Codable, CaseIterable, Identifiable {
     case harmonicMinor = "ハーモニックマイナー"
     case melodicMinor = "メロディックマイナー"
     case ryukyu = "琉球音階"
-    case japanese = "Japanese"
+    case japanese = "ヨナ抜きマイナー"
 
     var isLocked: Bool {
         return isPremiumOnly
     }
 
     var isPremiumOnly: Bool {
-        #if DEBUG
-        let unlocked = UserDefaults.standard.object(forKey: "debugPremiumUnlocked") == nil ? true : UserDefaults.standard.bool(forKey: "debugPremiumUnlocked")
-        if unlocked { return false }
-        #else
         if StoreManager.shared.isUnlocked { return false }
-        #endif
         
         switch self {
         case .harmonicMinor, .ryukyu, .japanese: return true
@@ -47,7 +42,7 @@ enum ScaleType: String, Codable, CaseIterable, Identifiable {
         case .harmonicMinor: return "Harmonic Minor"
         case .melodicMinor: return "Melodic Minor"
         case .ryukyu: return "Ryukyu (5音)"
-        case .japanese: return "Japanese"
+        case .japanese: return "Yonanuki Minor"
         }
     }
 }
