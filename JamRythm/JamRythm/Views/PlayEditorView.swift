@@ -81,7 +81,7 @@ struct PlayEditorView: View {
                 }
                 .padding(.vertical, 14)
             }
-            .onChange(of: TourManager.shared.currentStep) { step in
+            .onChange(of: TourManager.shared.currentStep) { _, step in
                 print("📜 [PlayEditorView] ScrollView onChange step: \(step)")
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                     withAnimation {

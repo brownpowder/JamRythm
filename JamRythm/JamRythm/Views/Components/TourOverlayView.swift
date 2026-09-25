@@ -1,4 +1,14 @@
+
 import SwiftUI
+
+extension CGRect {
+    static var currentScreenBounds: CGRect {
+        UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .first?.screen.bounds ?? CGRect(x: 0, y: 0, width: 393, height: 852)
+    }
+}
+
 
 struct TourOverlayView: View {
     let spaceName: String
@@ -15,7 +25,7 @@ struct TourOverlayView: View {
                         return f
                     } else if manager.currentStep == .step1_createNewProject && spaceName == "TourSpace" {
                         // Approximate top right + button frame
-                        return CGRect(x: UIScreen.main.bounds.width - 50, y: 50, width: 44, height: 44)
+                        return CGRect(x: CGRect.currentScreenBounds.width - 50, y: 50, width: 44, height: 44)
                     }
                     return nil
                 }()
@@ -81,8 +91,8 @@ struct TourTooltipView: View {
         .shadow(radius: 10)
         // Position intelligently above or below the frame
         .position(
-            x: UIScreen.main.bounds.midX,
-            y: min(max(frame.minY > 200 ? frame.minY - 80 : frame.maxY + 80, 100), UIScreen.main.bounds.height - 100)
+            x: CGRect.currentScreenBounds.midX,
+            y: min(max(frame.minY > 200 ? frame.minY - 80 : frame.maxY + 80, 100), CGRect.currentScreenBounds.height - 100)
         )
     }
     

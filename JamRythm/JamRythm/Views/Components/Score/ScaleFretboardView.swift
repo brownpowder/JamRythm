@@ -33,7 +33,7 @@ struct ScaleFretboardView: View {
 
 
     private var availableScaleTypes: [ScaleType] {
-        var types: [ScaleType] = [.pentatonic, .diatonic, .japanese, .ryukyu]
+        let types: [ScaleType] = [.pentatonic, .diatonic, .japanese, .ryukyu]
 
         return types
     }
@@ -53,7 +53,7 @@ struct ScaleFretboardView: View {
             RoundedRectangle(cornerRadius: 12)
                 .fill(Color(uiColor: .tertiarySystemBackground))
         )
-        .onChange(of: instrument) { inst in
+        .onChange(of: instrument) { _, inst in
             if TourManager.shared.isActive && (TourManager.shared.currentStep == .step9_tapInstrumentMenu || TourManager.shared.currentStep == .step10_selectPiano) && inst == .piano {
                 TourManager.shared.currentStep = .step11_playPiano
             }
@@ -324,7 +324,7 @@ struct ScaleFretboardView: View {
                 }
                 .buttonStyle(.plain)
                 .tourSpotlight(.step9_tapInstrumentMenu)
-                .onChange(of: instrument) { newValue in
+                .onChange(of: instrument) { _, newValue in
                     if newValue == .piano {
                         audioService?.setLeadInstrument(.piano)
                     } else {
@@ -403,7 +403,7 @@ struct ScaleFretboardView: View {
                 let totalWidth = nutX + (fretWidth * CGFloat(numberOfFrets)) + paddingRight
                 
                 Canvas { context, size in
-                    let usableWidth = totalWidth - nutX - paddingRight
+//                     let usableWidth = totalWidth - nutX - paddingRight
                 let usableHeight = size.height - paddingTop - paddingBottom
 
                 let stringCount = (instrument == .guitar) ? 6 : 4
@@ -450,7 +450,7 @@ struct ScaleFretboardView: View {
     private func handleTap(at location: CGPoint, size: CGSize) {
         guard let audioService = audioService else { return }
         let nutX: CGFloat = 46.0
-        let paddingRight: CGFloat = 16.0
+//         let paddingRight: CGFloat = 16.0
         let paddingTop: CGFloat = 14.0
         let paddingBottom: CGFloat = 8.0
 

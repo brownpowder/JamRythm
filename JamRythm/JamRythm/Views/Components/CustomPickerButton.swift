@@ -168,7 +168,7 @@ struct PremiumPaywallView: View {
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
-        .onChange(of: store.isPremium) { newValue in
+        .onChange(of: store.isPremium) { _, newValue in
             if newValue {
                 dismiss()
             }

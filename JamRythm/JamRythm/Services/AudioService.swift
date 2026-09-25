@@ -1413,7 +1413,6 @@ final class AudioService: AudioServiceProtocol {
 
         let hasAnySolo = drumIsSolo || bassIsSolo || pianoIsSolo || leadIsSolo
         let pianoAudible = hasAnySolo ? (pianoIsSolo && !pianoIsMuted) : !pianoIsMuted
-        let leadAudible = hasAnySolo ? (leadIsSolo && !leadIsMuted) : !leadIsMuted
         guard pianoAudible && pianoVolume > 0.01 else { return }
 
         if !audioEngine.isRunning {

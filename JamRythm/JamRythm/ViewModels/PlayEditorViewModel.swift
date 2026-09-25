@@ -140,7 +140,7 @@ final class PlayEditorViewModel: ObservableObject {
         $project
             .dropFirst()
             .debounce(for: .seconds(2), scheduler: RunLoop.main)
-            .sink { [weak self] updatedProject in
+            .sink { updatedProject in
                 print("DEBUG: Auto-saving project: \(updatedProject.title)")
                 ProjectRepository.shared.save(updatedProject)
             }
