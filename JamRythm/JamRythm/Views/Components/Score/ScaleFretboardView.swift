@@ -302,37 +302,23 @@ struct ScaleFretboardView: View {
                 }
                 .buttonStyle(.plain)
 
-                // 楽器切替ピッカー
-                CustomPickerButton(
-                    options: ScaleInstrument.allCases,
-                    selection: $instrument,
-                    sheetTitle: "楽器表示選択"
-                ) {
+                // 楽器切替トグルボタン
+                Button(action: {
+                    instrument = (instrument == .guitar) ? .piano : .guitar
+                }) {
                     HStack(spacing: 2) {
                         Image(systemName: instrument == .piano ? "pianokeys" : "guitars")
-                            .font(.system(size: 8, weight: .bold))
+                            .font(.system(size: 10, weight: .bold))
                         Text(LocalizedStringKey(instrument.shortName))
-                            .font(.system(size: 9, weight: .bold))
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                            .frame(width: 40, alignment: .leading)
-                        Image(systemName: "chevron.up.chevron.down")
-                            .font(.system(size: 8))
-                            .foregroundColor(.secondary)
+                            .font(.system(size: 11, weight: .bold))
                     }
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 3)
-                    .background(Color(uiColor: .quaternarySystemFill))
-                    .foregroundColor(.secondary)
-                    .cornerRadius(5)
-                } optionRow: { inst in
-                    if inst == .piano {
-                        Text(LocalizedStringKey(inst.shortName)).font(.headline)
-                            .tourSpotlight(.step10_selectPiano, space: "PickerTourSpace")
-                    } else {
-                        Text(LocalizedStringKey(inst.shortName)).font(.headline)
-                    }
+                    .foregroundColor(.accentColor)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color.accentColor.opacity(0.15))
+                    .cornerRadius(8)
                 }
+                .buttonStyle(.plain)
                 .tourSpotlight(.step9_tapInstrumentMenu)
                 .onChange(of: instrument) { newValue in
                     if newValue == .piano {
