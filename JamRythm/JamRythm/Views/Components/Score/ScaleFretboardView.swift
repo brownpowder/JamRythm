@@ -24,6 +24,7 @@ struct ScaleFretboardView: View {
     @State private var instrument: ScaleInstrument = .guitar
     @State private var scaleType: ScaleType = .pentatonic
     @State private var referenceMode: ScaleReferenceMode = .key
+    @State private var lastPlayedMidiNote: UInt8? = nil
 
     @AppStorage("useJapaneseNoteNames") private var useJapaneseNoteNames: Bool = false
 
@@ -148,12 +149,21 @@ struct ScaleFretboardView: View {
                 }
             }
                         .frame(width: totalWidth, height: geometry.size.height)
-                        .onTapGesture { location in
-                            handlePianoTap(at: location, size: CGSize(width: totalWidth, height: geometry.size.height))
-                            // if TourManager.shared.isActive && TourManager.shared.currentStep == .step11_playPiano {
-                            //     TourManager.shared.advance()
-                            // }
-                        }
+                        .gesture(
+                            DragGesture(minimumDistance: 0)
+                                .onChanged { value in
+                                    let size = CGSize(width: totalWidth, height: geometry.size.height)
+                                    if let note = getPianoTapNote(at: value.location, size: size) {
+                                        if note != lastPlayedMidiNote {
+                                            audioService?.playPreviewNote(note, instrument: .piano)
+                                            lastPlayedMidiNote = note
+                                        }
+                                    }
+                                }
+                                .onEnded { _ in
+                                    lastPlayedMidiNote = nil
+                                }
+                        )
                         
                         // C3 anchor (C1 is baseMidi=24, C3 is 2 octaves up = 14 white keys)
                         Color.clear
@@ -171,8 +181,7 @@ struct ScaleFretboardView: View {
         }
     }
 
-    private func handlePianoTap(at location: CGPoint, size: CGSize) {
-        guard let audioService = audioService else { return }
+    private func getPianoTapNote(at location: CGPoint, size: CGSize) -> UInt8? {
         let whiteKeyCount = 43
         let whiteKeyWidth: CGFloat = 40.0
         let blackKeyWidth = whiteKeyWidth * 0.65
@@ -219,9 +228,7 @@ struct ScaleFretboardView: View {
             }
         }
         
-        if let midi = tappedMidiNote {
-            audioService.playPreviewNote(midi, instrument: .piano)
-        }
+        return tappedMidiNote
     }
 
     // MARK: - 上部コントロールバー（スケール名・Notes・切替スイッチ）
@@ -440,15 +447,26 @@ struct ScaleFretboardView: View {
                 )
             }
                 .frame(width: totalWidth, height: geometry.size.height)
-                .onTapGesture { location in
-                    handleTap(at: location, size: CGSize(width: totalWidth, height: geometry.size.height))
-                }
+                .gesture(
+                    DragGesture(minimumDistance: 0)
+                        .onChanged { value in
+                            let size = CGSize(width: totalWidth, height: geometry.size.height)
+                            if let note = getGuitarTapNote(at: value.location, size: size) {
+                                if note != lastPlayedMidiNote {
+                                    audioService?.playPreviewNote(note, instrument: instrument)
+                                    lastPlayedMidiNote = note
+                                }
+                            }
+                        }
+                        .onEnded { _ in
+                            lastPlayedMidiNote = nil
+                        }
+                )
             }
         }
     }
     
-    private func handleTap(at location: CGPoint, size: CGSize) {
-        guard let audioService = audioService else { return }
+    private func getGuitarTapNote(at location: CGPoint, size: CGSize) -> UInt8? {
         let nutX: CGFloat = 46.0
 //         let paddingRight: CGFloat = 16.0
         let paddingTop: CGFloat = 14.0
@@ -486,7 +504,7 @@ struct ScaleFretboardView: View {
             }
         }
         
-        guard let pos = tappedPos else { return }
+        guard let pos = tappedPos else { return nil }
         
         let baseMidi: UInt8
         switch pos.stringNumber {
@@ -500,7 +518,7 @@ struct ScaleFretboardView: View {
         }
         
         let midiNote = baseMidi + UInt8(pos.fret)
-        audioService.playPreviewNote(midiNote, instrument: instrument)
+        return midiNote
     }
 
     // MARK: - 描画ヘルパーメソッド
