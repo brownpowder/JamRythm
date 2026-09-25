@@ -128,9 +128,6 @@ struct SectionTimelineBarView: View {
                 }
             }
 
-            if isSelected {
-                focusedMeasureActionBar(section: section, sectionIndex: sectionIndex)
-            }
         }
         .padding(12)
         .background(
@@ -141,55 +138,6 @@ struct SectionTimelineBarView: View {
             RoundedRectangle(cornerRadius: 12)
                 .stroke(isSelected ? Color.accentColor.opacity(0.6) : Color.secondary.opacity(0.15), lineWidth: isSelected ? 1.5 : 1)
         )
-    }
-
-    /*
-    セクション内で現在フォーカスされている小節のコード情報と編集アクションバーを描画する。
-
-    Arguments:
-    section
-      表示対象のSectionデータ。
-    sectionIndex
-      セクションのインデックス番号。
-
-    Usage:
-    sectionCard内の小節グリッド直下に配置される。
-    */
-
-    @ViewBuilder
-    private func focusedMeasureActionBar(section: Section, sectionIndex: Int) -> some View {
-        if viewModel.currentMeasureIndex < section.measures.count {
-            let measure = section.measures[viewModel.currentMeasureIndex]
-            HStack(spacing: 8) {
-                HStack(spacing: 4) {
-                    // Removed measure index label
-
-                    Text(measure.activeChord.displayString)
-                        .font(.system(size: 13, weight: .bold, design: .rounded))
-                        .foregroundColor(.primary)
-                }
-
-                Spacer()
-
-                Button(action: {
-                    viewModel.openChordCustomizer(forSection: sectionIndex, measureIndex: viewModel.currentMeasureIndex)
-                }) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "pencil")
-                            .font(.system(size: 10, weight: .bold))
-                        Text("コードを変更")
-                            .font(.system(size: 11, weight: .bold))
-                    }
-                    .foregroundColor(.orange)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Color.orange.opacity(0.12))
-                    .cornerRadius(6)
-                }
-                .buttonStyle(.plain)
-            }
-            .padding(.top, 2)
-        }
     }
 
     /*
