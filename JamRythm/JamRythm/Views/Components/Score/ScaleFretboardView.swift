@@ -308,15 +308,17 @@ struct ScaleFretboardView: View {
                 }) {
                     HStack(spacing: 2) {
                         Image(systemName: instrument == .piano ? "pianokeys" : "guitars")
-                            .font(.system(size: 10, weight: .bold))
+                            .font(.system(size: 9, weight: .bold))
                         Text(LocalizedStringKey(instrument.shortName))
-                            .font(.system(size: 11, weight: .bold))
+                            .font(.system(size: 10, weight: .bold))
+                            .lineLimit(1)
+                            .frame(width: 42, alignment: .leading)
                     }
                     .foregroundColor(.accentColor)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
                     .background(Color.accentColor.opacity(0.15))
-                    .cornerRadius(8)
+                    .cornerRadius(5)
                 }
                 .buttonStyle(.plain)
                 .tourSpotlight(.step9_tapInstrumentMenu)
