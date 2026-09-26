@@ -346,7 +346,18 @@ final class AudioService: AudioServiceProtocol {
     var syncOffsetMs: Double = 0.0
 
     init() {
+        configureAudioSession()
         configureAudioNodes()
+    }
+
+    private func configureAudioSession() {
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
+            try session.setActive(true)
+        } catch {
+            print("Failed to configure AVAudioSession: \(error)")
+        }
     }
 
     deinit {
