@@ -74,15 +74,26 @@ class KRBassist: BaseBassPlayerEngine {
     override func pattern(for genre: MusicGenre, variation: Int, step: Int, root: UInt8, context: PlayerContext) -> [NoteEvent] {
         var events = [NoteEvent]()
         switch genre {
-        case .rock, .pop:
-            // ルート弾き主体のパンクスタイル
+        case .rock:
+            // ゴリゴリのパンクロック・8ビート（ドライブ感）
             if variation == 0 {
-                events.append(NoteEvent(note: root, velocity: 110)) // 全ステップ弾く
+                events.append(NoteEvent(note: root, velocity: step % 2 == 0 ? 120 : 105)) // 全ステップ弾くが強弱あり
             } else if variation == 1 {
-                events.append(NoteEvent(note: root, velocity: step % 2 == 0 ? 115 : 90))
+                events.append(NoteEvent(note: root, velocity: 115)) // 全ステップ強め
             } else {
-                if step % 2 == 0 { events.append(NoteEvent(note: root, velocity: 115)) }
-                if step == 3 || step == 7 { events.append(NoteEvent(note: root + 12, velocity: 100)) } // オクターブ上
+                if step % 2 == 0 { events.append(NoteEvent(note: root, velocity: 120)) }
+                if step == 3 || step == 7 { events.append(NoteEvent(note: root + 12, velocity: 110)) } // オクターブ上のアクセント
+            }
+        case .pop:
+            // Popでは少し落ち着きつつもロックみのあるルート弾き
+            if variation == 0 {
+                if step % 2 == 0 { events.append(NoteEvent(note: root, velocity: 100)) }
+            } else if variation == 1 {
+                if step % 2 == 0 { events.append(NoteEvent(note: root, velocity: 105)) }
+                if step == 3 { events.append(NoteEvent(note: root, velocity: 90)) } // シンコペーション
+            } else {
+                if step == 0 || step == 4 { events.append(NoteEvent(note: root, velocity: 110)) }
+                if step == 2 || step == 6 { events.append(NoteEvent(note: root, velocity: 90)) }
             }
         default:
             if variation == 0 {
@@ -208,18 +219,25 @@ class HarutoBassist: BaseBassPlayerEngine {
     
     override func pattern(for genre: MusicGenre, variation: Int, step: Int, root: UInt8, context: PlayerContext) -> [NoteEvent] {
         var events = [NoteEvent]()
-        // 正確でメロディックなルート弾き
-        if variation == 0 {
-            if step == 0 { events.append(NoteEvent(note: root, velocity: 95)) }
-            if step == 4 { events.append(NoteEvent(note: root + 7, velocity: 85)) } // 5th
-        } else if variation == 1 {
-            if step == 0 || step == 3 { events.append(NoteEvent(note: root, velocity: 95)) }
-            if step == 6 { events.append(NoteEvent(note: root, velocity: 80)) }
-        } else {
-            if step == 0 { events.append(NoteEvent(note: root, velocity: 95)) }
-            if step == 2 { events.append(NoteEvent(note: root, velocity: 85)) }
-            if step == 4 { events.append(NoteEvent(note: root + 7, velocity: 90)) }
-            if step == 6 { events.append(NoteEvent(note: root + 5, velocity: 85)) } // 4th
+        
+        switch genre {
+        case .rock:
+            // Rockではドライブ感を出すために8分音符で刻む
+            events.append(NoteEvent(note: root, velocity: step % 2 == 0 ? 105 : 85))
+        default:
+            // 正確でメロディックなルート弾き（王道Pop）
+            if variation == 0 {
+                if step == 0 { events.append(NoteEvent(note: root, velocity: 95)) }
+                if step == 4 { events.append(NoteEvent(note: root + 7, velocity: 85)) } // 5th
+            } else if variation == 1 {
+                if step == 0 || step == 3 { events.append(NoteEvent(note: root, velocity: 95)) }
+                if step == 6 { events.append(NoteEvent(note: root, velocity: 80)) }
+            } else {
+                if step == 0 { events.append(NoteEvent(note: root, velocity: 95)) }
+                if step == 2 { events.append(NoteEvent(note: root, velocity: 85)) }
+                if step == 4 { events.append(NoteEvent(note: root + 7, velocity: 90)) }
+                if step == 6 { events.append(NoteEvent(note: root + 5, velocity: 85)) } // 4th
+            }
         }
         return events
     }

@@ -80,6 +80,17 @@ class EmiPianist: BasePianoPlayerEngine {
     override func pattern(for genre: MusicGenre, variation: Int, step: Int, chordNotes: [UInt8], context: PlayerContext) -> [NoteEvent] {
         var events = [NoteEvent]()
         switch genre {
+        case .rock:
+            // ロックの場合は白玉で力強く押し切るか、8分で刻む
+            if variation == 0 {
+                if step % 4 == 0 {
+                    for note in chordNotes { events.append(NoteEvent(note: note, velocity: 105)) }
+                }
+            } else {
+                if step % 2 == 0 {
+                    for note in chordNotes { events.append(NoteEvent(note: note, velocity: 95)) }
+                }
+            }
         case .pop, .dance:
             if variation == 0 {
                 if step % 4 == 0 {

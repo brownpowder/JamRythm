@@ -194,9 +194,12 @@ private func basicGenrePattern(genre: MusicGenre, step: Int) -> [NoteEvent] {
         if step == 0 || step == 4 { notes.append(NoteEvent(note: 36, velocity: 110)) }
         if step == 2 || step == 6 { notes.append(NoteEvent(note: 38, velocity: 110)) }
     case .rock:
-        notes.append(NoteEvent(note: 42, velocity: 110))
-        if step == 0 || step == 3 || step == 4 { notes.append(NoteEvent(note: 36, velocity: 115)) }
-        if step == 2 || step == 6 { notes.append(NoteEvent(note: 38, velocity: 115)) }
+        // オープンハイハットやクラッシュを混ぜてハードに
+        if step % 2 == 1 { notes.append(NoteEvent(note: 46, velocity: 105)) } // オープンハイハット
+        else { notes.append(NoteEvent(note: 42, velocity: 115)) }
+        
+        if step == 0 || step == 3 || step == 4 { notes.append(NoteEvent(note: 36, velocity: 120)) } // キック強め
+        if step == 2 || step == 6 { notes.append(NoteEvent(note: 38, velocity: 125)) } // スネア強め
     case .dance:
         if step == 2 { notes.append(NoteEvent(note: 46, velocity: 100)) } else { notes.append(NoteEvent(note: 42, velocity: 90)) }
         if step % 2 == 0 { notes.append(NoteEvent(note: 36, velocity: 120)) }
